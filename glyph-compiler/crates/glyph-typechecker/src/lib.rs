@@ -1018,6 +1018,18 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// G500, D38: an arithmetic, bitwise or shift operator that mixes a
+    /// `bigint` with a `number` (`x + 1` with `x: bigint`), or `>>>` on a
+    /// `bigint`. `tsc` refuses both (TS2365) and JavaScript throws a
+    /// `TypeError` for both. Judged where both operands are typed; an
+    /// operand the checker cannot type is not judged.
+    #[error("{message}")]
+    BigIntOperator {
+        message: String,
+        help: String,
+        span: Span,
+    },
+
     /// G380, D5: `mut` before a call Glyph knows changes nothing: a method
     /// the generated rows mark non-mutating on an `Array<T>`, a `string` or a
     /// `number` (`mut xs.concat(ys)`, whose result is discarded), or a
@@ -1770,6 +1782,7 @@ impl TypeError {
             TypeError::MutationOutsideMut { span, .. } => *span,
             TypeError::MutOnNonMutatingCall { span, .. } => *span,
             TypeError::TextOrderSort { span, .. } => *span,
+            TypeError::BigIntOperator { span, .. } => *span,
             TypeError::AbsentBuiltinResult { span, .. } => *span,
             TypeError::DeprecatedBuiltinMember { span, .. } => *span,
             TypeError::NoTextForm { span, .. } => *span,
@@ -1828,6 +1841,7 @@ impl TypeError {
             TypeError::MutOnNonMutatingCall { .. } => "E0241",
             TypeError::AbsentBuiltinResult { .. } => "E0242",
             TypeError::TextOrderSort { .. } => "E0243",
+            TypeError::BigIntOperator { .. } => "E0258",
             TypeError::DeprecatedBuiltinMember { .. } => "E0244",
             TypeError::NoTextForm { .. } => "E0237",
             TypeError::TypeNameAsValue { .. } => "E0228",
@@ -1879,6 +1893,7 @@ impl TypeError {
         | TypeError::MutOnNonMutatingCall { help, .. }
         | TypeError::AbsentBuiltinResult { help, .. }
         | TypeError::TextOrderSort { help, .. }
+        | TypeError::BigIntOperator { help, .. }
         | TypeError::DeprecatedBuiltinMember { help, .. } = self
         {
             return Some(Cow::Owned(help.clone()));
@@ -1999,10 +2014,13 @@ impl TypeError {
             ..
         } = self
         {
+            let std = match receiver.std_module() {
+                Some(m) => format!("; `{m}` holds Glyph's own functions over it"),
+                None => String::new(),
+            };
             return Some(Cow::Owned(format!(
-                "Check the member name for a typo. `{type_name}` is {}, so its members are the ones TypeScript's library declares for it and no others; `{}` holds Glyph's own functions over it.",
+                "Check the member name for a typo. `{type_name}` is {}, so its members are the ones TypeScript's library declares for it and no others{std}.",
                 receiver.runtime_name(),
-                receiver.std_module(),
             )));
         }
         if let TypeError::UncalledBuiltinMethod {
@@ -2016,10 +2034,15 @@ impl TypeError {
                 Some(l) => format!("wrap the call in a lambda, `{l}`"),
                 None => format!("wrap the call in a lambda that calls `{call}`"),
             };
+            let std = match builtin.std_module() {
+                Some(m) => format!(
+                    " `{m}` holds Glyph's own functions over {}, which can be passed as values.",
+                    builtin.runtime_name()
+                ),
+                None => String::new(),
+            };
             return Some(Cow::Owned(format!(
-                "Call the method where it is read, `{call}`. To hand it on as a value, {wrap}; `.bind` and `.call` are refused like the read itself, because what they return is untyped in Glyph. `{}` holds Glyph's own functions over {}, which can be passed as values.",
-                builtin.std_module(),
-                builtin.runtime_name(),
+                "Call the method where it is read, `{call}`. To hand it on as a value, {wrap}; `.bind` and `.call` are refused like the read itself, because what they return is untyped in Glyph.{std}",
             )));
         }
         if let TypeError::NoTextForm { help, .. } | TypeError::CoalesceOnTagged { help, .. } = self {
@@ -2220,6 +2243,7 @@ impl TypeError {
             TypeError::MutOnNonMutatingCall { .. } => unreachable!("answered above with its computed help"),
             TypeError::AbsentBuiltinResult { .. } => unreachable!("answered above with its computed help"),
             TypeError::TextOrderSort { .. } => unreachable!("answered above with its computed help"),
+            TypeError::BigIntOperator { .. } => unreachable!("answered above with its computed help"),
             TypeError::DeprecatedBuiltinMember { .. } => unreachable!("answered above with its computed help"),
         }))
     }

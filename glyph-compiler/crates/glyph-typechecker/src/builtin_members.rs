@@ -2,7 +2,8 @@
 //! checks on them (G288).
 //!
 //! An `Array<T>` emits as a JavaScript array, a `string` as a JavaScript
-//! string and a `number` as a JavaScript number, so a member read on one
+//! string, a `number` as a JavaScript number and a `bigint` as a JavaScript
+//! bigint, so a member read on one
 //! (`xs.length`, `mut xs.push(x)`, `s.toUpperCase()`, `n.toFixed(2)`) is legal
 //! exactly when TypeScript's library declares the member. Nothing in Glyph declares these types, so before this table a
 //! misspelled member (`xs.lenght`) was checked by `tsc` alone: `glyph check
@@ -10,7 +11,7 @@
 //! record is E0210 with the record's fields listed.
 //!
 //! The lists are the property names of TypeScript's apparent type for
-//! `string[]`, `string`, `number` and `boolean` under `lib: ["esnext", "dom"]`, plus
+//! `string[]`, `string`, `number`, `boolean` and `bigint` under `lib: ["esnext", "dom"]`, plus
 //! the members every object inherits from `Object` (`hasOwnProperty`,
 //! `constructor`, ...), which `tsc` also accepts on each. The `boolean` list is
 //! read by the relation alone, to compare a `bool` with an interface (G502). Read with TypeScript 6.0.3's checker API
@@ -32,11 +33,12 @@ pub enum BuiltinReceiver {
     /// `string`, a string-literal union, or a refinement of `string`, all
     /// emitted as a JavaScript string.
     String,
-    /// `number`, and `int` and `bigint`, which the checker holds as a
-    /// `number`. A `bigint`'s members (`toString`, `toLocaleString`,
-    /// `valueOf`) are a subset of a number's, so no member a `bigint` has is
-    /// refused; a number-only member on one is left to `tsc`.
+    /// `number`, and `int`, which the checker holds as a `number`.
     Number,
+    /// `bigint` (D38), emitted as a JavaScript bigint. Its members are
+    /// TypeScript's `BigInt` interface plus `Object`'s, so `n.toFixed(2)`,
+    /// a number's member, is refused on one (G500).
+    BigInt,
 }
 
 impl BuiltinReceiver {
@@ -47,6 +49,7 @@ impl BuiltinReceiver {
             BuiltinReceiver::Array => ARRAY_MEMBERS,
             BuiltinReceiver::String => STRING_MEMBERS,
             BuiltinReceiver::Number => NUMBER_MEMBERS,
+            BuiltinReceiver::BigInt => BIGINT_MEMBERS,
         }
     }
 
@@ -61,27 +64,31 @@ impl BuiltinReceiver {
             BuiltinReceiver::Array => "a JavaScript array",
             BuiltinReceiver::String => "a JavaScript string",
             BuiltinReceiver::Number => "a JavaScript number",
+            BuiltinReceiver::BigInt => "a JavaScript bigint",
         }
     }
 
-    /// The standard-library module holding Glyph's functions over the value.
-    pub fn std_module(self) -> &'static str {
+    /// The standard-library module holding Glyph's functions over the value,
+    /// or `None` when the standard library has none (a `bigint`).
+    pub fn std_module(self) -> Option<&'static str> {
         match self {
-            BuiltinReceiver::Array => "std/array",
-            BuiltinReceiver::String => "std/string",
-            BuiltinReceiver::Number => "std/math",
+            BuiltinReceiver::Array => Some("std/array"),
+            BuiltinReceiver::String => Some("std/string"),
+            BuiltinReceiver::Number => Some("std/math"),
+            BuiltinReceiver::BigInt => None,
         }
     }
 
     /// Every method the receiver has, sorted by name, with the signature
     /// generated from TypeScript's library (G312). The members not here are
     /// its data properties: `length` on an array and a string, and
-    /// `constructor` on all three.
+    /// `constructor` on all four.
     pub fn methods(self) -> &'static [BuiltinMethod] {
         match self {
             BuiltinReceiver::Array => crate::builtin_methods::ARRAY_METHODS,
             BuiltinReceiver::String => crate::builtin_methods::STRING_METHODS,
             BuiltinReceiver::Number => crate::builtin_methods::NUMBER_METHODS,
+            BuiltinReceiver::BigInt => crate::builtin_methods::BIGINT_METHODS,
         }
     }
 
@@ -100,7 +107,7 @@ impl BuiltinReceiver {
 ///
 /// The rows live in `builtin_methods.rs`, which is generated: the script
 /// `scripts/check_builtin_members.py --write` asks the pinned TypeScript's
-/// checker for every method of `Array<T>`, `String`, `Number` and `Object`
+/// checker for every method of `Array<T>`, `String`, `Number`, `BigInt` and `Object`
 /// and writes one row each, and CI runs the same script without `--write`
 /// and fails when the committed file differs from what it would write. A
 /// hand-kept table would be the one part of this receiver model nobody reads
@@ -240,6 +247,8 @@ pub const fn opt(ty: MethodTy) -> MethodParam {
 pub enum MethodTy {
     Unknown,
     Number,
+    /// `bigint` (D38): what `valueOf` on a bigint returns.
+    BigInt,
     String,
     Bool,
     Void,
@@ -409,6 +418,17 @@ impl BooleanMembers {
     }
 }
 
+/// `bigint`'s members: `BigInt.prototype` under `esnext`, plus `Object`'s.
+const BIGINT_MEMBERS: &[&str] = &[
+    "constructor",
+    "hasOwnProperty",
+    "isPrototypeOf",
+    "propertyIsEnumerable",
+    "toLocaleString",
+    "toString",
+    "valueOf",
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -434,7 +454,7 @@ mod tests {
 
     #[test]
     fn member_lists_are_sorted_and_unique() {
-        for r in [BuiltinReceiver::Array, BuiltinReceiver::String, BuiltinReceiver::Number] {
+        for r in [BuiltinReceiver::Array, BuiltinReceiver::String, BuiltinReceiver::Number, BuiltinReceiver::BigInt] {
             let m = r.members();
             assert!(m.windows(2).all(|w| w[0] < w[1]), "{r:?} is not sorted and unique");
         }
@@ -449,7 +469,7 @@ mod tests {
     /// the rows are sorted as well.
     #[test]
     fn method_rows_are_the_members_less_the_data_properties() {
-        for r in [BuiltinReceiver::Array, BuiltinReceiver::String, BuiltinReceiver::Number] {
+        for r in [BuiltinReceiver::Array, BuiltinReceiver::String, BuiltinReceiver::Number, BuiltinReceiver::BigInt] {
             let rows = r.methods();
             assert!(rows.windows(2).all(|w| w[0].name < w[1].name), "{r:?} rows are not sorted and unique");
             for m in rows {
@@ -477,7 +497,7 @@ mod tests {
             mutating,
             ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"]
         );
-        for r in [BuiltinReceiver::String, BuiltinReceiver::Number] {
+        for r in [BuiltinReceiver::String, BuiltinReceiver::Number, BuiltinReceiver::BigInt] {
             assert!(r.methods().iter().all(|m| !m.mutates), "{r:?}");
         }
     }
@@ -493,6 +513,7 @@ mod tests {
         assert_eq!(absent(BuiltinReceiver::Array), ["at", "find", "findLast", "pop", "shift"]);
         assert_eq!(absent(BuiltinReceiver::String), ["at", "codePointAt", "match"]);
         assert!(absent(BuiltinReceiver::Number).is_empty());
+        assert!(absent(BuiltinReceiver::BigInt).is_empty());
     }
 
     /// The `deprecated` column (G389, E0244): read off `lib.d.ts`, so this
@@ -512,6 +533,7 @@ mod tests {
         );
         assert!(deprecated(BuiltinReceiver::Array).is_empty());
         assert!(deprecated(BuiltinReceiver::Number).is_empty());
+        assert!(deprecated(BuiltinReceiver::BigInt).is_empty());
         let named: Vec<_> = BuiltinReceiver::String
             .methods()
             .iter()
@@ -537,6 +559,13 @@ mod tests {
             assert!(BuiltinReceiver::Number.has(name), "{name}");
         }
         assert!(!BuiltinReceiver::Number.has("length"));
+        for name in ["toString", "toLocaleString", "valueOf"] {
+            assert!(BuiltinReceiver::BigInt.has(name), "{name}");
+        }
+        // A number's formatting members are not a bigint's (G500).
+        for name in ["toFixed", "toPrecision", "toExponential"] {
+            assert!(!BuiltinReceiver::BigInt.has(name), "{name}");
+        }
         assert!(!BuiltinReceiver::Array.has("lenght"));
         assert!(!BuiltinReceiver::String.has("toUppercase"));
     }

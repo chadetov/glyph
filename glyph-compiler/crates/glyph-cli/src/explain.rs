@@ -1458,8 +1458,11 @@ pub fn explain(code: &str) -> Option<&'static str> {
             After:   mut scores.sort(fn(a: number, b: number) -> number { return a - b })\n\n\
             Before:  let ranked = scores.toSorted()\n\
             After:   let ranked = array.sort(scores, fn(a: number, b: number) -> number { return a - b })\n\n\
-            The help writes the comparator for a `number` or an `int`, and \
-            names its type for anything else. For `toSorted`, and where a \
+            The help writes the comparator for a `number` or an `int`, \
+            and for a `bigint` one that compares with `<` and `>` and \
+            answers `-1`, `1` or `0` (a comparator returns a `number`, and \
+            `a - b` on two bigints is a `bigint`). It names the \
+            comparator's type for anything else. For `toSorted`, and where a \
             `sort`'s value is read (E0240 too), it writes `array.sort(xs, \
             cmp)`, which returns a sorted copy and leaves `xs` alone: \
             `toSorted` is newer than the `es2022` library the emitted \
@@ -1514,6 +1517,25 @@ pub fn explain(code: &str) -> Option<&'static str> {
             differently.\n\n\
             Not judged: a receiver the checker cannot type (an npm value), and \
             a call under `mut`, which is E0241.",
+
+        "E0258" => "E0258: an operator that mixes a `bigint` with a `number`\n\n\
+            A `bigint` (D38) is an exact integer of any size and a type of \
+            its own. JavaScript refuses to mix one with a `number` in \
+            arithmetic: `1n + 1` throws a TypeError at run time, and `tsc` \
+            refuses it (TS2365). The same holds for `-`, `*`, `/`, `%`, the \
+            bitwise operators and the shifts. `>>>` is refused on a `bigint` \
+            even beside another one, since a bigint has no fixed width and so \
+            no unsigned shift.\n\n\
+            Before:  fn next(id: bigint) -> bigint { return id + 1 }\n\
+            After:   fn next(id: bigint) -> bigint { return id + 1n }\n\n\
+            Before:  return mask >>> 2n\n\
+            After:   return mask >> 2n\n\n\
+            For a number literal the help writes it with the `n` suffix. A \
+            comparison (`<`, `>`, `<=`, `>=`) between a `bigint` and a \
+            `number` is legal and is not refused. Two bigints give a \
+            `bigint`, so `a - b` is not a comparator's `number`.\n\n\
+            Not judged: an operand the checker cannot type (an npm value, an \
+            unannotated result of another operator).",
 
         "E0244" => "E0244: a built-in member TypeScript marks deprecated (warning)\n\n\
             TypeScript's library marks 16 string members `@deprecated`: \
@@ -2703,6 +2725,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "A built-in member TypeScript's library marks `@deprecated` (G389). A warning rather than an error: the member runs in every engine and `tsc --strict` accepts it. The 16 are string members: `substr`, `trimLeft`, `trimRight` and the 13 HTML methods (`anchor`, `big`, `blink`, `bold`, `fixed`, `fontcolor`, `fontsize`, `italics`, `link`, `small`, `strike`, `sub`, `sup`), read or called, through `?.` included. The list is read from the pinned TypeScript when the member table is generated. A member of a value the checker cannot type (an npm package's, a node builtin's) is not judged",
         fix: "Write the replacement the help names: `s.slice(1, 3)` for `s.substr(1, 2)` (`substr` takes a length, `slice` an end, and they agree when both are whole numbers of zero or more), `s.trimStart()` for `s.trimLeft()`, `s.trimEnd()` for `s.trimRight()`, a template string such as `\"<b>${s}</b>\"` for `s.bold()`. `glyph fix` does not rewrite these",
+    },
+    CodeEntry {
+        code: "E0258",
+        phase: "typechecker",
+        meaning: "An arithmetic, bitwise or shift operator with a `bigint` on one side and a `number` (or `int`) on the other, or `>>>` on a `bigint` (G500, D38). JavaScript throws a TypeError for both and `tsc` refuses both (TS2365). A comparison between the two is legal and is not refused. An operand the checker cannot type is not judged",
+        fix: "Give both operands the same type. A number literal beside a `bigint` takes the `n` suffix (`id + 1n`); use `>>` for a `bigint`'s right shift. Glyph has no conversion between `number` and `bigint`",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

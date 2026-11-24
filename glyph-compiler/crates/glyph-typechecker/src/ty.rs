@@ -30,7 +30,7 @@ pub enum Ty {
     /// the legal v0 default everywhere we haven't propagated a real type.
     Unknown,
 
-    /// A built-in primitive: `string`, `number`, `bool`, `void`.
+    /// A built-in primitive: `string`, `number`, `bigint`, `bool`, `void`.
     Prim(Primitive),
 
     /// `unknown` — TypeScript's `unknown`. A top type; only assignable via an
@@ -478,6 +478,10 @@ impl From<glyph_resolver::SymbolId> for SymbolRef {
 pub enum Primitive {
     String,
     Number,
+    /// `bigint` (D38): an exact integer of any size, and its own type. It is
+    /// not a `number` and a `number` is not one, in either direction, as in
+    /// TypeScript; `int` (D31) is a `number`, so it is not a `bigint` either.
+    BigInt,
     Bool,
     Void,
 }
@@ -602,6 +606,7 @@ impl Primitive {
         match self {
             Primitive::String => "string",
             Primitive::Number => "number",
+            Primitive::BigInt => "bigint",
             Primitive::Bool => "bool",
             Primitive::Void => "void",
         }
@@ -699,6 +704,7 @@ mod tests {
     fn primitive_names_match_spec() {
         assert_eq!(Primitive::String.as_str(), "string");
         assert_eq!(Primitive::Number.as_str(), "number");
+        assert_eq!(Primitive::BigInt.as_str(), "bigint");
         assert_eq!(Primitive::Bool.as_str(), "bool");
         assert_eq!(Primitive::Void.as_str(), "void");
     }

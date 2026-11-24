@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""The checker's array, string and number member lists must be TypeScript's.
+"""The checker's array, string, number, boolean and bigint member lists must be TypeScript's.
 
 `glyph-typechecker/src/builtin_members.rs` holds every member a JavaScript
-array, a JavaScript string and a JavaScript number have, and the checker
-refuses a member read on `Array<T>`, `string` or `number` whose name is not in
-them (G288, E0210). The lists were
+array, string, number and bigint have, and the checker refuses a member read
+on `Array<T>`, `string`, `number` or `bigint` whose name is not in them
+(G288, E0210; `bigint` since G500). The boolean list is read by the relation
+alone (G502). The lists were
 read out of TypeScript's checker once, and a list read once is a snapshot: the
 next TypeScript that adds a method to `Array.prototype` makes Glyph refuse a
 program `tsc` accepts, and nothing in the Rust suite can notice, because the
@@ -74,12 +75,12 @@ CI_TOOLS = ROOT / ".github/ci-tools"
 
 # The header sentence naming the TypeScript the lists were read with.
 HEADER_VERSION = re.compile(r"Read with TypeScript (\d+\.\d+\.\d+)")
-ARRAY_RE = re.compile(r"const (ARRAY|STRING|NUMBER|BOOLEAN)_MEMBERS: &\[&str\] = &\[(.*?)\];", re.S)
+ARRAY_RE = re.compile(r"const (ARRAY|STRING|NUMBER|BOOLEAN|BIGINT)_MEMBERS: &\[&str\] = &\[(.*?)\];", re.S)
 
 PROBE = r"""
 const ts = require(process.argv[1]);
 const file = "probe.ts";
-const text = "declare const a: string[];\ndeclare const s: string;\ndeclare const n: number;\ndeclare const b: boolean;\n";
+const text = "declare const a: string[];\ndeclare const s: string;\ndeclare const n: number;\ndeclare const b: boolean;\ndeclare const g: bigint;\n";
 const options = { lib: ["lib.esnext.d.ts", "lib.dom.d.ts"], strict: true, noEmit: true };
 const host = ts.createCompilerHost(options);
 const read = host.getSourceFile.bind(host);
@@ -93,7 +94,7 @@ for (const stmt of program.getSourceFile(file).statements) {
   const t = checker.getApparentType(checker.getTypeAtLocation(decl.name));
   // Symbol-keyed members (`[Symbol.iterator]`) have no name a `.` read can spell.
   const names = checker.getPropertiesOfType(t).map((p) => p.getName()).filter((n) => !n.startsWith("__@"));
-  out[{ a: "array", s: "string", n: "number", b: "boolean" }[decl.name.text]] = names;
+  out[{ a: "array", s: "string", n: "number", b: "boolean", g: "bigint" }[decl.name.text]] = names;
 }
 // `Object.prototype`'s own members, read the same way.
 const objFile = "obj.ts";
@@ -155,6 +156,7 @@ function methods(name) {
   const elem = (declared.typeParameters || [])[0];
   const map = (t) => {
     if (t.flags & ts.TypeFlags.Number) return "Number";
+    if (t.flags & ts.TypeFlags.BigInt) return "BigInt";
     if (t.flags & ts.TypeFlags.String) return "String";
     if (t.flags & ts.TypeFlags.Boolean) return "Bool";
     if (t.flags & ts.TypeFlags.Void) return "Void";
@@ -276,7 +278,7 @@ function methods(name) {
 }
 const object = methods("Object");
 const result = { version: ts.version };
-for (const [key, name] of [["array", "Array"], ["string", "String"], ["number", "Number"], ["boolean", "Boolean"]]) {
+for (const [key, name] of [["array", "Array"], ["string", "String"], ["number", "Number"], ["boolean", "Boolean"], ["bigint", "BigInt"]]) {
   result[key] = { ...object, ...methods(name) };
 }
 result.deprecatedProperties = [...new Set(deprecatedProperties)].sort();
@@ -290,10 +292,11 @@ console.log(JSON.stringify(result));
 # only as the whole call of a `mut` statement (E0240), and `mut` before a
 # non-mutating one is E0241, so a row in the wrong set is either a false
 # refusal or a write the `^\s*mut ` audit misses.
-# The four receivers. `boolean` is read for one rule only: a `bool` compared
+# The five receivers. `boolean` is read for one rule only: a `bool` compared
 # with an interface through its apparent members (G502, decision record 196).
-# A member read on a `bool` is not checked against it (G507).
-KINDS = ("array", "string", "number", "boolean")
+# A member read on a `bool` is not checked against it (G507). `bigint` is a
+# receiver of its own (G500, D38).
+KINDS = ("array", "string", "number", "boolean", "bigint")
 
 MUTATING = {
     "array": {"copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"},
@@ -301,6 +304,7 @@ MUTATING = {
     "string": set(),
     "number": set(),
     "boolean": set(),
+    "bigint": set(),
 }
 OBJECT_METHODS = {
     "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "toLocaleString", "toString", "valueOf",
@@ -323,6 +327,7 @@ NON_MUTATING = {
     },
     "number": OBJECT_METHODS | {"toExponential", "toFixed", "toPrecision"},
     "boolean": OBJECT_METHODS,
+    "bigint": OBJECT_METHODS,
 }
 
 # The `Option` spelling of every method whose call can answer `undefined` or
@@ -347,6 +352,7 @@ ABSENT_REPLACEMENT = {
     },
     "number": {},
     "boolean": {},
+    "bigint": {},
 }
 
 
@@ -410,6 +416,7 @@ DEPRECATED_REPLACEMENT = {
     },
     "number": {},
     "boolean": {},
+    "bigint": {},
 }
 
 # A tag that names its replacement says so as "Use `X` instead".
@@ -857,7 +864,7 @@ def render_methods(got: dict) -> str:
         "// @generated by `python3 scripts/check_builtin_members.py --write`. Do not edit:",
         "// CI renders this file again and fails when the committed copy differs.",
         "",
-        "//! The methods of a JavaScript array, string, number and boolean, with the signature",
+        "//! The methods of a JavaScript array, string, number, boolean and bigint, with the signature",
         f"//! TypeScript {got['version']}'s library (`lib: [\"esnext\", \"dom\"]`) declares for",
         "//! each, mapped by the rules `builtin_members.rs` documents above",
         "//! `BuiltinMethod` (G312). Sorted by name: `BuiltinReceiver::method`",
@@ -943,7 +950,7 @@ def main() -> int:
     for kind, body in ARRAY_RE.findall(src):
         table[kind.lower()] = re.findall(r'"([^"]+)"', body)
     if set(table) != set(KINDS):
-        print(f"{TABLE.relative_to(ROOT)}: could not find ARRAY_MEMBERS, STRING_MEMBERS, NUMBER_MEMBERS and BOOLEAN_MEMBERS.")
+        print(f"{TABLE.relative_to(ROOT)}: could not find ARRAY_MEMBERS, STRING_MEMBERS, NUMBER_MEMBERS, BOOLEAN_MEMBERS and BIGINT_MEMBERS.")
         return 1
 
     r = subprocess.run(
@@ -1033,7 +1040,7 @@ def main() -> int:
         return 1
     print(
         f"builtin members OK: {len(table['array'])} array, {len(table['string'])} string, "
-        f"{len(table['number'])} number and {len(table['boolean'])} boolean members match TypeScript {got['version']} "
+        f"{len(table['number'])} number, {len(table['boolean'])} boolean and {len(table['bigint'])} bigint members match TypeScript {got['version']} "
         f"(esnext + dom, with Object's), every method is classified mutating or not and node "
         f"agrees on the array split, every absent-returning method has an `Option` spelling, "
         f"every deprecated method has a replacement that node confirms, "

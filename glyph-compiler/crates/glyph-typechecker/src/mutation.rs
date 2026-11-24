@@ -130,24 +130,40 @@ pub enum ElemKind {
 /// text (G388, E0243). JavaScript's default order converts each element to
 /// a string and compares those, so `[100, 9, 25]` sorts as `100, 25, 9`.
 /// What the message and the help need: the element type as the program
-/// wrote it (`int` stays `int`), and whether `a - b` orders it.
+/// wrote it (`int` stays `int`), and the comparator that orders it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextOrderSort {
     /// The element type as written, or as the checker displays it. `None`
     /// when it has no spelling a help can write (a part the checker could
     /// not type), so the help names no signature.
     pub elem: Option<String>,
-    /// `number` or `int`, written that way, which `a - b` orders. `bigint`
-    /// is not one: `a - b` on two of them is a `bigint`, not a `number`.
-    pub subtract: bool,
+    pub order: NumericOrder,
+}
+
+/// The comparator a help can write for a sort's elements.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NumericOrder {
+    /// `number` or `int`, written that way: `a - b` is a `number` that is
+    /// negative when `a` comes first.
+    Subtract,
+    /// A `bigint` (D38): `a - b` is a `bigint`, which a comparator may not
+    /// return, so the help compares and answers `-1`, `1` or `0`.
+    Compare,
+    /// Anything else: the help says what `cmp` is without writing it.
+    Unwritten,
 }
 
 impl TextOrderSort {
-    /// The comparator the help writes in full, for a `number` or an `int`.
+    /// The comparator the help writes in full, for a `number`, an `int` or
+    /// a `bigint`.
     pub(crate) fn comparator(&self) -> Option<String> {
-        match (&self.elem, self.subtract) {
-            (Some(e), true) => Some(format!("fn(a: {e}, b: {e}) -> number {{ return a - b }}")),
-            _ => None,
+        let e = self.elem.as_ref()?;
+        match self.order {
+            NumericOrder::Subtract => Some(format!("fn(a: {e}, b: {e}) -> number {{ return a - b }}")),
+            NumericOrder::Compare => Some(format!(
+                "fn(a: {e}, b: {e}) -> number {{ return match a < b {{ true => -1, false => match a > b {{ true => 1, false => 0, }}, }} }}"
+            )),
+            NumericOrder::Unwritten => None,
         }
     }
 
@@ -211,9 +227,10 @@ pub(crate) fn text_order_sort(
         Some(e) => format!("`{e}` values"),
         None => "its values".to_string(),
     };
-    let example = match t.subtract {
-        true => ", so `[100, 9, 25]` sorts as `100, 25, 9`",
-        false => "",
+    let example = match t.order {
+        NumericOrder::Subtract => ", so `[100, 9, 25]` sorts as `100, 25, 9`",
+        NumericOrder::Compare => ", so `[100n, 9n, 25n]` sorts as `100n, 25n, 9n`",
+        NumericOrder::Unwritten => "",
     };
     let message = format!("{quoted} with no comparator compares {values} as text{example}");
     let (arg, cmp_is) = t.argument();
@@ -701,7 +718,7 @@ fn gives(receiver: BuiltinReceiver, m: &BuiltinMethod) -> Gives {
             | "toLocaleUpperCase", _) => Gives::NewString,
             _ => Gives::Other,
         },
-        BuiltinReceiver::Number => Gives::Other,
+        BuiltinReceiver::Number | BuiltinReceiver::BigInt => Gives::Other,
     }
 }
 

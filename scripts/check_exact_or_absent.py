@@ -2109,6 +2109,42 @@ def case_interface_against_primitive_both_tools() -> tuple[bool, str]:
     return True, "a primitive and an interface get one answer from impact and from assignable"
 
 
+def case_bigint_is_not_a_number() -> tuple[bool, str]:
+    """A `bigint` is its own type (D38, G500), so no tool calls it a `number`.
+
+    The checker held `bigint` as `number` until G500, and `glyph_assignable`
+    answered COMPATIBLE for `bigint` against `number`, which `tsc` refuses
+    (TS2322). The two primitives are now compared like any two, so the
+    pairing is a decided refusal in both directions, and `int`, a `number`
+    (D31), is refused where a `bigint` is declared. An interface only a
+    `number` satisfies (`toFixed`) is refused for a `bigint`, because the
+    relation reads a `bigint`'s own apparent members (record 204): a
+    `bigint` has no `toFixed` and no `length`, and it has `toString`.
+    """
+    for frm, to in (("bigint", "number"), ("number", "bigint"), ("int", "bigint")):
+        got = assignable(CORPUS / ASSIGNABLE, frm, to)
+        if got.get("verdict") != "WILL_FAIL":
+            return False, f"`{frm}` into `{to}` is {got.get('verdict')}: {got}"
+        codes = [d.get("code") for d in got.get("diagnostics") or []]
+        if codes != ["E0204", "E0211"]:
+            return False, f"`{frm}` into `{to}` names no codes: {got}"
+    same = assignable(CORPUS / ASSIGNABLE, "bigint", "bigint")
+    if same.get("verdict") != "COMPATIBLE":
+        return False, f"`bigint` against itself is {same.get('verdict')}: {same}"
+    for path, to in (("src/main.glyph", "Fx"), ("src/iface.glyph", "HasLen")):
+        got = call(CORPUS / ASSIGNABLE, "glyph_assignable", {"path": path, "from": "bigint", "to": to})
+        if got.get("verdict") != "WILL_FAIL":
+            return False, f"`bigint` into `{to}` is {got.get('verdict', got)}, not WILL_FAIL"
+    # `Shows` asks for a method every value has. The checker does not refuse
+    # it, and its answer is the one a `number` gets: a method member is
+    # accepted only once function values are compared in full (G491).
+    shows = assignable(CORPUS / ASSIGNABLE, "bigint", "Shows")
+    number = assignable(CORPUS / ASSIGNABLE, "number", "Shows")
+    if shows.get("verdict") == "WILL_FAIL" or shows.get("verdict") != number.get("verdict"):
+        return False, f"`bigint` into `Shows` is {shows.get('verdict', shows)}, and `number` is {number.get('verdict')}"
+    return True, "`bigint` and `number` are refused both ways, and a `bigint` meets an interface by its own members"
+
+
 DEPENDENCIES = pathlib.Path("dependencies")
 EXPORTS = pathlib.Path("exports")
 
@@ -2315,6 +2351,7 @@ HARD = [
     ("a consequence needs a named change", case_a_change_is_required_for_a_consequence),
     ("assignability: no rule is not compatible", case_assignable_has_no_rule_and_says_so),
     ("a primitive and an interface, both tools", case_interface_against_primitive_both_tools),
+    ("assignability: a bigint is not a number", case_bigint_is_not_a_number),
     ("an edge out of a declaration is exact or unclaimed", case_dependencies_out_of_an_unreadable_module),
     ("an export surface is never [] by accident", case_exports_are_never_an_empty_list_by_accident),
 ]

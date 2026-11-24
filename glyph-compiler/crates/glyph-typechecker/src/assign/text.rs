@@ -7,8 +7,8 @@
 //! `+`.
 //!
 //! Text-like is an allowlist, `TextForm::of`'s first arm: `string`, a
-//! string-literal union, `number` (with `int` and `bigint`, which the checker
-//! holds as a `number`), `bool`, and `never`, reached directly or through
+//! string-literal union, `number` (with `int`, which the checker holds as a
+//! `number`), `bigint`, `bool`, and `never`, reached directly or through
 //! aliases and `where` refinements. Every other `Ty` falls through to a
 //! refusal, so a variant added to `Ty` later is refused here without this file
 //! changing. The checker's internal `Unknown` is the one exception: it means
@@ -66,6 +66,7 @@ enum NoText {
 enum Scalar {
     String,
     Number,
+    BigInt,
     Bool,
 }
 
@@ -197,7 +198,7 @@ impl Assigner<'_> {
                 return TextForm::TextLike;
             }
             let next = match &current {
-                Ty::Prim(Primitive::String | Primitive::Number | Primitive::Bool)
+                Ty::Prim(Primitive::String | Primitive::Number | Primitive::BigInt | Primitive::Bool)
                 | Ty::StringLiteralUnion(_)
                 | Ty::Never => return TextForm::TextLike,
                 Ty::Unknown => return TextForm::NotJudged,
@@ -288,7 +289,7 @@ impl Assigner<'_> {
         }
     }
 
-    /// Whether `ty` is a string, a number or a bool, through aliases.
+    /// Whether `ty` is a string, a number, a bigint or a bool, through aliases.
     fn scalar_of(&self, ty: &Ty) -> Option<Scalar> {
         if !matches!(self.text_form(ty), TextForm::TextLike) {
             return None;
@@ -303,6 +304,7 @@ impl Assigner<'_> {
                     return Some(Scalar::String)
                 }
                 Ty::Prim(Primitive::Number) => return Some(Scalar::Number),
+                Ty::Prim(Primitive::BigInt) => return Some(Scalar::BigInt),
                 Ty::Prim(Primitive::Bool) => return Some(Scalar::Bool),
                 Ty::Named { .. } if stdlib_type_path(&current) == Some(("sqlite", "Sql")) => {
                     return Some(Scalar::String)
@@ -458,6 +460,7 @@ impl Assigner<'_> {
                     let (suffix, default) = match scalar {
                         Scalar::String => ("text", "\"\""),
                         Scalar::Number => ("value", "0"),
+                        Scalar::BigInt => ("value", "0n"),
                         Scalar::Bool => ("value", "false"),
                     };
                     let name = bound(src, suffix);

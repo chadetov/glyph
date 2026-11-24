@@ -635,10 +635,9 @@ impl<'a> Lowerer<'a> {
             // `int` is a `number` to Glyph's checker; its integer-ness is a
             // runtime descriptor check, not a static type (TS has no `int`).
             PreludeKind::Int => Ty::Prim(Primitive::Number),
-            // `bigint` is permissive in Glyph's own checker (like `int`); `tsc`
-            // enforces the real bigint/number separation and rejects `123n`
-            // misuse, and the descriptor checks `typeof === "bigint"`.
-            PreludeKind::BigInt => Ty::Prim(Primitive::Number),
+            // `bigint` is a type of its own (D38), never a `number`: `tsc`
+            // refuses one where the other is declared, in both directions.
+            PreludeKind::BigInt => Ty::Prim(Primitive::BigInt),
             PreludeKind::Bool => Ty::Prim(Primitive::Bool),
             PreludeKind::Void => Ty::Prim(Primitive::Void),
             PreludeKind::UnknownTop => Ty::UnknownTop,
@@ -882,6 +881,14 @@ mod tests {
         assert!(matches!(
             lower_field("module x\ntype T = { f: number }\n", 0, 0),
             Ty::Prim(Primitive::Number)
+        ));
+    }
+
+    #[test]
+    fn primitive_bigint_lowers_to_its_own_type() {
+        assert!(matches!(
+            lower_field("module x\ntype T = { f: bigint }\n", 0, 0),
+            Ty::Prim(Primitive::BigInt)
         ));
     }
 

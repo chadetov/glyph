@@ -206,9 +206,17 @@ fn the_message_names_the_type_and_the_order_it_gives() {
         h,
         "pass a comparator: `mut xs.sort(cmp)`, where `cmp` is a `fn(a: User, b: User) -> number` that is negative when `a` comes first"
     );
-    // `a - b` on two `bigint`s is a `bigint`, so no comparator is written.
-    let (_, _, h) = refusals(&program("", "bigint", None, "  mut xs.sort()")).remove(0);
-    assert!(h.contains("`fn(a: bigint, b: bigint) -> number`"), "{h}");
+    // `a - b` on two `bigint`s is a `bigint`, which a comparator may not
+    // return (G500), so the comparator compares instead.
+    let (_, m, h) = refusals(&program("", "bigint", None, "  mut xs.sort()")).remove(0);
+    assert_eq!(
+        m,
+        "`xs.sort()` with no comparator compares `bigint` values as text, so `[100n, 9n, 25n]` sorts as `100n, 25n, 9n`"
+    );
+    assert_eq!(
+        h,
+        "pass a comparator: `mut xs.sort(fn(a: bigint, b: bigint) -> number { return match a < b { true => -1, false => match a > b { true => 1, false => 0, }, } })`"
+    );
 }
 
 #[test]
@@ -279,6 +287,33 @@ fn the_numeric_help_sorts_by_value() {
     assert_eq!(codes(&found), vec!["E0243"], "{found:#?}");
     let fixed = src.replace("mut scores.sort()", first_code(&found[0].2));
     let dir = project("run", &fixed);
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .current_dir(&dir)
+        .args(["run", "src/main.glyph"])
+        .output()
+        .expect("run glyph run");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("9,25,100"), "{stdout}\n{}", String::from_utf8_lossy(&out.stderr));
+}
+
+/// G500: an unannotated `[100n, 9n, 25n]` is an array of `bigint`s, and the
+/// comparator the help writes for it orders them by value when it runs.
+#[test]
+fn the_bigint_help_sorts_by_value() {
+    let src = "module main\n\
+        \n\
+        import std/string\n\
+        \n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let ids = [100n, 9n, 25n]\n\
+        \x20 mut ids.sort()\n\
+        \x20 print(string.join(ids.map(fn(n: bigint) -> string { \"${n}\" }), \",\"))\n\
+        \x20 return 0\n\
+        }\n";
+    let found = refusals(src);
+    assert_eq!(codes(&found), vec!["E0243"], "{found:#?}");
+    let fixed = src.replace("mut ids.sort()", first_code(&found[0].2));
+    let dir = project("run-bigint", &fixed);
     let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
         .current_dir(&dir)
         .args(["run", "src/main.glyph"])

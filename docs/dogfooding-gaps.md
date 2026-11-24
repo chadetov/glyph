@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-486 entries, 348 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-118 are open. G144, the D28 boundary cast that never reached the returns a
+487 entries, 348 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+119 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16740,7 +16740,20 @@ and is the owner's to confirm.
   parameter or the field the value is written into. Filed by the 0.1.185
   build (record 196, section 5, "file the follow-up from the range").
 
-  *Reproduced against 0.1.178 (the 0.1.185 branch build, before the version
-  bump): `glyph query impact --entity api::width --change change_arity`
+  *Reproduced against 0.1.184 (the 0.1.185 branch build on main after
+  0.1.184, before the version bump): `glyph query impact --entity api::width --change change_arity`
   answers `NOT_INDEXED` for `api::sizer`, and making the edit raises E0204
   there ("the function takes 2 parameters and the slot passes 1").*
+
+- **G532. A generic function value whose binding fails on its shape passes.**
+  `let k2: fn(string) -> number = first` with `fn first<T>(xs: Array<T>) ->
+  number` passes `check --no-tsc`, and `tsc` refuses it (TS2322): no `T`
+  makes `Array<T>` accept a `string`. G491's instantiation binds the value's
+  type parameters from the slot's parameter types and leaves the pairing
+  undecided when a binding fails, which is right when the failure depends on
+  `T` and wrong when the shapes disagree for every `T`. Refuse the second
+  case. Filed by record 202 (the review of 0.1.185).
+
+  *Reproduced against 0.1.184 (the 0.1.185 branch build on main after
+  0.1.184, before the version bump): the one-line program exits 0 under `check --no-tsc` with no
+  diagnostic.*

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-492 entries, 350 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-122 are open. G144, the D28 boundary cast that never reached the returns a
+495 entries, 351 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+124 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16982,14 +16982,58 @@ and is the owner's to confirm.
   `Box<number>` there is silent. Where `Record<string, number>` is
   declared it is the other way round: `Box<number>` is E0204, because the
   relation compares two applications base against base, and `HasV` is
-  silent; `tsc` refuses both (TS2322, an interface has no index
+  silent. `tsc` refuses both (TS2322: an interface has no implicit index
   signature). G461 reads an application through its arguments where one
-  is declared; this is the found side, which still reads an application
-  as its base. Deciding it means choosing whether D49's Glyph-only
-  refusal extends to an interface application, which no record has
-  ruled on. Filed by the 0.1.188 builder.
+  is declared; this is the found side. Filed by the 0.1.188 builder.
+
+  Decided by record 207 (ruling 2): an interface value is judged the same
+  whether its type is a plain interface or an application. Where a
+  declared record is declared it is refused, D49's Glyph-only nominal
+  refusal extended to applications; where a `Record<K, V>` map is declared
+  it is refused, as `tsc` refuses it. Limiting D49 to plain interfaces was
+  rejected, since the verdict would change with the spelling. Scheduled as
+  the next checker release after 0.1.188, ahead of G264; breaking.
 
   *Reproduced against 0.1.179 (the main build) and the dev-0.1.188-g461
   build: `check --no-tsc` gives E0204 for `HasV` into `Ord` and for
   `Box<number>` into `Record<string, number>`, and nothing for the other
   two.*
+
+  *Reproduced against 0.1.186 (the 0.1.188 branch build on 0.1.186, which
+  prints 0.1.186): the same two E0204s, and nothing for `Box<number>` into
+  `Ord` or `HasV` into `Record<string, number>`.*
+
+- **G537. The depth cap's reason says no rule exists.** With `interface
+  P<X> { next: P<Array<X>> }` and `type R = { next: R, }`, the relation
+  stops comparing `R` against `P<number>` at depth 32 (0.1.188) and
+  refuses nothing. `glyph query assignable` and the `change_signature_type`
+  cell answer UNDETERMINED, which is honest, but the reason says the
+  checker has no rule comparing a `R` value against a `P<number>`
+  declaration. The rule exists; the reason should say the comparison
+  recursed past depth 32 without deciding. Filed from record 207, ruling
+  3a.
+
+  *Reproduced against 0.1.179 (the dev-0.1.188-g461 build, which still reports 0.1.179) with record 207's `ap/`
+  probe: `query assignable` answers UNDETERMINED for `R` into `P<number>`
+  with the "no rule" sentence.*
+
+  *Reproduced against 0.1.186 (the 0.1.188 branch build on 0.1.186): the
+  same UNDETERMINED with the same sentence.*
+
+- **G538. A recursive pairing against an interface application is never
+  accepted.** With `interface Q<X> { next: Q<X>  v: X }` and `type S = {
+  next: S, v: number, }`, `S` where `Q<number>` is declared is
+  UNDETERMINED in `glyph query assignable`, though `tsc` accepts it and it
+  holds. The refusing relation already assumes a pairing it is in the
+  middle of comparing holds, so nothing is refused; the accepting face
+  claims no acceptance where an interface is declared. Treating a pairing
+  in progress as holding there too would decide regular recursive types
+  soundly, so the depth cap stops being the answer for them. Filed from
+  record 207, ruling 3b.
+
+  *Reproduced against 0.1.179 (the dev-0.1.188-g461 build, which still reports 0.1.179) with record 207's `ap/`
+  probe: `query assignable` answers UNDETERMINED for `S` into
+  `Q<number>`.*
+
+  *Reproduced against 0.1.186 (the 0.1.188 branch build on 0.1.186): still
+  UNDETERMINED.*

@@ -565,7 +565,7 @@ pub enum TypeError {
     /// deliberately narrow — assignability over named, generic, record, and
     /// function types is a later day — so it never fires on a type it can't
     /// judge with certainty.
-    #[error("type mismatch: expected `{expected}`, found `{found}`{}{}{}", missing_fields_suffix(.missing_fields), no_common_field_suffix(*.no_common_field, .expected), interface_reason_suffix(.interface_reason))]
+    #[error("type mismatch: expected `{expected}`, found `{found}`{}{}{}{}", missing_fields_suffix(.missing_fields), no_common_field_suffix(*.no_common_field, .expected), interface_reason_suffix(.interface_reason), fn_cause_suffix(.fn_cause))]
     TypeMismatch {
         expected: String,
         found: String,
@@ -600,6 +600,11 @@ pub enum TypeError {
         /// that an interface's value is an object. Appended to the sentence.
         /// `None` everywhere else.
         interface_reason: Option<String>,
+        /// Both types are function types, and this names the first position
+        /// at which they differ: the kind, the arity, a parameter or the
+        /// return (G434). Printed after both signatures. `None` everywhere
+        /// else.
+        fn_cause: Option<String>,
         span: Span,
     },
 
@@ -766,7 +771,7 @@ pub enum TypeError {
     /// application over a different base) — an argument or parameter whose type
     /// can't be judged stays permissive, so the check never produces a false
     /// positive.
-    #[error("argument type mismatch: expected `{expected}`, found `{found}`{}{}{}", missing_fields_suffix(.missing_fields), no_common_field_suffix(*.no_common_field, .expected), interface_reason_suffix(.interface_reason))]
+    #[error("argument type mismatch: expected `{expected}`, found `{found}`{}{}{}{}", missing_fields_suffix(.missing_fields), no_common_field_suffix(*.no_common_field, .expected), interface_reason_suffix(.interface_reason), fn_cause_suffix(.fn_cause))]
     ArgumentTypeMismatch {
         expected: String,
         found: String,
@@ -795,6 +800,8 @@ pub enum TypeError {
         unknown_value: bool,
         /// Same rule as `TypeMismatch::interface_reason`.
         interface_reason: Option<String>,
+        /// Same rule as `TypeMismatch::fn_cause`.
+        fn_cause: Option<String>,
         /// The help for a call argument refused because it is the wrong kind
         /// of function (D40 as amended for 0.1.159): a sync function where an
         /// async one is declared, or an async callback where a sync one that
@@ -1679,6 +1686,14 @@ pub enum Severity {
 /// The tail a refusal under the weak-type rule gets: the value is refused
 /// because it shares no field with a record whose fields are all optional,
 /// and nothing else about it is wrong, so the sentence has to say so.
+/// The position two function types differ at, after both signatures (G434).
+fn fn_cause_suffix(cause: &Option<String>) -> String {
+    match cause {
+        Some(c) => format!(": {c}"),
+        None => String::new(),
+    }
+}
+
 fn no_common_field_suffix(no_common_field: bool, expected: &str) -> String {
     if no_common_field {
         format!(": it has no field in common with `{expected}`, whose fields are all optional")

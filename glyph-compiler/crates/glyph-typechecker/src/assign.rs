@@ -2020,6 +2020,7 @@ impl Assigner<'_> {
                             unknown_value: r.unknown_value,
                             place: None,
                             interface_reason: r.interface_reason,
+                            fn_cause: r.fn_cause,
                             span: r.span,
                         });
                     }
@@ -2684,6 +2685,7 @@ impl Assigner<'_> {
                             unknown_value: r.unknown_value,
                             place: None,
                             interface_reason: r.interface_reason,
+                            fn_cause: r.fn_cause,
                             span: r.span,
                         });
                     }
@@ -2926,6 +2928,7 @@ impl Assigner<'_> {
                 record_key: r.record_key,
                 unknown_value: r.unknown_value,
                 interface_reason: r.interface_reason,
+                fn_cause: r.fn_cause,
                 place,
                 span: r.span,
             });
@@ -3805,6 +3808,7 @@ impl Assigner<'_> {
                                 record_key: r.record_key,
                                 unknown_value: r.unknown_value,
                                 interface_reason: r.interface_reason,
+                                fn_cause: r.fn_cause,
                                 kind_help: kind_help.clone(),
                                 span: r.span,
                             });
@@ -4430,6 +4434,7 @@ impl Assigner<'_> {
                     record_key: r.record_key,
                     unknown_value: r.unknown_value,
                     interface_reason: r.interface_reason,
+                    fn_cause: r.fn_cause,
                     kind_help: None,
                     span: r.span,
                 });
@@ -4487,6 +4492,7 @@ impl Assigner<'_> {
             record_key: None,
             unknown_value: false,
             interface_reason: None,
+            fn_cause: None,
             kind_help: None,
             span: j.name_span,
         });
@@ -5668,6 +5674,7 @@ impl Assigner<'_> {
                 unknown_value: r.unknown_value,
                 place: None,
                 interface_reason: r.interface_reason,
+                fn_cause: r.fn_cause,
                 span: r.span,
             });
         }
@@ -9016,6 +9023,7 @@ impl Assigner<'_> {
                 !self.assign_incompatible(&unknown_top_unread(&self.canonicalize_aliases(found)), expected);
             r.interface_reason =
                 self.interface_reason(found, expected, &r.found, &ty_display(&r.expected));
+            r.fn_cause = self.fn_cause(found, expected);
             return Some(r);
         }
         // The walk records `Ty::Unknown` for an object literal, so the type
@@ -9157,6 +9165,7 @@ impl Assigner<'_> {
             record_key: None,
             unknown_value: false,
             interface_reason: None,
+            fn_cause: self.fn_cause(found, &slot),
             kind_help: self.fn_kind_help(callee, args, arg, found, &slot),
             span: arg.span(),
         })
@@ -9168,9 +9177,10 @@ impl Assigner<'_> {
     /// `(a: T, b: T) => number`, and `builtin_callback_slot` holds it; the
     /// generated row types the parameter `unknown`, since a callback is not a
     /// shape a row spells. The return is judged by the relation, so a
-    /// comparator whose return it cannot decide is left alone. The
-    /// comparator's own parameter types are not compared with `T` here: the
-    /// relation compares no function's parameters yet (G491).
+    /// comparator whose return it cannot decide is left alone. Its parameters
+    /// are compared with `T` by the relation too (G491), so a comparator
+    /// taking `number`s on an `Array<string>` is refused, with a help that
+    /// names the element type.
     fn builtin_comparator_refusal(&self, callee: &Expr, args: &[Expr], index: usize, arg: &Expr) -> Option<TypeError> {
         let Expr::Member { field, .. } = callee else {
             return None;
@@ -9191,12 +9201,17 @@ impl Assigner<'_> {
             ),
             false => {
                 self.value_refusal(arg, &found, &slot)?;
-                "A comparator returns a `number`: below zero when `a` sorts first, above zero when `b` does, and zero when they tie.".to_string()
+                match self.fn_mismatch(&found, &slot) {
+                    Some(FnMismatch::Param { .. }) => format!(
+                        "A comparator is called with two elements of the array, each a `{elem}`. Write it to take them: `fn(a: {elem}, b: {elem}) -> number`."
+                    ),
+                    _ => "A comparator returns a `number`: below zero when `a` sorts first, above zero when `b` does, and zero when they tie.".to_string(),
+                }
             }
         };
         Some(TypeError::ArgumentTypeMismatch {
-            expected: fn_signature_text(&slot),
-            found: fn_signature_text(&found),
+            expected: ty_display(&slot),
+            found: ty_display(&found),
             accepted: None,
             missing_fields: Vec::new(),
             no_common_field: false,
@@ -9205,6 +9220,7 @@ impl Assigner<'_> {
             record_key: None,
             unknown_value: false,
             interface_reason: None,
+            fn_cause: self.fn_cause(&found, &slot),
             kind_help: Some(help),
             span: arg.span(),
         })
@@ -9660,6 +9676,7 @@ impl Assigner<'_> {
             record_key: None,
             unknown_value: false,
             interface_reason: None,
+            fn_cause: None,
             span,
         }
     }
@@ -9994,6 +10011,7 @@ impl Assigner<'_> {
                 record_key: r.record_key,
                 unknown_value: r.unknown_value,
                 interface_reason: r.interface_reason,
+                fn_cause: r.fn_cause,
                 kind_help: None,
                 span: r.span,
             }
@@ -10008,6 +10026,7 @@ impl Assigner<'_> {
                 unknown_value: r.unknown_value,
                 place: None,
                 interface_reason: r.interface_reason,
+                fn_cause: r.fn_cause,
                 span: r.span,
             }
         });
@@ -10871,33 +10890,187 @@ impl Assigner<'_> {
                 }
             }
         }
-        // G274. A function's return is compared through this relation, under
-        // the guards `fn_types_incompatible` documents (D40 as amended for
-        // 0.1.159: two kinds of function are decided by kind alone),
-        // so `fn() -> { o: { b: string } }` where `fn() -> { o: Other }` is
-        // declared is refused as `tsc` refuses it (TS2345, "call signature
-        // return types ... are incompatible"). The parameters are still
-        // compared by nothing.
-        if let (
+        // G274, G491. Two function types: by kind, by arity, by each
+        // parameter contravariantly and by the return, each through this
+        // whole relation (`fn_mismatch`).
+        if matches!((&found, &expected), (Ty::Fn { .. }, Ty::Fn { .. })) {
+            return self.fn_mismatch(&found, &expected).is_some();
+        }
+        definitely_incompatible(&found, &expected)
+    }
+
+    /// The first reason the function type `found` is refused where the
+    /// function type `expected` is declared, or `None` when it is not
+    /// refused. Read in this order, and the first that refuses is the one a
+    /// diagnostic names (G434):
+    ///
+    /// 1. **Kind** (D40 as amended for 0.1.159): an async function and a
+    ///    sync one are decided by kind alone, as `fn_kinds_incompatible`
+    ///    documents.
+    /// 2. **Arity** (G491): the value's required parameters against the
+    ///    number the slot passes. More is refused, since the function would
+    ///    run with a parameter it never received; fewer is accepted, as
+    ///    `tsc` accepts it, since a function may ignore what it is passed.
+    /// 3. **Parameters** (G491), contravariantly: the slot's i-th parameter
+    ///    type is what a caller passes, so it is compared as the value,
+    ///    against the function's own i-th parameter type as the declaration.
+    ///    `fn(number) -> string` where `fn(string) -> string` is declared is
+    ///    refused (TS2345), and so is `fn(string) -> void` where
+    ///    `fn(unknown) -> void` is (D65: the slot may pass anything).
+    /// 4. **Return** (G274), covariantly, with `void` on either side skipped:
+    ///    a value-returning function stands where a `void` one is declared,
+    ///    and an unannotated lambda's return lowers to `void` (G406), which
+    ///    must not be trusted as a return type.
+    ///
+    /// A generic function value (`id` with `fn id<T>(x: T) -> T`) is first
+    /// instantiated against the slot, by binding its type parameters against
+    /// the slot's parameter types with the call-site binder. When one is left
+    /// unbound the value is undecided and not refused: comparing `T` itself
+    /// would refuse `array.map(xs, id)` inside a generic body, where the
+    /// slot's parameter is that body's own rigid `T` (D58).
+    ///
+    /// An undecided pairing at any position (`Ty::Unknown`, a type parameter
+    /// this site does not decide) is not refused, as everywhere in the
+    /// relation.
+    ///
+    /// Interface method members are compared through this too, when a
+    /// record's function-typed field satisfies one (`assign_incompatible_at`'s
+    /// interface arm): contravariantly, which is stricter than `tsc`, where a
+    /// member written with method syntax is compared bivariantly. That
+    /// bivariance is the unsound case, and Glyph does not copy it.
+    fn fn_mismatch(&self, found: &Ty, expected: &Ty) -> Option<FnMismatch> {
+        let found = self.instantiate_fn_value(found, expected)?;
+        let (
             Ty::Fn {
+                params: fp,
                 return_ty: fr,
                 is_async: fa,
                 ..
             },
             Ty::Fn {
+                params: ep,
                 return_ty: er,
                 is_async: ea,
                 ..
             },
-        ) = (&found, &expected)
-        {
-            if ty_is_decidable(&found) && ty_is_decidable(&expected) {
-                return fn_kinds_incompatible(*fa, er, *ea).unwrap_or_else(|| {
-                    !is_void(fr) && !is_void(er) && self.assign_incompatible(fr, er)
+        ) = (&found, expected)
+        else {
+            return None;
+        };
+        if let Some(refused) = fn_kinds_incompatible(*fa, er, *ea) {
+            return refused.then_some(FnMismatch::Kind { value_async: *fa });
+        }
+        let takes = fp.iter().filter(|p| !p.optional).count();
+        if takes > ep.len() {
+            return Some(FnMismatch::Arity {
+                takes,
+                passes: ep.len(),
+            });
+        }
+        for (i, (f, e)) in fp.iter().zip(ep.iter()).enumerate() {
+            if self.assign_incompatible(&e.ty, &f.ty) {
+                return Some(FnMismatch::Param {
+                    index: i + 1,
+                    passed: e.ty.clone(),
+                    taken: f.ty.clone(),
                 });
             }
         }
-        definitely_incompatible(&found, &expected)
+        if !is_void(fr) && !is_void(er) && self.assign_incompatible(fr, er) {
+            return Some(FnMismatch::Return {
+                returned: fr.as_ref().clone(),
+                declared: er.as_ref().clone(),
+            });
+        }
+        None
+    }
+
+    /// A generic function value instantiated against the function type it is
+    /// given for: each of its own type parameters bound from the slot's
+    /// parameter types by `collect_type_param_bindings`, the binder a call
+    /// site uses, and substituted. A value that is not generic, or a slot
+    /// that is not a function type, is returned as it is. `None` when a type
+    /// parameter is left unbound, which makes the pairing undecided (G491).
+    fn instantiate_fn_value(&self, found: &Ty, slot: &Ty) -> Option<Ty> {
+        let (
+            Ty::Fn {
+                params: fp,
+                type_params: Some(own),
+                ..
+            },
+            Ty::Fn { params: sp, .. },
+        ) = (found, slot)
+        else {
+            return Some(found.clone());
+        };
+        if own.is_empty() {
+            return Some(found.clone());
+        }
+        let keys = self.call_param_keys(found, Some(own));
+        let mut subst: Subst = HashMap::new();
+        for (f, s) in fp.iter().zip(sp.iter()) {
+            collect_type_param_bindings(&f.ty, &s.ty, &mut subst, &keys);
+        }
+        if keys.iter().any(|k| !subst.contains_key(k)) {
+            return None;
+        }
+        match substitute_type_params(found, &subst) {
+            Ty::Fn {
+                params,
+                return_ty,
+                is_async,
+                ..
+            } => Some(Ty::Fn {
+                params,
+                return_ty,
+                is_async,
+                type_params: Some(Vec::new()),
+            }),
+            other => Some(other),
+        }
+    }
+
+    /// The sentence a refusal between two function types adds after both
+    /// signatures, naming the first position that refused (G434). `None`
+    /// for any other pairing, and for two function types the relation does
+    /// not refuse.
+    fn fn_cause(&self, found: &Ty, expected: &Ty) -> Option<String> {
+        let found = self.expand_transparent(found);
+        let expected = self.expand_transparent(expected);
+        if !matches!((&found, &expected), (Ty::Fn { .. }, Ty::Fn { .. })) {
+            return None;
+        }
+        let show = |t: &Ty| ty_display(&widen_literals(&self.named_params(t)));
+        Some(match self.fn_mismatch(&found, &expected)? {
+            FnMismatch::Kind { value_async: true } => {
+                "the function is `async` and the slot is not, so the slot gets a pending value"
+                    .to_string()
+            }
+            FnMismatch::Kind { value_async: false } => {
+                "the slot is `async` and the function is not, so the slot awaits a plain value"
+                    .to_string()
+            }
+            FnMismatch::Arity { takes, passes } => format!(
+                "the function takes {takes} parameter{} and the slot passes {passes}",
+                if takes == 1 { "" } else { "s" }
+            ),
+            FnMismatch::Param { index, passed, taken } => {
+                let passed = show(&passed);
+                format!(
+                    "parameter {index}: the slot passes {} `{passed}`, which the function's `{}` parameter does not take",
+                    article(&passed),
+                    show(&taken)
+                )
+            }
+            FnMismatch::Return { returned, declared } => {
+                let returned = show(&returned);
+                format!(
+                    "the return: the function returns {} `{returned}`, where the slot declares `{}`",
+                    article(&returned),
+                    show(&declared)
+                )
+            }
+        })
     }
 
     /// Whether `ty` is a stdlib type the checker models as opaque: a name with
@@ -10979,10 +11152,12 @@ impl Assigner<'_> {
     /// either side is left to the refusing relation (`rigid_param_verdict`),
     /// which refuses what it can read and leaves the rest undecided.
     ///
-    /// What is deliberately not here. Two function types: the relation
-    /// compares the returns and the `async` flag and says nothing at all about
-    /// the parameters, so a silent pass proves nothing about a parameter
-    /// mismatch. An interface as the declared type: the member-shape branch
+    /// One more from G491: two function types, when they are the same kind,
+    /// the value takes no more required parameters than the slot passes, each
+    /// slot parameter is accepted where the value's is declared, and the
+    /// return is accepted or the slot's is `void`.
+    ///
+    /// What is deliberately not here. An interface as the declared type: the member-shape branch
     /// returns "not refused" for a value whose field set it could not read at
     /// all, which is the exact shape of a rule that did not look. A pairing
     /// with `Ty::Unknown` or a `Ty::Param` this site does not decide on
@@ -11114,6 +11289,47 @@ impl Assigner<'_> {
                     "two structural records are compared field by field with width \
                      subtyping, and every required field of the declared type is present, \
                      not optional on the value's side, and of an accepted type",
+                )
+            }
+            // G491. The accepting face of `fn_mismatch`, total because every
+            // position that rule reads is asked here and must itself be
+            // accepted: the same kind, no more required parameters than the
+            // slot passes, each slot parameter accepted where the function's
+            // is declared, and the return accepted or a `void` declared. A
+            // `void` returned where a value is declared is not, since the
+            // refusing rule skips it (G406), so its silence there is no rule.
+            (Ty::Fn { .. }, Ty::Fn { .. }) => {
+                let found = self.instantiate_fn_value(&found, &expected)?;
+                let (
+                    Ty::Fn {
+                        params: fp,
+                        return_ty: fr,
+                        is_async: fa,
+                        ..
+                    },
+                    Ty::Fn {
+                        params: ep,
+                        return_ty: er,
+                        is_async: ea,
+                        ..
+                    },
+                ) = (&found, &expected)
+                else {
+                    return None;
+                };
+                if fa != ea || fp.iter().filter(|p| !p.optional).count() > ep.len() {
+                    return None;
+                }
+                for (f, e) in fp.iter().zip(ep.iter()) {
+                    self.accepting_rule(&e.ty, &f.ty)?;
+                }
+                if !is_void(er) {
+                    self.accepting_rule(fr, er)?;
+                }
+                Some(
+                    "two function types are compared by kind, by arity, by each parameter \
+                     contravariantly and by the return (G491), and every one of those \
+                     pairings is itself accepted",
                 )
             }
             // The accepting face of the same rule against a declared record,
@@ -11991,7 +12207,34 @@ struct Refusal {
     /// Why an interface and a primitive or an array were refused (G460,
     /// G502), for the sentence's tail. `None` everywhere else.
     interface_reason: Option<String>,
+    /// The first position at which two function types differ, as the
+    /// sentence the message adds after both signatures (G434). `None` for
+    /// every other refusal.
+    fn_cause: Option<String>,
     span: Span,
+}
+
+/// The indefinite article for a type as printed: "an `unknown`", "a `string`".
+fn article(shown: &str) -> &'static str {
+    match shown.trim_start_matches('"').chars().next() {
+        Some('a' | 'e' | 'i' | 'o' | 'u' | 'A' | 'E' | 'I' | 'O' | 'U') => "an",
+        _ => "a",
+    }
+}
+
+/// The first position at which a function type is refused where another is
+/// declared (`Assigner::fn_mismatch`), for the sentence the diagnostic adds
+/// (G434).
+enum FnMismatch {
+    /// One is `async` and the other is not (D40).
+    Kind { value_async: bool },
+    /// The function takes more required parameters than the slot passes.
+    Arity { takes: usize, passes: usize },
+    /// The slot passes `passed` at 1-based `index`, and the function's
+    /// parameter there is `taken`, which does not accept it.
+    Param { index: usize, passed: Ty, taken: Ty },
+    /// The function returns `returned` where the slot declares `declared`.
+    Return { returned: Ty, declared: Ty },
 }
 
 /// What a `Record`'s key can hold, for the invariance rule (G373, D30). Two
@@ -12145,8 +12388,10 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
 }
 
 /// Whether a function returning `fr` (`async` when `fa`) is provably not
-/// assignable where one returning `er` (`async` when `ea`) is expected.
-/// Parameter variance stays permissive.
+/// assignable where one returning `er` (`async` when `ea`) is expected, for
+/// the free function, which has no declaration in hand. The parameters are
+/// compared by `Assigner::fn_mismatch` (G491), which is what every checking
+/// site reaches; this reads the kind and the return only.
 ///
 /// Two functions of the same kind compare their returns covariantly, and
 /// `void` on either side is skipped: a value-returning function is assignable
@@ -12493,24 +12738,6 @@ fn builtin_method_ty(sig: &MethodSig, elem: &Ty, array: impl Fn(Ty) -> Ty) -> Ty
         return Ty::Unknown;
     };
     method_fn_ty(params.iter().copied(), *ret, elem, &array)
-}
-
-/// A function type written as Glyph spells one, `fn(string, string) ->
-/// number`, for a diagnostic that compares two of them. `ty_display` prints
-/// every function as `function`.
-fn fn_signature_text(ty: &Ty) -> String {
-    let Ty::Fn {
-        params,
-        return_ty,
-        is_async,
-        ..
-    } = ty
-    else {
-        return ty_display(ty);
-    };
-    let params: Vec<String> = params.iter().map(|p| ty_display(&p.ty)).collect();
-    let kw = if *is_async { "async fn" } else { "fn" };
-    format!("{kw}({}) -> {}", params.join(", "), ty_display(return_ty))
 }
 
 /// The type of a call's callee that is a built-in method with a rest
@@ -13941,12 +14168,14 @@ mod tests {
     }
 
     /// The rule that outranks the rest: a pairing no rule reads comes back as
-    /// no rule, never as an acceptance. Two function types are the shape of
-    /// it, because the relation compares the returns and skips the parameters.
+    /// no rule, never as an acceptance. A function returning `void` where one
+    /// returning a value is declared is the shape of it, because the relation
+    /// skips a `void` return (G406); since G491 it reads every other position
+    /// of two function types.
     #[test]
     fn assignability_reports_no_rule_where_the_relation_only_stayed_silent() {
         assert!(matches!(
-            assignability_of("module m\n", "fn(string) -> bool", "fn(number) -> bool"),
+            assignability_of("module m\n", "fn(string) -> void", "fn(string) -> bool"),
             Assignability::NoRule
         ));
         // A declared union where a prelude container is declared was the
@@ -14280,9 +14509,9 @@ mod tests {
             ("E0204", "T", "unknown"),
             ("E0204", "void", "unknown"),
             ("E0204", "never", "unknown"),
-            ("E0204", "function", "unknown"),
+            ("E0204", "fn(number) -> string", "unknown"),
             ("E0204", "Array<string>", "Array<unknown>"),
-            ("E0204", "function", "function"),
+            ("E0204", "fn(number) -> string", "fn(number) -> unknown"),
             ("E0211", "string", "unknown"),
         ]
         .into_iter()
@@ -26686,5 +26915,194 @@ pub fn f() -> number {
         .map(|(l, e, f)| (l, e.to_string(), f.to_string()))
         .collect();
         assert_eq!(got, want, "{:?}", errors_of(src));
+    }
+
+    /// The (code, message) of every E0204 and E0211 in `src`.
+    fn mismatches_of(src: &str) -> Vec<(&'static str, String)> {
+        errors_of(src)
+            .into_iter()
+            .filter(|e| matches!(e.code(), "E0204" | "E0211"))
+            .map(|e| (e.code(), e.to_string()))
+            .collect()
+    }
+
+    /// G491, record 196's probe `g491b`. A function value's parameters are
+    /// compared contravariantly and its arity against what the slot passes,
+    /// and G434: both signatures are printed, with the first position that
+    /// differs. `tsc` refuses each (TS2345, TS2322).
+    #[test]
+    fn a_function_value_is_refused_by_a_parameter_or_by_its_arity() {
+        let got = mismatches_of(
+            "module m\n\
+             fn takes_cb(f: fn(string) -> string) -> string {\n  return f(\"a\")\n}\n\
+             pub fn a() -> string {\n  return takes_cb(fn(x: number) -> string { return \"n\" })\n}\n\
+             pub fn b(g: fn(string) -> void) -> number {\n  let k: fn(unknown) -> void = g\n  return 1\n}\n\
+             pub fn c(h: fn(number) -> void) -> number {\n  let k2: fn(string) -> void = h\n  return 1\n}\n\
+             pub fn g(h: fn(string, number) -> void) -> number {\n  let k6: fn(string) -> void = h\n  return 1\n}\n",
+        );
+        let want = vec![
+            (
+                "E0211",
+                "argument type mismatch: expected `fn(string) -> string`, found `fn(number) -> string`: \
+                 parameter 1: the slot passes a `string`, which the function's `number` parameter does not take",
+            ),
+            (
+                "E0204",
+                "type mismatch: expected `fn(unknown) -> void`, found `fn(string) -> void`: \
+                 parameter 1: the slot passes an `unknown`, which the function's `string` parameter does not take",
+            ),
+            (
+                "E0204",
+                "type mismatch: expected `fn(string) -> void`, found `fn(number) -> void`: \
+                 parameter 1: the slot passes a `string`, which the function's `number` parameter does not take",
+            ),
+            (
+                "E0204",
+                "type mismatch: expected `fn(string) -> void`, found `fn(string, number) -> void`: \
+                 the function takes 2 parameters and the slot passes 1",
+            ),
+        ];
+        let want: Vec<(&str, String)> = want.into_iter().map(|(c, m)| (c, m.to_string())).collect();
+        assert_eq!(got, want);
+    }
+
+    /// G491. What `tsc` accepts stays accepted: a function taking `unknown`
+    /// where one taking `string` is declared, one taking fewer parameters
+    /// than the slot passes, one whose parameter is wider through a union,
+    /// and a value-returning function where a `void` one is declared.
+    #[test]
+    fn a_wider_parameter_and_fewer_parameters_are_accepted() {
+        let got = mismatches_of(
+            "module m\n\
+             pub fn d(h: fn(unknown) -> void) -> number {\n  let k3: fn(string) -> void = h\n  return 1\n}\n\
+             pub fn f(h: fn(string) -> void) -> number {\n  let k5: fn(string, number) -> void = h\n  return 1\n}\n\
+             pub fn n(h: fn() -> number) -> number {\n  let k7: fn(string) -> void = h\n  return 1\n}\n\
+             pub fn o(h: fn(Nullable<string>) -> number) -> number {\n  let k8: fn(string) -> number = h\n  return 1\n}\n",
+        );
+        assert!(got.is_empty(), "{got:?}");
+    }
+
+    /// G434, record 196's probe `g491` L27: a refusal that only the return
+    /// decides names both signatures and the return.
+    #[test]
+    fn a_return_mismatch_prints_both_signatures() {
+        let got = mismatches_of(
+            "module m\n\
+             pub fn e(h: fn(string) -> number) -> number {\n  let k4: fn(string) -> string = h\n  return 1\n}\n",
+        );
+        assert_eq!(
+            got,
+            vec![(
+                "E0204",
+                "type mismatch: expected `fn(string) -> string`, found `fn(string) -> number`: \
+                 the return: the function returns a `number`, where the slot declares `string`"
+                    .to_string()
+            )]
+        );
+    }
+
+    /// G434 for the kind (D40): an async function where a sync one is
+    /// declared prints both signatures and says which side is async.
+    #[test]
+    fn a_kind_mismatch_prints_both_signatures_and_the_async_side() {
+        let got = mismatches_of(
+            "module m\n\
+             pub fn asy(f: async fn(string) -> number) -> number {\n  let g: fn(string) -> number = f\n  return 1\n}\n",
+        );
+        assert_eq!(
+            got,
+            vec![(
+                "E0204",
+                "type mismatch: expected `fn(string) -> number`, found `async fn(string) -> number`: \
+                 the function is `async` and the slot is not, so the slot gets a pending value"
+                    .to_string()
+            )]
+        );
+    }
+
+    /// G491, record 196's probe `g491c`. A generic function value is
+    /// instantiated against the slot before it is compared, so `takes(id)`,
+    /// `array.map(xs, id)` and the same inside a generic body (where the
+    /// slot's parameter is the body's own rigid `T`, D58) are accepted, as
+    /// is a generic value the slot cannot bind. A lambda taking a `string`
+    /// given to `array.map` over an `Array<number>` is refused at the lambda.
+    #[test]
+    fn a_generic_function_value_is_instantiated_against_the_slot() {
+        let got = mismatches_of(
+            "module m\n\
+             import std/array\n\
+             fn id<T>(x: T) -> T {\n  return x\n}\n\
+             fn make<T>() -> Array<T> {\n  return []\n}\n\
+             fn takes(f: fn(string) -> string) -> string {\n  return f(\"a\")\n}\n\
+             fn mk(f: fn() -> Array<string>) -> number {\n  return 1\n}\n\
+             pub fn a() -> string {\n  return takes(id)\n}\n\
+             pub fn b(xs: Array<string>) -> Array<string> {\n  return array.map(xs, id)\n}\n\
+             pub fn g<T>(xs: Array<T>) -> Array<T> {\n  return array.map(xs, id)\n}\n\
+             pub fn h() -> number {\n  return mk(make)\n}\n\
+             pub fn c(xs: Array<number>) -> Array<string> {\n  return array.map(xs, fn(x: string) -> string { return x })\n}\n",
+        );
+        assert_eq!(
+            got,
+            vec![(
+                "E0211",
+                "argument type mismatch: expected `fn(number) -> string`, found `fn(string) -> string`: \
+                 parameter 1: the slot passes a `number`, which the function's `string` parameter does not take"
+                    .to_string()
+            )]
+        );
+    }
+
+    /// G491. A record whose function-typed field satisfies an interface
+    /// method member is compared contravariantly, which is stricter than
+    /// `tsc`'s bivariant method parameters, deliberately.
+    #[test]
+    fn an_interface_method_member_is_compared_contravariantly() {
+        let got = mismatches_of(
+            "module m\n\
+             interface Ranker {\n  fn rank(s: string) -> number\n}\n\
+             fn use_r(r: Ranker) -> number {\n  return r.rank(\"a\")\n}\n\
+             pub fn m() -> number {\n  return use_r({ rank: fn(n: number) -> number { return n } })\n}\n\
+             pub fn m2() -> number {\n  return use_r({ rank: fn(s: string) -> number { return 1 } })\n}\n\
+             pub fn m3() -> number {\n  return use_r({ rank: fn(u: unknown) -> number { return 1 } })\n}\n",
+        );
+        assert_eq!(got.len(), 1, "{got:?}");
+        assert_eq!(got[0].0, "E0211");
+        assert!(got[0].1.contains("the function's `number` parameter"), "{got:?}");
+    }
+
+    /// G491, the accepting face: `glyph query assignable` answers COMPATIBLE
+    /// only where every position is accepted, and UNDETERMINED where the
+    /// refusing rule skips (a `void` return where a value is declared).
+    #[test]
+    fn assignability_decides_two_function_types() {
+        let src = "module m\n";
+        assert!(matches!(
+            assignability_of(src, "fn(string) -> string", "fn(string) -> string"),
+            Assignability::Compatible { .. }
+        ));
+        assert!(matches!(
+            assignability_of(src, "fn(string) -> void", "fn(string, number) -> void"),
+            Assignability::Compatible { .. }
+        ));
+        assert!(matches!(
+            assignability_of(src, "fn(unknown) -> number", "fn(string) -> void"),
+            Assignability::Compatible { .. }
+        ));
+        assert!(matches!(
+            assignability_of(src, "fn(number) -> string", "fn(string) -> string"),
+            Assignability::Incompatible
+        ));
+        assert!(matches!(
+            assignability_of(src, "fn(string, number) -> void", "fn(string) -> void"),
+            Assignability::Incompatible
+        ));
+        assert!(matches!(
+            assignability_of(src, "fn(string) -> void", "fn(string) -> number"),
+            Assignability::NoRule
+        ));
+        assert!(matches!(
+            assignability_of(src, "async fn(string) -> number", "async fn(string) -> number"),
+            Assignability::Compatible { .. }
+        ));
     }
 }

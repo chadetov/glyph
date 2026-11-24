@@ -618,7 +618,16 @@ impl Primitive {
 /// render precisely; composite types fall back to a category word, and
 /// anything else renders as `?`. The shared renderer for the whole crate.
 pub(crate) fn ty_display(ty: &Ty) -> String {
+    display_in(ty, &[])
+}
+
+/// `ty_display` inside the signature of a generic function, whose own type
+/// parameters (`named`) print by name: `fn<T>(T) -> T`. Every other type
+/// parameter prints as `?`, as it does everywhere.
+fn display_in(ty: &Ty, named: &[Ident]) -> String {
+    let ty_display = |t: &Ty| display_in(t, named);
     match ty {
+        Ty::Param { name, .. } if named.contains(name) => name.to_string(),
         Ty::Prim(p) => p.as_str().to_string(),
         Ty::UnknownTop => "unknown".to_string(),
         Ty::Never => "never".to_string(),
@@ -626,11 +635,33 @@ pub(crate) fn ty_display(ty: &Ty) -> String {
             path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
         }
         Ty::Record { .. } => "record".to_string(),
-        // The `async` half is spelled out: an async/sync mismatch is a real
-        // diagnostic (D40), and "expected `function`, found `function`" would
-        // name nothing.
-        Ty::Fn { is_async: true, .. } => "async function".to_string(),
-        Ty::Fn { .. } => "function".to_string(),
+        // The signature, as the type is written (G434): "expected
+        // `function`, found `function`" named neither side, and a refusal
+        // between two function types is about which parameter or which
+        // return differs. The `async` half is spelled too (D40). Parameter
+        // names are left out, since they take no part in the comparison.
+        Ty::Fn {
+            params,
+            return_ty,
+            is_async,
+            type_params,
+        } => {
+            let own = type_params.as_deref().unwrap_or(&[]);
+            let mut inner: Vec<Ident> = named.to_vec();
+            inner.extend(own.iter().cloned());
+            let generics = if own.is_empty() {
+                String::new()
+            } else {
+                format!("<{}>", own.iter().map(|n| n.as_ref()).collect::<Vec<_>>().join(", "))
+            };
+            let params = params
+                .iter()
+                .map(|p| display_in(&p.ty, &inner))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let prefix = if *is_async { "async " } else { "" };
+            format!("{prefix}fn{generics}({params}) -> {}", display_in(return_ty, &inner))
+        }
         Ty::Union { .. } => "union".to_string(),
         // The literal set, not a category word. A union spelled inline has no
         // name to print, and a written literal is the set holding just
@@ -655,14 +686,14 @@ pub(crate) fn ty_display(ty: &Ty) -> String {
         // An application with no arguments renders as its base alone.
         Ty::App { base, args } if !args.is_empty() => {
             let rendered = args.iter().map(ty_display).collect::<Vec<_>>().join(", ");
-            format!("{}<{}>", ty_display(base), rendered)
+            format!("{}<{}>", ty_display(base.as_ref()), rendered)
         }
-        Ty::App { base, .. } => ty_display(base),
+        Ty::App { base, .. } => ty_display(base.as_ref()),
         // Spelled with the type it resolves to, since the reader's question
         // is what `await` would hand back. E0238 is the diagnostic that names
         // a pending value; this rendering is for any other message that
         // quotes one.
-        Ty::Pending(inner) => format!("pending {}", ty_display(inner)),
+        Ty::Pending(inner) => format!("pending {}", ty_display(inner.as_ref())),
         _ => "?".to_string(),
     }
 }

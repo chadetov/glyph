@@ -5,6 +5,6 @@
   },
   "glyph": {
     "command": "glyph build",
-    "output": "[E0211] Error: typecheck: argument type mismatch: expected `function`, found `async function`\nHelp: `array.filter` does not wait for its callback. Await each call in a loop, `for n in names { ... await is_active(n) ... }`, or run them together with `task.all`."
+    "output": "[E0211] Error: typecheck: argument type mismatch: expected `fn(string) -> bool`, found `async fn(string) -> bool`: the function is `async` and the slot is not, so the slot gets a pending value\nHelp: `array.filter` does not wait for its callback. Await each call in a loop, `for n in names { ... await is_active(n) ... }`, or run them together with `task.all`."
   }
 }

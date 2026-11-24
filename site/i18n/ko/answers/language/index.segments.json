@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/language/index.html",
   "locale": "ko",
-  "source_hash": "747d0d2b7d4d7b01",
+  "source_hash": "bd89686413d0755a",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "돈을 다루거나, 내가 통제하지 못하는 입력을 맡겨도 되나요?"
     },
     {
-      "id": "h-496114c3",
+      "id": "h-9dd05740",
       "kind": "html",
-      "en": "15 &middot; Language completeness",
-      "tr": "15 &middot; 언어의 완성도"
+      "en": "16 &middot; Language completeness",
+      "tr": "16 &middot; 언어의 완성도"
     },
     {
       "id": "h-49ee7f98",

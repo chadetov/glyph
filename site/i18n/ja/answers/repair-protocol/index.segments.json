@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/repair-protocol/index.html",
   "locale": "ja",
-  "source_hash": "777385c3f729126e",
+  "source_hash": "9144b88783814c1a",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "エージェントが読むドキュメントは生成されたものですか。それとも手書きで、内容が古くなっていますか。"
     },
     {
-      "id": "h-4012a25e",
+      "id": "h-aa77e689",
       "kind": "html",
-      "en": "23 &middot; Fixing a red build",
-      "tr": "23 &middot; 赤いビルドを直す"
+      "en": "24 &middot; Fixing a red build",
+      "tr": "24 &middot; 赤いビルドを直す"
     },
     {
       "id": "h-e2d1e436",

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/index.html",
   "locale": "ko",
-  "source_hash": "88a6cb03294ad00e",
+  "source_hash": "7b426c7229ab79c8",
   "segments": [
     {
       "id": "title",
@@ -225,6 +225,18 @@
       "kind": "html",
       "en": "First-class JSX, hooks, and exhaustive reducer actions.",
       "tr": "일급 JSX, hook, 망라적인 reducer 액션."
+    },
+    {
+      "id": "h-5ae77794",
+      "kind": "html",
+      "en": "What doesn't Glyph do for React yet?",
+      "tr": "Glyph가 React에서 아직 못 하는 것은?"
+    },
+    {
+      "id": "h-d40c1975",
+      "kind": "html",
+      "en": "Twelve rows, each with a gap number and what to write meanwhile.",
+      "tr": "12개 항목, 각각 gap 번호와 그동안 쓸 수 있는 방법."
     },
     {
       "id": "h-d14ef0f9",

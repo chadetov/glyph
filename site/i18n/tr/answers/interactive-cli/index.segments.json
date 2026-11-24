@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/interactive-cli/index.html",
   "locale": "tr",
-  "source_hash": "e06954a40c0a760a",
+  "source_hash": "c24cfcd7d7641f13",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "Bir sunucu yazabilir miyim, yoksa süreç hemen çıkıyor mu?"
     },
     {
-      "id": "h-130f3b5f",
+      "id": "h-3a4245a3",
       "kind": "html",
-      "en": "18 &middot; Programs you type into",
-      "tr": "18 &middot; İçine yazı yazılan programlar"
+      "en": "19 &middot; Programs you type into",
+      "tr": "19 &middot; İçine yazı yazılan programlar"
     },
     {
       "id": "h-e3bd5d73",

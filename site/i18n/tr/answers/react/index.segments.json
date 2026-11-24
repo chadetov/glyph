@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/react/index.html",
   "locale": "tr",
-  "source_hash": "4d46f3d681c38c46",
+  "source_hash": "74277aa2d86ec441",
   "segments": [
     {
       "id": "title",
@@ -37,8 +37,8 @@
     {
       "id": "next.title",
       "kind": "next.title",
-      "en": "How do I share mutable state between functions?",
-      "tr": "Değiştirilebilir durumu fonksiyonlar arasında nasıl paylaşırım?"
+      "en": "What doesn't Glyph do for React yet?",
+      "tr": "Glyph React için henüz neyi yapmıyor?"
     },
     {
       "id": "h-cbc71a81",
@@ -399,6 +399,12 @@
       "kind": "html",
       "en": "On the way",
       "tr": "Yolda olanlar"
+    },
+    {
+      "id": "h-a5692a65",
+      "kind": "html",
+      "en": "Every React pattern Glyph does not handle yet, with its gap number and what to write meanwhile, is listed in <a href=\"/answers/react-not-yet/\">What doesn't Glyph do for React yet?</a>",
+      "tr": "Glyph'in henüz desteklemediği her React kalıbı, gap numarası ve o zamana kadar ne yazılacağıyla birlikte <a href=\"/answers/react-not-yet/\">Glyph React için henüz neyi yapmıyor?</a> sayfasında listeleniyor."
     },
     {
       "id": "h-c06f1ed9",

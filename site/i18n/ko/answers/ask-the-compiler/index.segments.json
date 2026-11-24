@@ -41,10 +41,10 @@
       "tr": "빌드가 실패하면 컴파일러가 에이전트에게 고치는 방법을 알려 주나요?"
     },
     {
-      "id": "h-1722502c",
+      "id": "h-001f3650",
       "kind": "html",
-      "en": "22 &middot; Ask the compiler",
-      "tr": "22 &middot; 컴파일러에게 묻기"
+      "en": "23 &middot; Ask the compiler",
+      "tr": "23 &middot; 컴파일러에게 묻기"
     },
     {
       "id": "h-d339a2b7",

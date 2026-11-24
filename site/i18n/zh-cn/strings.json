@@ -190,6 +190,7 @@
     "/answers/finance/": "金额与安全",
     "/answers/interactive-cli/": "交互式程序",
     "/answers/react/": "React",
+    "/answers/react-not-yet/": "React：尚未支持",
     "/answers/long-running/": "服务器与守护进程",
     "/answers/web-serving/": "Web 服务",
     "/answers/state/": "共享状态",

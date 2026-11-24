@@ -1,9 +1,9 @@
 ---
 title: Funktioniert es mit React, Hooks und Context? · Glyph
 description: React ist eingebaut: Eine Komponente kompiliert zu einer Function Component, JSX wird zu createElement übersetzt, und die Actions eines Reducers werden erschöpfend gematcht.
-source_hash: 4d46f3d681c38c46
+source_hash: 74277aa2d86ec441
 prev: /answers/codegen/ | &larr; Zurück | Kann ich aus meiner API-Spezifikation einen typisierten Client und Server generieren?
-next: /answers/state/ | Weiter &rarr; | Wie teile ich veränderlichen Zustand zwischen Funktionen?
+next: /answers/react-not-yet/ | Weiter &rarr; | Was kann Glyph bei React noch nicht?
 ---
       <p class="q-eyebrow">13 &middot; Frontend</p>
       <h1 class="q-title">Funktioniert es mit React: Komponenten, Hooks und Context?</h1>
@@ -205,6 +205,7 @@ pub fn main() -&gt; void {
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> In Arbeit</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Jedes React-Muster, das Glyph noch nicht abdeckt, steht mit seiner Gap-Nummer und dem, was man bis dahin schreibt, unter <a href="/answers/react-not-yet/">Was kann Glyph bei React noch nicht?</a></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyphs Checker typisiert das Ergebnis eines Hooks nicht, also ist <code>set_count("x")</code> auf einem Zahlen-State ein <code>tsc</code>-Fehler im Build statt eines Glyph-Fehlers im Editor.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> hört beim Lesen der Seite und Setzen ihres Titels auf: React gehört das DOM, das es rendert, also gibt es keine Element-Setter oder Event-Listener.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Effect muss als <code>fn() -&gt; void { ... }</code> geschrieben werden, weil ein Lambda seinen letzten Ausdruck zurückgibt und React ihn als Cleanup aufrufen würde.</span></span></li>

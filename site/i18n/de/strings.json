@@ -190,6 +190,7 @@
     "/answers/finance/": "Geld und Sicherheit",
     "/answers/interactive-cli/": "Interaktive Programme",
     "/answers/react/": "React",
+    "/answers/react-not-yet/": "React: noch nicht",
     "/answers/long-running/": "Server und Daemons",
     "/answers/web-serving/": "Webserver",
     "/answers/state/": "Gemeinsamer Zustand",

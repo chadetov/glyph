@@ -1,9 +1,9 @@
 ---
 title: 能和 React 一起用吗：组件、hooks 和 Context？ · Glyph
 description: React 是内置支持的：component 编译成函数组件，JSX 转换为 createElement，reducer 的 action 会被穷尽匹配。
-source_hash: 4d46f3d681c38c46
+source_hash: 74277aa2d86ec441
 prev: /answers/codegen/ | &larr; 上一篇 | 能根据 API 规范生成类型化的客户端和服务端吗？
-next: /answers/state/ | 下一篇 &rarr; | 怎样在函数之间共享可变状态？
+next: /answers/react-not-yet/ | 下一篇 &rarr; | Glyph 在 React 上还有哪些做不到？
 ---
       <p class="q-eyebrow">13 &middot; 前端</p>
       <h1 class="q-title">能和 React 一起用吗：组件、hooks 和 Context？</h1>
@@ -205,6 +205,7 @@ pub fn main() -&gt; void {
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在进行</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph 还不支持的每个 React 写法，连同 gap 编号和在此之前的写法，都列在 <a href="/answers/react-not-yet/">Glyph 在 React 上还有哪些做不到？</a> 中。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph 的检查器不推断 hook 结果的类型，所以对数字状态调用 <code>set_count("x")</code> 是构建中的 <code>tsc</code> 错误，而不是编辑器里的 Glyph 错误。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> 只能读取页面和设置标题：React 掌管它渲染的 DOM，所以没有元素 setter，也没有事件监听器。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">effect 必须写成 <code>fn() -&gt; void { ... }</code>，因为 lambda 会返回它的最后一个表达式，React 会把它当作清理函数调用。</span></span></li>

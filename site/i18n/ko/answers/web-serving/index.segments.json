@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/web-serving/index.html",
   "locale": "ko",
-  "source_hash": "d140a7206bb4ccec",
+  "source_hash": "2b27bbc04709f35e",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "사용자가 입력하는 프로그램을 작성할 수 있나요?"
     },
     {
-      "id": "h-5d50e323",
+      "id": "h-8b89e15f",
       "kind": "html",
-      "en": "17 &middot; Serving the web",
-      "tr": "17 &middot; 웹 서빙"
+      "en": "18 &middot; Serving the web",
+      "tr": "18 &middot; 웹 서빙"
     },
     {
       "id": "h-97be9762",

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/binary/index.html",
   "locale": "es",
-  "source_hash": "9c69ac3fe3f46a35",
+  "source_hash": "73f5a80f255c385a",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "¿Puede el compilador decirme qué va a romper un cambio antes de hacerlo?"
     },
     {
-      "id": "h-a24343fd",
+      "id": "h-a5ab2fe3",
       "kind": "html",
-      "en": "20 &middot; Binary data",
-      "tr": "20 &middot; Datos binarios"
+      "en": "21 &middot; Binary data",
+      "tr": "21 &middot; Datos binarios"
     },
     {
       "id": "h-0a58139d",

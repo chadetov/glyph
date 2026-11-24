@@ -45,7 +45,8 @@ nav: answers
           <a class="a-card" href="/answers/typed-apis/"><span class="n">11</span><span class="q">Do I have to hand-write a validator for every API?</span><p>No. Declaring a type generates its validator.</p></a>
           <a class="a-card" href="/answers/codegen/"><span class="n">12</span><span class="q">Can I generate a typed client and server from my API spec?</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: committed, greppable code.</p></a>
           <a class="a-card" href="/answers/react/"><span class="n">13</span><span class="q">Does it work with React: components, hooks, and Context?</span><p>First-class JSX, hooks, and exhaustive reducer actions.</p></a>
-          <a class="a-card" href="/answers/state/"><span class="n">14</span><span class="q">How do I share mutable state between functions?</span><p>A store: a <code>const</code> whose <code>.set</code>/<code>.update</code> are the write-surface.</p></a>
+          <a class="a-card" href="/answers/react-not-yet/"><span class="n">14</span><span class="q">What doesn't Glyph do for React yet?</span><p>Twelve rows, each with a gap number and what to write meanwhile.</p></a>
+          <a class="a-card" href="/answers/state/"><span class="n">15</span><span class="q">How do I share mutable state between functions?</span><p>A store: a <code>const</code> whose <code>.set</code>/<code>.update</code> are the write-surface.</p></a>
         </div>
       </div>
 
@@ -53,12 +54,12 @@ nav: answers
         <h2 class="block-label">What you can build with it</h2>
         <p class="ans-group-sub">The language and standard library, by the kind of program.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/language/"><span class="n">15</span><span class="q">Is this a real language, or a toy with gaps?</span><p>Module visibility, interface bounds, defer, a <code>match</code> that works as any value and carries its type, and a standard library that has <code>slice</code>, <code>pad_start</code>, and <code>fold</code>.</p></a>
-          <a class="a-card" href="/answers/finance/"><span class="n">16</span><span class="q">Can I trust it with money, and with input I don't control?</span><p>Exact decimals and ids, invariants as types, injection as a compile error.</p></a>
-          <a class="a-card" href="/answers/web-serving/"><span class="n">17</span><span class="q">Can I serve a web page, or only a JSON API?</span><p>HTML, redirects, response headers, and form posts, without a hand-written server.</p></a>
-          <a class="a-card" href="/answers/interactive-cli/"><span class="n">18</span><span class="q">Can I write a program someone types into?</span><p><code>io.read_line</code> answers a line as it arrives instead of waiting for stdin to close, so a REPL or a game loop works.</p></a>
-          <a class="a-card" href="/answers/long-running/"><span class="n">19</span><span class="q">Can I write a server, or does the process just exit?</span><p><code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.</p></a>
-          <a class="a-card" href="/answers/binary/"><span class="n">20</span><span class="q">Can I handle binary data, or is everything a string?</span><p><code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.</p></a>
+          <a class="a-card" href="/answers/language/"><span class="n">16</span><span class="q">Is this a real language, or a toy with gaps?</span><p>Module visibility, interface bounds, defer, a <code>match</code> that works as any value and carries its type, and a standard library that has <code>slice</code>, <code>pad_start</code>, and <code>fold</code>.</p></a>
+          <a class="a-card" href="/answers/finance/"><span class="n">17</span><span class="q">Can I trust it with money, and with input I don't control?</span><p>Exact decimals and ids, invariants as types, injection as a compile error.</p></a>
+          <a class="a-card" href="/answers/web-serving/"><span class="n">18</span><span class="q">Can I serve a web page, or only a JSON API?</span><p>HTML, redirects, response headers, and form posts, without a hand-written server.</p></a>
+          <a class="a-card" href="/answers/interactive-cli/"><span class="n">19</span><span class="q">Can I write a program someone types into?</span><p><code>io.read_line</code> answers a line as it arrives instead of waiting for stdin to close, so a REPL or a game loop works.</p></a>
+          <a class="a-card" href="/answers/long-running/"><span class="n">20</span><span class="q">Can I write a server, or does the process just exit?</span><p><code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">21</span><span class="q">Can I handle binary data, or is everything a string?</span><p><code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.</p></a>
         </div>
       </div>
 
@@ -66,11 +67,11 @@ nav: answers
         <h2 class="block-label">Working with an agent</h2>
         <p class="ans-group-sub">Questions an agent asks the compiler before and after an edit.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/impact/"><span class="n">21</span><span class="q">Can the compiler tell me what a change will break before I make it?</span><p><code>glyph_impact</code>: one verdict per site, from a closed list, with the reason, before you touch the file.</p></a>
-          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">Can my agent ask the compiler what a symbol is before it writes code?</span><p><code>glyph_symbol</code>: a union's variants with the syntax that constructs each, in one call. Eleven tools, each with a <code>glyph query</code> verb.</p></a>
-          <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">When the build fails, does the compiler tell my agent how to fix it?</span><p>The diagnostic carries the symbol at fault, the legal alternatives, and what a repairing edit must not break. <code>glyph fix</code> writes the ones the compiler settles on its own.</p></a>
-          <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">Is the documentation my agent reads generated, or written by hand and out of date?</span><p><code>glyph llms --json</code> emits the diagnostics, the prelude, the stdlib signatures and the tool manual out of the compiler's own tables, and a gate fails when a hand-written copy disagrees.</p></a>
-          <a class="a-card" href="/answers/banned-imports/"><span class="n">25</span><span class="q">Can I stop an agent importing the raw library when we have a wrapper for it?</span><p>Ban the import path in <code>package.json</code> and name the replacement. An import of it is <code>E0115</code>, and the help points at your wrapper.</p></a>
+          <a class="a-card" href="/answers/impact/"><span class="n">22</span><span class="q">Can the compiler tell me what a change will break before I make it?</span><p><code>glyph_impact</code>: one verdict per site, from a closed list, with the reason, before you touch the file.</p></a>
+          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">23</span><span class="q">Can my agent ask the compiler what a symbol is before it writes code?</span><p><code>glyph_symbol</code>: a union's variants with the syntax that constructs each, in one call. Eleven tools, each with a <code>glyph query</code> verb.</p></a>
+          <a class="a-card" href="/answers/repair-protocol/"><span class="n">24</span><span class="q">When the build fails, does the compiler tell my agent how to fix it?</span><p>The diagnostic carries the symbol at fault, the legal alternatives, and what a repairing edit must not break. <code>glyph fix</code> writes the ones the compiler settles on its own.</p></a>
+          <a class="a-card" href="/answers/generated-docs/"><span class="n">25</span><span class="q">Is the documentation my agent reads generated, or written by hand and out of date?</span><p><code>glyph llms --json</code> emits the diagnostics, the prelude, the stdlib signatures and the tool manual out of the compiler's own tables, and a gate fails when a hand-written copy disagrees.</p></a>
+          <a class="a-card" href="/answers/banned-imports/"><span class="n">26</span><span class="q">Can I stop an agent importing the raw library when we have a wrapper for it?</span><p>Ban the import path in <code>package.json</code> and name the replacement. An import of it is <code>E0115</code>, and the help points at your wrapper.</p></a>
         </div>
       </div>
 
@@ -78,10 +79,10 @@ nav: answers
         <h2 class="block-label">Errors, editors and production</h2>
         <p class="ans-group-sub">What you see when something is wrong, from the editor to on-call.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">26</span><span class="q">What's the editor, debugging, and error experience?</span><p>A language server for any LSP editor, and errors with a stable code that name the fix.</p></a>
-          <a class="a-card" href="/answers/early-errors/"><span class="n">27</span><span class="q">Why does Glyph catch what tsc catches, but earlier?</span><p><code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.</p></a>
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">28</span><span class="q">When a parse fails, do I find out why?</span><p>Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">29</span><span class="q">When it breaks in production at 3am, what does on-call see?</span><p>Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">27</span><span class="q">What's the editor, debugging, and error experience?</span><p>A language server for any LSP editor, and errors with a stable code that name the fix.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">28</span><span class="q">Why does Glyph catch what tsc catches, but earlier?</span><p><code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">29</span><span class="q">When a parse fails, do I find out why?</span><p>Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">30</span><span class="q">When it breaks in production at 3am, what does on-call see?</span><p>Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.</p></a>
         </div>
       </div>
 

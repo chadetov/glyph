@@ -1,9 +1,9 @@
 ---
 title: ¿Funciona con React, hooks y Context? · Glyph
 description: React viene integrado: un component compila a un componente de función, el JSX se traduce a createElement y las acciones de un reducer se comprueban con match exhaustivo.
-source_hash: 4d46f3d681c38c46
+source_hash: 74277aa2d86ec441
 prev: /answers/codegen/ | &larr; Anterior | ¿Puedo generar un cliente y un servidor tipados a partir de la especificación de mi API?
-next: /answers/state/ | Siguiente &rarr; | ¿Cómo comparto estado mutable entre funciones?
+next: /answers/react-not-yet/ | Siguiente &rarr; | ¿Qué no hace Glyph todavía con React?
 ---
       <p class="q-eyebrow">13 &middot; Frontend</p>
       <h1 class="q-title">¿Funciona con React: componentes, hooks y Context?</h1>
@@ -205,6 +205,7 @@ pub fn main() -&gt; void {
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> En camino</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Cada patrón de React que Glyph todavía no cubre, con su número de gap y qué escribir mientras tanto, está en <a href="/answers/react-not-yet/">¿Qué no hace Glyph todavía con React?</a></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">El checker de Glyph no tipa el resultado de un hook, así que <code>set_count("x")</code> sobre un estado numérico es un error de <code>tsc</code> en el build y no uno de Glyph en el editor.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> se limita a leer la página y fijar su título: React es el dueño del DOM que renderiza, así que no hay setters de elementos ni event listeners.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Un efecto tiene que escribirse como <code>fn() -&gt; void { ... }</code>, porque una lambda devuelve su última expresión y React la llamaría como función de limpieza.</span></span></li>

@@ -1,9 +1,9 @@
 ---
 title: React、フック、Context で使えるか？ · Glyph
 description: React は組み込みでサポートされています。コンポーネントは関数コンポーネントにコンパイルされ、JSX は createElement に変換され、reducer のアクションは網羅的に match されます。
-source_hash: 4d46f3d681c38c46
+source_hash: 74277aa2d86ec441
 prev: /answers/codegen/ | &larr; 前へ | API の仕様から型付きのクライアントとサーバーを生成できるか
-next: /answers/state/ | 次へ &rarr; | 関数の間で可変の状態をどう共有するか
+next: /answers/react-not-yet/ | 次へ &rarr; | React で Glyph がまだできないことは？
 ---
       <p class="q-eyebrow">13 &middot; フロントエンド</p>
       <h1 class="q-title">React で使えるか。コンポーネント、フック、Context は？</h1>
@@ -205,6 +205,7 @@ pub fn main() -&gt; void {
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 予定</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph がまだ扱えない React のパターンは、gap 番号とそれまでの書き方とともに <a href="/answers/react-not-yet/">React で Glyph がまだできないことは？</a> にまとめています。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph の型検査はフックの戻り値を型付けしないので、数値の state に対する <code>set_count("x")</code> は、エディタでの Glyph のエラーではなく、ビルド中の <code>tsc</code> のエラーになります。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> にできるのはページの読み取りとタイトルの設定までです。React がレンダリングする DOM は React のものなので、要素のセッターやイベントリスナーはありません。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">エフェクトは <code>fn() -&gt; void { ... }</code> と書く必要があります。ラムダは最後の式を返すので、React がそれをクリーンアップとして呼んでしまうからです。</span></span></li>

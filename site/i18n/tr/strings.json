@@ -190,6 +190,7 @@
     "/answers/finance/": "Para ve güvenlik",
     "/answers/interactive-cli/": "Etkileşimli programlar",
     "/answers/react/": "React",
+    "/answers/react-not-yet/": "React: henüz değil",
     "/answers/long-running/": "Sunucular ve daemon'lar",
     "/answers/web-serving/": "Web sunmak",
     "/answers/state/": "Paylaşılan durum",

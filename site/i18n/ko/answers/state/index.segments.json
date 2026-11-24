@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/state/index.html",
   "locale": "ko",
-  "source_hash": "1ed9e897f4bdcd8e",
+  "source_hash": "7601b7514d2c9de8",
   "segments": [
     {
       "id": "title",
@@ -25,8 +25,8 @@
     {
       "id": "prev.title",
       "kind": "prev.title",
-      "en": "Does it work with React: components, hooks, and Context?",
-      "tr": "React의 컴포넌트, hook, Context와 함께 쓸 수 있나요?"
+      "en": "What doesn't Glyph do for React yet?",
+      "tr": "Glyph가 React에서 아직 못 하는 것은?"
     },
     {
       "id": "next.label",
@@ -41,10 +41,10 @@
       "tr": "이것은 진짜 언어인가요, 구멍 많은 장난감인가요?"
     },
     {
-      "id": "h-3cfc3cc8",
+      "id": "h-525361b6",
       "kind": "html",
-      "en": "14 &middot; Shared state",
-      "tr": "14 &middot; 공유 상태"
+      "en": "15 &middot; Shared state",
+      "tr": "15 &middot; 공유 상태"
     },
     {
       "id": "h-d14ef0f9",

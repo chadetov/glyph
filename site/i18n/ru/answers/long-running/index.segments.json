@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/long-running/index.html",
   "locale": "ru",
-  "source_hash": "14f7ffe4f2542222",
+  "source_hash": "d5bda3d05688fbf3",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "Можно ли работать с бинарными данными, или всё строка?"
     },
     {
-      "id": "h-d7b98512",
+      "id": "h-aea6d30d",
       "kind": "html",
-      "en": "19 &middot; Servers &amp; daemons",
-      "tr": "19 &middot; Серверы и демоны"
+      "en": "20 &middot; Servers &amp; daemons",
+      "tr": "20 &middot; Серверы и демоны"
     },
     {
       "id": "h-1ceb3faf",

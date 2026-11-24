@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/generated-docs/index.html",
   "locale": "ko",
-  "source_hash": "61722b2a96424269",
+  "source_hash": "587abb57cb44eb80",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "래퍼가 있는데도 에이전트가 원래 라이브러리를 직접 가져오지 못하게 막을 수 있나요?"
     },
     {
-      "id": "h-594c6826",
+      "id": "h-c17dc3de",
       "kind": "html",
-      "en": "24 &middot; Docs that can't drift",
-      "tr": "24 &middot; 어긋나지 않는 문서"
+      "en": "25 &middot; Docs that can't drift",
+      "tr": "25 &middot; 어긋나지 않는 문서"
     },
     {
       "id": "h-bbccff1f",

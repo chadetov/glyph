@@ -1,7 +1,7 @@
 ---
 title: Q&A · エンジニアが Glyph について聞くこと · Glyph
 description: エンジニアが Glyph について聞くことへの具体的な回答です。気づかない破損を何が防ぐか、React と npm、ツールを揃えた TypeScript ではなぜ駄目か、本番でのデバッグについて。
-source_hash: 88a6cb03294ad00e
+source_hash: 7b426c7229ab79c8
 ---
       <header class="page-hero">
         <p class="eyebrow">Q&A</p>
@@ -42,7 +42,8 @@ source_hash: 88a6cb03294ad00e
           <a class="a-card" href="/answers/typed-apis/"><span class="n">11</span><span class="q">API ごとにバリデータを手書きする必要がありますか？</span><p>いいえ。型を宣言すれば、そのバリデータが生成されます。</p></a>
           <a class="a-card" href="/answers/codegen/"><span class="n">12</span><span class="q">API の仕様から型付きのクライアントとサーバーを生成できるか</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>：コミットされ、grep できるコードです。</p></a>
           <a class="a-card" href="/answers/react/"><span class="n">13</span><span class="q">React で使えるか。コンポーネント、フック、Context は？</span><p>JSX とフックを言語として正式にサポートし、reducer のアクションも網羅的に扱います。</p></a>
-          <a class="a-card" href="/answers/state/"><span class="n">14</span><span class="q">関数の間で可変の状態をどう共有するか</span><p>store を使います。<code>.set</code>/<code>.update</code> が書き込みの窓口になる <code>const</code> です。</p></a>
+          <a class="a-card" href="/answers/react-not-yet/"><span class="n">14</span><span class="q">React で Glyph がまだできないことは？</span><p>12 項目。それぞれに gap 番号と、それまでの書き方を添えています。</p></a>
+          <a class="a-card" href="/answers/state/"><span class="n">15</span><span class="q">関数の間で可変の状態をどう共有するか</span><p>store を使います。<code>.set</code>/<code>.update</code> が書き込みの窓口になる <code>const</code> です。</p></a>
         </div>
       </div>
 
@@ -50,12 +51,12 @@ source_hash: 88a6cb03294ad00e
         <h2 class="block-label">何を作れるか</h2>
         <p class="ans-group-sub">プログラムの種類ごとに見る、言語と標準ライブラリ。</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/language/"><span class="n">15</span><span class="q">これは本物の言語ですか。それとも穴だらけのおもちゃですか。</span><p>モジュールの可視性、インターフェース境界、defer、どんな値としても使えて型を保つ <code>match</code>、そして <code>slice</code>、<code>pad_start</code>、<code>fold</code> をそろえた標準ライブラリがあります。</p></a>
-          <a class="a-card" href="/answers/finance/"><span class="n">16</span><span class="q">お金や、自分で制御できない入力を任せられるか</span><p>正確な小数と ID、型としての不変条件、そしてインジェクションはコンパイルエラーになります。</p></a>
-          <a class="a-card" href="/answers/web-serving/"><span class="n">17</span><span class="q">Web ページを配信できるのか、それとも JSON API だけなのか</span><p>HTML、リダイレクト、レスポンスヘッダー、フォームの POST を、サーバーを手書きせずに扱えます。</p></a>
-          <a class="a-card" href="/answers/interactive-cli/"><span class="n">18</span><span class="q">人が入力するプログラムは書けるか</span><p><code>io.read_line</code> は stdin が閉じるのを待たずに、1 行届くたびに応答します。だから REPL やゲームループが動きます。</p></a>
-          <a class="a-card" href="/answers/long-running/"><span class="n">19</span><span class="q">サーバーは書けるのか、それともプロセスはすぐ終了するのか</span><p><code>main</code> は準備をして return します。ソケットやタイマーが残っている間はプロセスが動き続けます。Node と同じルールです。</p></a>
-          <a class="a-card" href="/answers/binary/"><span class="n">20</span><span class="q">バイナリデータは扱えるのか、それとも何でも文字列なのか</span><p><code>std/bytes</code> はオクテットの列です。コーデックは不正な入力を読み飛ばさずに拒否し、HMAC は本物の鍵を受け取ります。</p></a>
+          <a class="a-card" href="/answers/language/"><span class="n">16</span><span class="q">これは本物の言語ですか。それとも穴だらけのおもちゃですか。</span><p>モジュールの可視性、インターフェース境界、defer、どんな値としても使えて型を保つ <code>match</code>、そして <code>slice</code>、<code>pad_start</code>、<code>fold</code> をそろえた標準ライブラリがあります。</p></a>
+          <a class="a-card" href="/answers/finance/"><span class="n">17</span><span class="q">お金や、自分で制御できない入力を任せられるか</span><p>正確な小数と ID、型としての不変条件、そしてインジェクションはコンパイルエラーになります。</p></a>
+          <a class="a-card" href="/answers/web-serving/"><span class="n">18</span><span class="q">Web ページを配信できるのか、それとも JSON API だけなのか</span><p>HTML、リダイレクト、レスポンスヘッダー、フォームの POST を、サーバーを手書きせずに扱えます。</p></a>
+          <a class="a-card" href="/answers/interactive-cli/"><span class="n">19</span><span class="q">人が入力するプログラムは書けるか</span><p><code>io.read_line</code> は stdin が閉じるのを待たずに、1 行届くたびに応答します。だから REPL やゲームループが動きます。</p></a>
+          <a class="a-card" href="/answers/long-running/"><span class="n">20</span><span class="q">サーバーは書けるのか、それともプロセスはすぐ終了するのか</span><p><code>main</code> は準備をして return します。ソケットやタイマーが残っている間はプロセスが動き続けます。Node と同じルールです。</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">21</span><span class="q">バイナリデータは扱えるのか、それとも何でも文字列なのか</span><p><code>std/bytes</code> はオクテットの列です。コーデックは不正な入力を読み飛ばさずに拒否し、HMAC は本物の鍵を受け取ります。</p></a>
         </div>
       </div>
 
@@ -63,11 +64,11 @@ source_hash: 88a6cb03294ad00e
         <h2 class="block-label">エージェントと一緒に使う</h2>
         <p class="ans-group-sub">エージェントが編集の前後にコンパイラに尋ねること。</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/impact/"><span class="n">21</span><span class="q">変更を加える前に、それが何を壊すかをコンパイラが教えてくれるか？</span><p><code>glyph_impact</code>：ファイルに触れる前に、箇所ごとに 1 つの判定を、決まった選択肢の中から理由付きで返します。</p></a>
-          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">エージェントは、コードを書く前にシンボルが何なのかをコンパイラに聞けますか？</span><p><code>glyph_symbol</code>：ユニオンのバリアントと、それぞれを構築する構文を 1 回の呼び出しで返します。ツールは 11 個あり、それぞれに <code>glyph query</code> の動詞があります。</p></a>
-          <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">ビルドが失敗したとき、コンパイラはエージェントに直し方を教えてくれるか？</span><p>診断には、問題のシンボル、正しい代替案、修正の編集が壊してはならないものが含まれます。コンパイラが自力で決められる修正は <code>glyph fix</code> が書き込みます。</p></a>
-          <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">エージェントが読むドキュメントは生成されたものですか。それとも手書きで、内容が古くなっていますか。</span><p><code>glyph llms --json</code> は、診断、prelude、標準ライブラリのシグネチャ、ツールのマニュアルをコンパイラ自身のテーブルから出力します。手書きのコピーが食い違えば、ゲートが失敗します。</p></a>
-          <a class="a-card" href="/answers/banned-imports/"><span class="n">25</span><span class="q">ラッパーがあるのに、エージェントがライブラリを直接インポートするのを止められますか？</span><p><code>package.json</code> でインポートパスを禁止し、代わりに使うモジュールを指定します。そのインポートは <code>E0115</code> になり、ヘルプがラッパーを示します。</p></a>
+          <a class="a-card" href="/answers/impact/"><span class="n">22</span><span class="q">変更を加える前に、それが何を壊すかをコンパイラが教えてくれるか？</span><p><code>glyph_impact</code>：ファイルに触れる前に、箇所ごとに 1 つの判定を、決まった選択肢の中から理由付きで返します。</p></a>
+          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">23</span><span class="q">エージェントは、コードを書く前にシンボルが何なのかをコンパイラに聞けますか？</span><p><code>glyph_symbol</code>：ユニオンのバリアントと、それぞれを構築する構文を 1 回の呼び出しで返します。ツールは 11 個あり、それぞれに <code>glyph query</code> の動詞があります。</p></a>
+          <a class="a-card" href="/answers/repair-protocol/"><span class="n">24</span><span class="q">ビルドが失敗したとき、コンパイラはエージェントに直し方を教えてくれるか？</span><p>診断には、問題のシンボル、正しい代替案、修正の編集が壊してはならないものが含まれます。コンパイラが自力で決められる修正は <code>glyph fix</code> が書き込みます。</p></a>
+          <a class="a-card" href="/answers/generated-docs/"><span class="n">25</span><span class="q">エージェントが読むドキュメントは生成されたものですか。それとも手書きで、内容が古くなっていますか。</span><p><code>glyph llms --json</code> は、診断、prelude、標準ライブラリのシグネチャ、ツールのマニュアルをコンパイラ自身のテーブルから出力します。手書きのコピーが食い違えば、ゲートが失敗します。</p></a>
+          <a class="a-card" href="/answers/banned-imports/"><span class="n">26</span><span class="q">ラッパーがあるのに、エージェントがライブラリを直接インポートするのを止められますか？</span><p><code>package.json</code> でインポートパスを禁止し、代わりに使うモジュールを指定します。そのインポートは <code>E0115</code> になり、ヘルプがラッパーを示します。</p></a>
         </div>
       </div>
 
@@ -75,10 +76,10 @@ source_hash: 88a6cb03294ad00e
         <h2 class="block-label">エラー、エディタ、本番運用</h2>
         <p class="ans-group-sub">何かがおかしいときに見えるもの。エディタからオンコール対応まで。</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">26</span><span class="q">エディタ、デバッグ、エラーの使い勝手はどうですか？</span><p>どの LSP 対応エディタでも使える言語サーバーと、修正方法を示す安定したコード付きのエラーがあります。</p></a>
-          <a class="a-card" href="/answers/early-errors/"><span class="n">27</span><span class="q">tsc が検出するものを、なぜ Glyph はより早く検出するのか</span><p><code>await</code> の文脈、値のない <code>match</code> のアーム、<code>mut</code> の付け忘れを、出力された TypeScript ではなくソースコードに対して報告します。</p></a>
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">28</span><span class="q">パースが失敗したとき、その理由はわかるのか</span><p>どのフィールドか、どのルールに違反したか、違反した <code>where</code> 述語、そして分岐に使える <code>code</code> がわかります。</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">29</span><span class="q">深夜 3 時に本番で壊れたとき、オンコール担当には何が見えるのか</span><p>自分のものとして読める TS、<code>.glyph</code> に戻るソースマップ、そして <code>build</code> と同じ内容を報告する <code>run</code> です。</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">27</span><span class="q">エディタ、デバッグ、エラーの使い勝手はどうですか？</span><p>どの LSP 対応エディタでも使える言語サーバーと、修正方法を示す安定したコード付きのエラーがあります。</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">28</span><span class="q">tsc が検出するものを、なぜ Glyph はより早く検出するのか</span><p><code>await</code> の文脈、値のない <code>match</code> のアーム、<code>mut</code> の付け忘れを、出力された TypeScript ではなくソースコードに対して報告します。</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">29</span><span class="q">パースが失敗したとき、その理由はわかるのか</span><p>どのフィールドか、どのルールに違反したか、違反した <code>where</code> 述語、そして分岐に使える <code>code</code> がわかります。</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">30</span><span class="q">深夜 3 時に本番で壊れたとき、オンコール担当には何が見えるのか</span><p>自分のものとして読める TS、<code>.glyph</code> に戻るソースマップ、そして <code>build</code> と同じ内容を報告する <code>run</code> です。</p></a>
         </div>
       </div>
 

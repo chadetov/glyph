@@ -1,0 +1,19 @@
+---
+version: 0.1.184
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: An index read has its element's type
+---
+            <p>Reading an element by index gave a value with no type at all. With <code>xs: Array&lt;string&gt;</code>, <code>return xs[0]</code> under <code>-&gt; number</code>, <code>let n: number = xs[0]</code>, and <code>xs[0].lenght</code> all passed <code>check --no-tsc</code>. Anything read through an index was invisible to Glyph's checker, the editor and the MCP tools, and only <code>tsc</code> saw it.</p>
+
+            <p>Now <code>xs[i]</code> on an <code>Array&lt;E&gt;</code> is an <code>E</code>, and <code>m[k]</code> on a <code>Record&lt;K, V&gt;</code> is a <code>V</code> where E0224 allows the read. Aliases and bounded type parameters are read through. That element then gets every check a typed value gets: E0204 at a <code>return</code> or annotated <code>let</code>, E0211 at an argument, E0210 for a misspelled member, and a <code>mut</code> method call on it is checked too. A receiver the checker cannot type stays undecided.</p>
+
+            <p>The type of a write's place and the type of a read come from the same lookup, so <code>let n: number = rows[0]</code> and <code>mut rows[0] = 5</code> on a <code>type Rows = Array&lt;string&gt;</code> both name <code>string</code>.</p>
+
+            <p>Two Glyph rules now reach index reads too, and <code>tsc</code> accepts both programs: <code>"${rs[0]}"</code> on an array of records is E0237, because it prints <code>[object Object]</code>, and <code>ms[0]["k"]</code> on an array of maps is E0224, because the key may be missing. The same element bound by a <code>for</code> loop was already refused by both rules.</p>
+
+            <p>The index key itself is still not checked against the key type. That is G511, next.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>let n: number = xs[0]</code> on an <code>Array&lt;string&gt;</code> exits 0 under 0.1.183's <code>check --no-tsc</code> and 1 under 0.1.184. Across the 375 programs the corpus script measures, the output is identical to 0.1.183.</p>

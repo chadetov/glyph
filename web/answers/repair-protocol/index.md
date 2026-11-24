@@ -175,4 +175,4 @@ A code the corpus does not cover comes back with `counter_example: null` and a s
 - `glyph fix` writes three rules and nothing else, and it writes no arm for a non-exhaustive `match`: those are left for you or your agent, with the cases and their patterns in the diagnostic.
 - Everything it declines, it declines out loud.
 
-Code examples on this page are checked against Glyph 0.1.183 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.184 on every build. Last changed 21 Nov 2026.

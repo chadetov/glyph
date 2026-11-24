@@ -169,4 +169,4 @@ The formatting rules behind this, and the trade they make, are on the [diff stab
 - The printer also has no rule for breaking a long method or `+` chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place.
 - We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.
 
-Code examples on this page are checked against Glyph 0.1.183 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.184 on every build. Last changed 21 Nov 2026.

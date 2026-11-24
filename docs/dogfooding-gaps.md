@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-481 entries, 342 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+483 entries, 344 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 119 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -16135,7 +16135,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.179 (the release build) with the 0.1.172 probes s08 and s13: `check --no-tsc` exits 0 on the returned literal and on the literal held in a record field; full `check` reports TS2322 for each.*
 
-- **G460. An interface value passes where a primitive is declared.** `fn
+- **G460. [FIXED] An interface value passes where a primitive is declared.** `fn
   z(n: Named) -> string { return n }` with `interface Named { name: string
   }` passes `check --no-tsc`, and so does a `Box<Named>` returned where
   `Record<string, string>` is declared; `tsc` refuses both (TS2322). The
@@ -16150,6 +16150,12 @@ and is the owner's to confirm.
   branch build: `check --no-tsc` exits 0 on both programs.*
 
   *Reproduced against 0.1.176 (the release build) with the 0.1.173 probe: `check --no-tsc` exits 0 on `z(n: Named) -> string { return n }` and on `Box<Named>` returned where `Record<string, string>` is declared (full `check` is two TS2322), and on `fn p<T: Named>(x: T) -> string { return x }` (full `check` is TS2322).*
+
+  Fixed in 0.1.182 with G502 (record 196, D34): an interface's value is an
+  object, so the relation refuses it where a `string`, a `number`, a `bool`,
+  a string-literal union or an `Array<T>` is declared, and a parameter
+  bounded by an interface there through its bound. All three reproductions
+  are E0204, the `Box<Named>` one through the map's field comparison.
 
 - **G461. A generic interface's members are never checked on any value.**
   With `interface Cmp<X> { fn cmp(o: X) -> number  v: X }` and `c:
@@ -16347,7 +16353,7 @@ and is the owner's to confirm.
   annotation nor a `let` initializer (a `for` binding, an arm's payload, a
   lambda parameter typed by its slot) is not judged.
 
-- **G502. A primitive or an array where an interface is declared passes.**
+- **G502. [FIXED] A primitive or an array where an interface is declared passes.**
   `f(5)` with `f(h: HasName)` and `fn n1(s: string) -> HasName { return s }`
   pass `check --no-tsc`; `tsc` refuses both (TS2345, TS2322). A record
   parameter is already decided. `tsc` accepts a primitive whose apparent
@@ -16359,6 +16365,15 @@ and is the owner's to confirm.
   *Reproduced against 0.1.178 (the published release) by record 196's probes
   `prim.glyph` and `n134.glyph`: `check --no-tsc` exits 0 on `f(5)`, `n1` and
   `n1b`; full `check` reports TS2345 and two TS2322.*
+
+  Fixed in 0.1.182 with G460 (record 196, D34): a `string`, `number`,
+  `bool`, string-literal union, refined primitive or `Array<T>` where an
+  interface is declared is compared through its apparent members from the
+  generated table, which gained `bool`'s list for this rule. `f(5)` is E0211
+  and `n1`, `n1b`, a `bool` and a `"a" | "b"` where `HasName` is declared are
+  E0204, while `"abc"` and `[1, 2]` against `HasLen`, `"x"` against `Trims`
+  and a `bool` against `interface Shows { fn toString() -> string }` pass, as
+  `tsc` accepts them.
 
 - **G503. An unannotated lambda's returned value is not compared with the
   function type its position declares.** `c(fn(x) { return x })` with
@@ -16419,6 +16434,10 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.178 (the published release) by record 196's probe
   `boolm.glyph`: `b.nope` exits 0 under `check --no-tsc`.*
+
+  Since 0.1.182 the generated table holds `bool`'s list (seven members, read
+  from TypeScript 6.0.3), used by the interface rule only (G502). A member
+  read on a `bool` is still not checked against it.
 
 - **G511. An index expression's key is not compared with the key type.**
   On reads and writes, for maps and arrays. With `type Mode = "read" |
@@ -16495,3 +16514,28 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.178 (the published release): `v.indexOf(5)` is
   E0211 with that help.*
+
+- **G526. A primitive where an interface whose members are all optional is
+  declared passes when it shares none of them.** `fn w(s: string) -> Weak {
+  return s }` with `interface Weak { label?: string }` passes `check
+  --no-tsc`; full `check` reports `TS2559 Type 'string' has no properties in
+  common with type 'Weak'`. 0.1.182 compares a primitive with an interface
+  through its apparent members and leaves this pairing undecided rather
+  than refused, since record 196 named only the missing and mismatched
+  member. Found while building 0.1.182.
+
+  *Reproduced against 0.1.182 (the branch build) and 0.1.178 (the published
+  release): `check --no-tsc` exits 0; full `check` reports TS2559.*
+
+- **G527. A prelude container and an interface are not compared.** With
+  `interface HasName { name: string }`, an `Option<number>`, a `Result<number,
+  string>` and a `Record<string, string>` returned where `HasName` is
+  declared pass `check --no-tsc`, and so does a `HasName` returned where
+  `Option<string>` is declared; full `check` reports TS2322 three times and
+  TS2741 once. Record 196 left both directions out of 0.1.182's rule (an
+  `Array<T>` is compared, the other four containers are not). Found while
+  building 0.1.182.
+
+  *Reproduced against 0.1.182 (the branch build): `check --no-tsc` exits 0
+  on all four functions; full `check` reports TS2322 three times and TS2741
+  once.*

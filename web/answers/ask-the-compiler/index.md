@@ -183,4 +183,4 @@ All of that is asked before an edit. After one, the compiler answers in the othe
 
   `glyph_diagnostics` skips three checks `glyph check` makes: `tsc`, the `E0104` check for an import naming no module, which needs the build's view of `node_modules`, and `E0400` for a failing `@example`, which needs the emitted project run. It names all three in `not_run` instead of answering as though it had.
 
-Code examples on this page are checked against Glyph 0.1.177 on every build. Last changed 22 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.178 on every build. Last changed 22 Nov 2026.

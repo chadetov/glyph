@@ -8,6 +8,13 @@
   <updated>2026-11-24T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.178</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.178" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.178</id>
+    <updated>2026-11-24T00:00:00Z</updated>
+    <summary>A deprecated built-in method draws a warning with its replacement</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.177 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.177" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.177</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.149</id>
     <updated>2026-11-19T00:00:00Z</updated>
     <summary>A statement can no longer start on the line where the one before it ended.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.148 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.148" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.148</id>
-    <updated>2026-11-19T00:00:00Z</updated>
-    <summary>A map's keys are checked at run time now.</summary>
   </entry>
 </feed>

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-468 entries, 336 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-112 are open. G144, the D28 boundary cast that never reached the returns a
+475 entries, 336 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+119 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16163,3 +16163,80 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.178 (the release build) with record 187's t3 and t2's annotated `bigint` comparator (t2's `[1n, 2n]` with `mut xs.sort()` now draws E0243, whose help writes the `number` comparator): `check --no-tsc` exits 0 on the three programs; full `check` reports TS2322 for each; `let x = 1n` returned under `-> string` is E0204 "found `number`".*
 
+
+- **G501. A value written by `mut` is not compared with its place.** With
+  `let x: number = 1`, `mut x = "s"` passes `check --no-tsc`, and so do
+  `let y = 1` then `mut y = "s"`, `mut r.n = "x"` on a `number` field,
+  `mut r.tags[0] = 5`, `mut v[0] = 5` on an `Array<string>`,
+  `mut m["k"] = 5` on a `Record<string, string>`, and `mut r.mode = "exec"`
+  where `Mode = "read" | "write"`. `tsc` refuses all eight (TS2322). The
+  `MutKind::Assign` arm in `assign.rs` types an index target as unknown and
+  compares only a written object or array literal ("Nothing else compares a
+  value written to a `mut` target"). Covers G471's index half. Filed by
+  decision record 196.
+
+  *Reproduced against 0.1.178 (the published release) by record 196's probe
+  `m1.glyph`: function `a` exits 0 under `check --no-tsc`, and full `check`
+  reports eight TS2322.*
+
+- **G502. A primitive or an array where an interface is declared passes.**
+  `f(5)` with `f(h: HasName)` and `fn n1(s: string) -> HasName { return s }`
+  pass `check --no-tsc`; `tsc` refuses both (TS2345, TS2322). A record
+  parameter is already decided. `tsc` accepts a primitive whose apparent
+  members satisfy the interface (`"abc"` where `interface HasLen { length:
+  number }` is declared), so the rule reads the primitive's members rather
+  than refusing every primitive. Record 182's N1, numbered by decision
+  record 196.
+
+  *Reproduced against 0.1.178 (the published release) by record 196's probes
+  `prim.glyph` and `n134.glyph`: `check --no-tsc` exits 0 on `f(5)`, `n1` and
+  `n1b`; full `check` reports TS2345 and two TS2322.*
+
+- **G503. An unannotated lambda's returned value is not compared with the
+  function type its position declares.** `c(fn(x) { return x })` with
+  `c(f: fn(number) -> string)` and `let h: fn(number) -> string = fn(x) { x }`
+  pass `check --no-tsc`; `tsc` refuses them (TS2345, TS2322). Neighbours G406.
+  Record 182's N3, numbered by decision record 196.
+
+  *Reproduced against 0.1.178 (the published release) by record 196's probe
+  `n134.glyph`: both lines exit 0 under `check --no-tsc`.*
+
+- **G504. A member read on an unbounded type parameter passes.** `x.name` on
+  `fn n4<T>(x: T)` passes `check --no-tsc`; `tsc` refuses it (TS2339).
+  Record 182's N4, numbered by decision record 196.
+
+  *Reproduced against 0.1.178 (the published release) by record 196's probe
+  `n134.glyph`: `check --no-tsc` exits 0.*
+
+- **G505. The arguments of a `mut` method call are never checked.** On an
+  `Array<string>`, `mut v.push(5)`, `mut v.push("a", 5)`, `mut v.unshift(5)`,
+  `mut v.fill("x", "a")`, `mut v.splice("a", 1)`, `mut v.splice(0, 1, 5)` and
+  `mut v.copyWithin("a", 1)` pass `check --no-tsc`; `tsc` refuses each. The
+  same receivers in value position are checked (`v.indexOf(5)` is E0211), and
+  so is a stdlib type's mutating member (`mut t.add(5)` on a
+  `set.Set<string>`). Covers G471's method half and G492's rest parameter.
+  Filed by decision record 196.
+
+  *Reproduced against 0.1.178 (the published release) by record 196's probe
+  `m2b.glyph`: `check --no-tsc` exits 0, and full `check` reports nine
+  errors.*
+
+- **G506. A call inside an `@example` is in no relation, so `glyph_impact`
+  and `glyph_references` miss it.** With `@example normalize("  Hi ") ==
+  "hi"` on `normalize` and two calls in `twice`, `glyph query impact --entity
+  main::normalize --change rename` lists the two calls in `twice` and not the
+  example, which the rename breaks, while the CALLS search says it covers
+  every site that applies `main::normalize` and reports `not_indexed: []`.
+  An exact-or-absent answer that is neither. Filed by decision record 196.
+
+  *Reproduced against 0.1.178 (the published release) by record 196's impact
+  probe: two CALLS entries, both in `twice`, and no entry for the
+  `@example` line.*
+
+- **G507. A member read on a `bool` is not checked.** `b.nope` on a `bool`
+  passes `check --no-tsc`, while `n.nope` on a `number` is E0210. The
+  `boolean` receiver has no apparent-member list in the generated table.
+  Filed by decision record 196.
+
+  *Reproduced against 0.1.178 (the published release) by record 196's probe
+  `boolm.glyph`: `b.nope` exits 0 under `check --no-tsc`.*

@@ -11,6 +11,7 @@ description = "Incremental query database for Glyph. Wraps parse + resolve + ass
 [dependencies]
 glyph-ast.workspace = true
 glyph-formatter.workspace = true
+glyph-lexer.workspace = true
 glyph-parser.workspace = true
 glyph-resolver.workspace = true
 glyph-typechecker.workspace = true

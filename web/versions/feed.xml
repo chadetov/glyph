@@ -8,6 +8,13 @@
   <updated>2026-11-24T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.176 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.176" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.176</id>
+    <updated>2026-11-24T00:00:00Z</updated>
+    <summary>An unknown value is refused where another type is declared</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.175 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.175" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.175</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.147</id>
     <updated>2026-11-19T00:00:00Z</updated>
     <summary>A check that names a type parameter is now E0304, because a type parameter has no runtime check.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.146 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.146" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.146</id>
-    <updated>2026-11-19T00:00:00Z</updated>
-    <summary>A { on the line where a statement just ended is now a parse error, E0013.</summary>
   </entry>
 </feed>

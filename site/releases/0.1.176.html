@@ -1,0 +1,18 @@
+---
+version: 0.1.176
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: An unknown value is refused where another type is declared
+---
+            <p>Glyph's checker never refused a value of type <code>unknown</code>. With <code>u: unknown</code>, <code>let s: string = u</code> passed <code>check --no-tsc</code> and the agent gate, and only <code>tsc</code> caught it. That is the most common way unchecked data reaches typed code: a <code>json.parse</code> result handed on without being validated.</p>
+
+            <p>Now an <code>unknown</code> stands only where <code>unknown</code> is declared. Anywhere the checker knows the declared type, it is E0204 at a <code>let</code>, <code>const</code>, <code>return</code> or record field, and E0211 at an argument. The check reaches inside containers and function types, so <code>[u]</code> as an <code>Array&lt;string&gt;</code> and a <code>fn(number) -&gt; unknown</code> where <code>fn(number) -&gt; string</code> is declared are refused too. A generic wrapper that returns <code>json.parse(s)</code> as <code>Result&lt;T, ...&gt;</code> is caught by Glyph itself now. The help says how to check the value first: <code>T.parse(value)</code>, <code>json.parse&lt;T&gt;(text)</code>, or an <code>is</code> arm in a <code>match</code>.</p>
+
+            <p>Some things stay accepted: <code>string.from(u)</code>, <code>User.is(u)</code> and <code>User.parse(u)</code>, <code>u</code> inside a <code>Record&lt;string, unknown&gt;</code>, and anything whose declared type the checker does not decide, such as an <code>extern_ts</code> or package type. <code>Some(u)</code> where <code>Option&lt;string&gt;</code> is declared still passes; that is G436.</p>
+
+            <h3><code>is T</code> on a type parameter</h3>
+            <p>A type parameter has no runtime check, so <code>is Doc</code> inside <code>fn h&lt;Doc&gt;</code> was always refused with E0304, but only once everything else typechecked. With this release that would have shown up as a misleading type mismatch first. The checker now reports E0304 itself, at the pattern, for every such pattern in the file in one run.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>let u: unknown = get()</code> followed by <code>let s: string = u</code> exits 0 under 0.1.175's <code>check --no-tsc</code> and 1 under 0.1.176. Every new refusal is one <code>tsc</code> already makes. Across 376 tracked programs the output is byte-identical to 0.1.174.</p>

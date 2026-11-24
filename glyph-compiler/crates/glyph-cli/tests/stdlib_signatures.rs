@@ -313,7 +313,7 @@ fn the_stdlib_coverage_counts_are_pinned() {
     let (modeled, partial, unmodeled, total) = glyph_cli::llms::stdlib_coverage();
     assert_eq!(
         (modeled, partial, unmodeled),
-        (149, 51, 147),
+        (150, 50, 147),
         "stdlib coverage moved: {modeled} modeled, {partial} partial, {unmodeled} unmodeled \
          over {total} exports. If that is the change you made, update this pin."
     );
@@ -347,8 +347,7 @@ fn the_modeled_modules_have_exactly_the_holes_they_document() {
         // The element type is left off while an omitted return annotation
         // lowers to `void`: see the note on the row.
         ("std/path", &["join"], &[]),
-        // `exit` returns `never`, which Glyph has no way to write.
-        ("std/process", &["exit"], &[]),
+        ("std/process", &[], &[]),
         // The stored value is the map's own `V`, which is the unifier's rule
         // again.
         ("std/record", &["set"], &[]),

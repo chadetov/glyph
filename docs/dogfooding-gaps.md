@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-477 entries, 338 are fixed, 10 are partly fixed, 11 are decided or resolved, and
-118 are open. G144, the D28 boundary cast that never reached the returns a
+477 entries, 339 are fixed, 10 are partly fixed, 11 are decided or resolved, and
+117 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -14346,7 +14346,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.173 (the release build): `s.substr(1, 2)` is no diagnostics, passes `tsc --strict` and prints `el`.*
 
-- **G390. E0225 does not see an index write across an `await`.** `let first = c[0]`, `let f = await fee()`, `mut c[0] = first + f` reports
+- **G390. [FIXED] E0225 does not see an index write across an `await`.** `let first = c[0]`, `let f = await fee()`, `mut c[0] = first + f` reports
   nothing, while the same read-modify-write on a field (`a.balance`) is E0225.
   Extend the check to element and index writes.
 
@@ -14361,6 +14361,20 @@ and is the owner's to confirm.
   *Reproduced against 0.1.173 (the release build): no diagnostics on the index write `mut c[0] = first + f` across an `await`, while the same read-modify-write on `a.balance` in the same file is E0225 (the file's only error).*
 
   *Reproduced against 0.1.179 (the release build): no diagnostics on the index write `mut c[0] = first + f` across an `await`, while the same read-modify-write on `a.balance` in the same file is E0225 (the file's only error).*
+
+  Fixed in 0.1.180 (record 196, section 2). A place is now a parameter
+  followed by fields and indexes, and an index counts when its key is stable:
+  a number or string literal, or a name no `mut` reassigns anywhere, which is
+  the same `Reassigned` predicate `is`-arm narrowing reads. `c[0]`, `m["k"]`,
+  `a[0].balance` and `c[i]` are each E0225 when read before an `await` and
+  written after it. A read spelled `array.get(c, 0)` or `record.get(m, "k")`
+  counts as a read of that element, since E0224 refuses the bare read on a
+  `Record`, and the message names the call it was read through. `c[i + 1]`,
+  and `c[j]` where some `mut j = ..` exists, are not tracked. A local array,
+  a `push`, and a read after the `await` stay silent. The published 0.1.178
+  exits 0 on the `idx` probe under `check --no-tsc` and this build exits 1.
+  Across 375 corpus units the one change is this gap's own catch case, which
+  is now the refused case `element-update-across-await`.
 
 - **G391. [FIXED] An optional field decoded from `null` keeps the `null`, so a spread erases a default.** With `type Opts = { timeout_ms?: number }`, `json.parse<Opts>("{\"timeout_ms\": null}")`
   is `Ok` (null is absence, by decision), but the decoded object still holds

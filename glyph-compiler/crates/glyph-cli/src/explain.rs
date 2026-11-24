@@ -902,7 +902,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
             The value being written was read before the function suspended, so a \
             task that ran during the suspension and wrote the same field has its \
             write silently discarded. Two calls that each read 0 and write 1 \
-            leave 1, not 2 — out of a build reporting no diagnostics and a clean \
+            leave 1, not 2, out of a build reporting no diagnostics and a clean \
             `tsc --strict`, which is what makes it worth an error: nothing about \
             the source looks wrong and no test catches it unless it happens to \
             interleave.\n\n\
@@ -926,7 +926,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             literal or a name no `mut` reassigns, because only then is it the \
             same element at the read and at the write; `c[i + 1]` is not \
             tracked. A read written `array.get(c, 0)` or `record.get(m, \"k\")` \
-            is a read of that element, and the message names the call.",
+            is a read of that element, and the message names the call.\n\n\
+            It fires only when the value read before the `await` reaches the \
+            write, directly or through `let`s derived from it: `let first = \
+            c[0]`, `let x = first * 2`, `await`, `mut c[0] = x` is reported. A \
+            value read again after the `await` (`let now = c[0]` there, or `mut \
+            c[0] = c[0] + f`) is current and is not, even when the place was also \
+            read before it. A binding some `mut` reassigns carries nothing, so a \
+            stale value passed through one is a miss rather than a report.",
 
         // ----- emitter (E03xx) -----
         "E0226" => "E0226: every arm can fail and no arm is a catch-all\n\n\
@@ -2673,8 +2680,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0225",
         phase: "typechecker",
-        meaning: "A parameter's field or element (`c.n`, `c[0]`, `m[\"k\"]`, `a[i].n`) is read before an `await` and written after it, so a concurrent write in between is lost. A read through `array.get` or `record.get` counts. Move the read after the `await`",
-        fix: "Move the read after the `await`. A local counter across an `await` is fine and is not reported, and so is an index whose key can change (`c[i + 1]`, or a name some `mut` reassigns)",
+        meaning: "A parameter's field or element (`c.n`, `c[0]`, `m[\"k\"]`, `a[i].n`) is read before an `await`, and a value from that read is written back to it after the `await`, directly or through a `let` derived from it, so a concurrent write in between is lost. A read through `array.get` or `record.get` counts. Move the read after the `await`",
+        fix: "Move the read after the `await`. A value read again after the `await` is current and is not reported, nor is a local counter across an `await` or an index whose key can change (`c[i + 1]`, or a name some `mut` reassigns)",
     },
     CodeEntry {
         code: "E0226",

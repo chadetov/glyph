@@ -1,0 +1,25 @@
+module opaque
+
+// Names whose bodies the checker does not read (D29, D32). Each pairing with
+// one of them is left to `tsc` (G490), against a string-literal union, a
+// record and another name alike.
+type Mode = "read" | "write"
+type Raw = extern_ts("\"read\"")
+type Any = extern_ts("any")
+type Order = { id: string }
+type Tag = | A | B
+
+pub fn read_mode(r: Raw) -> Mode {
+  return r
+}
+
+pub fn as_order(a: Any) -> Order {
+  return a
+}
+
+pub fn as_tag(o: Order) -> Tag {
+  return match o.id {
+    "a" => A,
+    else => B,
+  }
+}

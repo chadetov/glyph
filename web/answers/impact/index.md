@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/impact/, generated from the same source as the page. Last changed 2026-11-23. -->
+<!-- Markdown copy of https://glyphlang.io/answers/impact/, generated from the same source as the page. Last changed 2026-11-24. -->
 
 21 · Before you edit
 
@@ -60,9 +60,11 @@ result, trimmed to the three sites
       "diagnostic": null,
       "because": "this site reads the name rather than
         applying it, so no argument is paired with a
-        parameter here, and Glyph does not compare a
-        function value's parameter types against the type
-        its use context expects"
+        parameter here. The checker compares a function
+        value's parameter types against the type its use
+        context expects (G491), but impact does not decide
+        this site: it does not follow the value to the slot
+        it lands in"
     }
   ]
 }
@@ -72,7 +74,7 @@ Same edit, three sites, three verdicts, and the `because` on each is the actual 
 
 **Details the compiler test this mirrors **
 
-This mirrors the compiler's own test for the change (`a_signature_type_change_gets_one_verdict_per_kind_of_site` in `glyph-cli/tests/agent_loop.rs`): the test makes the edit afterward and checks that E0211 lands exactly where `WILL_FAIL` said it would, and that the compiler stays silent at the other two.
+This mirrors the compiler's own test for the change (`a_signature_type_change_gets_one_verdict_per_kind_of_site` in `glyph-cli/tests/agent_loop.rs`): the test makes the edit afterward and checks that E0211 lands exactly where `WILL_FAIL` said it would and that the compiler stays silent at the `UNDETERMINED` one. The `NOT_INDEXED` value read gets E0204 from the checker since 0.1.185, which compares a function value with the type it is stored as; impact does not follow the value there yet.
 
 ## Why it matters
 
@@ -145,4 +147,4 @@ The change is required, because a verdict is a fact about an edit; with no edit 
 
 - `ABSORBS` is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.
 
-Code examples on this page are checked against Glyph 0.1.184 on every build. Last changed 23 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.184 on every build. Last changed 24 Nov 2026.

@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?","item":"https://glyphlang.io/ko/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/impact/#article","headline":"변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?","description":"glyph_impact는 바꾸려는 선언과 편집 내용을 받아, 파일을 건드리기 전에 모든 위치에 대해 판정과 이유를 답합니다.","url":"https://glyphlang.io/ko/answers/impact/","inLanguage":"ko","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/impact/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?","item":"https://glyphlang.io/ko/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/impact/#article","headline":"변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?","description":"glyph_impact는 바꾸려는 선언과 편집 내용을 받아, 파일을 건드리기 전에 모든 위치에 대해 판정과 이유를 답합니다.","url":"https://glyphlang.io/ko/answers/impact/","inLanguage":"ko","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -411,6 +411,7 @@
     </div>
     <div class="i18n-note" role="note">
       <p>이 페이지는 번역본입니다. 기준은 영어판입니다. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ko%29%3A+%2Fko%2Fanswers%2Fimpact%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fko%2Fanswers%2Fimpact%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fimpact%2F%0A%0AWhat+is+wrong%3A%0A">번역 문제 신고하기</a></p>
+      <p class="i18n-stale">이 번역 이후 이 페이지의 영어판이 변경되었습니다. <a href="/answers/impact/" hreflang="en" data-lang="en">최신 영어판 읽기</a></p>
     </div>
     <script>
       (function () {
@@ -534,9 +535,11 @@
       <span class="pk">"diagnostic"</span>: <span class="k">null</span>,
       <span class="pk">"because"</span>: <span class="s">"this site reads the name rather than
         applying it, so no argument is paired with a
-        parameter here, and Glyph does not compare a
-        function value's parameter types against the type
-        its use context expects"</span>
+        parameter here. The checker compares a function
+        value's parameter types against the type its use
+        context expects (G491), but impact does not decide
+        this site: it does not follow the value to the slot
+        it lands in"</span>
     }
   ]
 }</pre>
@@ -639,7 +642,7 @@
           </ul>
         </section>
       </div>
-      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.184으로 검사합니다. 마지막 변경: <time datetime="2026-11-23">2026년 11월 23일</time>.</p>
+      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.184으로 검사합니다. 마지막 변경: <time datetime="2026-11-24">2026년 11월 24일</time>.</p>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/answers/binary/">
           <span class="dir">&larr; 이전</span>

@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"変更が何を壊すかをコンパイラは教えてくれるか？","item":"https://glyphlang.io/ja/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/impact/#article","headline":"変更が何を壊すかをコンパイラは教えてくれるか？","description":"glyph_impact は、これから変更する宣言とその編集を受け取り、ファイルに触れる前に、すべての箇所について判定と理由を返します。","url":"https://glyphlang.io/ja/answers/impact/","inLanguage":"ja","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/impact/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"変更が何を壊すかをコンパイラは教えてくれるか？","item":"https://glyphlang.io/ja/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/impact/#article","headline":"変更が何を壊すかをコンパイラは教えてくれるか？","description":"glyph_impact は、これから変更する宣言とその編集を受け取り、ファイルに触れる前に、すべての箇所について判定と理由を返します。","url":"https://glyphlang.io/ja/answers/impact/","inLanguage":"ja","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -411,6 +411,7 @@
     </div>
     <div class="i18n-note" role="note">
       <p>このページは翻訳です。英語版が正式な内容です。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ja%29%3A+%2Fja%2Fanswers%2Fimpact%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fja%2Fanswers%2Fimpact%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fimpact%2F%0A%0AWhat+is+wrong%3A%0A">翻訳の問題を報告する</a></p>
+      <p class="i18n-stale">このページの英語版は、翻訳後に更新されています。 <a href="/answers/impact/" hreflang="en" data-lang="en">最新の英語版を読む</a></p>
     </div>
     <script>
       (function () {
@@ -534,9 +535,11 @@
       <span class="pk">"diagnostic"</span>: <span class="k">null</span>,
       <span class="pk">"because"</span>: <span class="s">"this site reads the name rather than
         applying it, so no argument is paired with a
-        parameter here, and Glyph does not compare a
-        function value's parameter types against the type
-        its use context expects"</span>
+        parameter here. The checker compares a function
+        value's parameter types against the type its use
+        context expects (G491), but impact does not decide
+        this site: it does not follow the value to the slot
+        it lands in"</span>
     }
   ]
 }</pre>
@@ -639,7 +642,7 @@
           </ul>
         </section>
       </div>
-      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.184 で検証しています。最終更新：<time datetime="2026-11-23">2026年11月23日</time>。</p>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.184 で検証しています。最終更新：<time datetime="2026-11-24">2026年11月24日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/binary/">
           <span class="dir">&larr; 前へ</span>

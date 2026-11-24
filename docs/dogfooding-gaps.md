@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-490 entries, 350 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-120 are open. G144, the D28 boundary cast that never reached the returns a
+492 entries, 350 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+122 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16911,3 +16911,30 @@ and is the owner's to confirm.
   string-literal union, a union or a record is decided (each probed on the
   branch build). The fixture comments say the same, and CI runs the script
   against its debug build (`GLYPH_BIN`).
+
+- **G551. A `package.json` that does not parse loses its bans.** D41 says a
+  manifest that will not parse is not a project marker, so the directory
+  stops being a project root and every `glyph.banned_imports` entry in it
+  stops applying. The build prints a one-line warning naming the manifest and
+  exits 0: a trailing comma turns a project's import policy off. A ban is the
+  one setting whose silent loss lets code through that the project said to
+  refuse, so a manifest that does not parse under a directory the build was
+  asked to check should arguably be an error rather than a warning. Filed by
+  the 0.1.187 banned-import release (record 196, section 9, "not handled").
+
+  *Reproduced against 0.1.178 (the 0.1.187 branch build, before the version
+  bump): `{"glyph": {"src": "src", "banned_imports": {"std/fs": {"use":
+  "storage"}}},}` beside `src/main.glyph` importing `std/fs` exits 0 under
+  `check --no-tsc`, printing "invalid ./package.json: trailing comma ... not a
+  Glyph project root".*
+
+- **G552. No query lists a project's banned imports.** An agent learns the
+  bans by reading `package.json` or by meeting E0115 after it has written the
+  import. A `glyph query` verb and an MCP tool answering "which import paths
+  are banned here, what replaces each, and who may import it" would let it ask
+  before writing. Filed by the 0.1.187 banned-import release (record 196,
+  section 9, "not handled").
+
+  *Reproduced against 0.1.178 (the 0.1.187 branch build, before the version
+  bump): `glyph query --help` lists eleven verbs and none reads
+  `glyph.banned_imports`.*

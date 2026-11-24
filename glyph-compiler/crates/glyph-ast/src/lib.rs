@@ -290,6 +290,69 @@ pub fn is_open_record(annotations: &[Annotation]) -> bool {
     annotations.iter().any(|a| a.name.as_ref() == "open")
 }
 
+/// The Markdown body of a `@doc` annotation: its raw argument with the
+/// surrounding `"""` stripped. An argument without them is the body as written.
+pub fn doc_body(raw: &str) -> &str {
+    raw.strip_prefix("\"\"\"")
+        .and_then(|s| s.strip_suffix("\"\"\""))
+        .unwrap_or(raw)
+}
+
+/// One ` ```glyph @run ``` ` fence of a `@doc` body.
+///
+/// `code` is what the example gate runs: the fence's lines, each followed by a
+/// newline. `lines` says where each of those lines starts in `code` and in the
+/// Markdown body it was read from, so a position in the code can be carried
+/// back to the body (and from there to the file) without assuming the two are
+/// one contiguous slice, which a body written with `\r\n` line ends is not.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunFence {
+    pub code: String,
+    /// `(offset in code, offset in the body, length)`, one per line.
+    pub lines: Vec<(usize, usize, usize)>,
+}
+
+/// Every ` ```glyph @run ``` ` fence of a Markdown body, in order. The opening
+/// fence is a line whose backtick run is tagged `glyph` and `@run`; the block
+/// ends at the next bare ``` ``` `` line.
+///
+/// The one reader of these fences. The example gate runs `code`, and the
+/// analysis database resolves the same `code`, so the two cannot disagree
+/// about which fences exist or what is in them.
+pub fn run_fences(markdown: &str) -> Vec<RunFence> {
+    // `str::lines` with each line's offset kept: a line ends at `\n`, and a
+    // `\r` before it is not part of the line.
+    let mut lines = Vec::new();
+    let mut at = 0usize;
+    for raw in markdown.split_inclusive('\n') {
+        let line = raw.strip_suffix('\n').unwrap_or(raw);
+        let line = line.strip_suffix('\r').unwrap_or(line);
+        lines.push((at, line));
+        at += raw.len();
+    }
+    let mut fences = Vec::new();
+    let mut it = lines.into_iter();
+    while let Some((_, line)) = it.next() {
+        let t = line.trim_start();
+        if t.starts_with("```") && t.contains("glyph") && t.contains("@run") {
+            let mut fence = RunFence {
+                code: String::new(),
+                lines: Vec::new(),
+            };
+            for (off, inner) in it.by_ref() {
+                if inner.trim() == "```" {
+                    break;
+                }
+                fence.lines.push((fence.code.len(), off, inner.len()));
+                fence.code.push_str(inner);
+                fence.code.push('\n');
+            }
+            fences.push(fence);
+        }
+    }
+    fences
+}
+
 /// D24: the field names named by a `@redact fields: [a, b]` annotation, if the
 /// declaration carries one. The single source of truth for parsing the
 /// `fields: [...]` list, shared by the typechecker (which validates the names

@@ -548,12 +548,15 @@ fn collect_tests(
                     });
                 }
                 "doc" => {
-                    for code in extract_run_blocks(doc_body(&ann.raw_args)) {
+                    // The same reader the analysis database resolves these
+                    // fences with, so a fence the gate runs is a fence
+                    // `glyph_impact` indexes (G506).
+                    for fence in glyph_ast::run_fences(glyph_ast::doc_body(&ann.raw_args)) {
                         runs_here += 1;
                         runs.push(DocRun {
                             decl: name.to_string(),
                             nth: runs_here,
-                            code,
+                            code: fence.code,
                         });
                     }
                 }
@@ -562,37 +565,6 @@ fn collect_tests(
         }
     }
     (cases, runs, malformed)
-}
-
-/// Strip the surrounding `"""` from a `@doc` block's raw argument, leaving the
-/// Markdown body.
-fn doc_body(raw: &str) -> &str {
-    raw.strip_prefix("\"\"\"")
-        .and_then(|s| s.strip_suffix("\"\"\""))
-        .unwrap_or(raw)
-}
-
-/// Extract the code of each ` ```glyph @run ``` ` fenced block from a Markdown
-/// body. The opening fence is a line whose backtick run is tagged `glyph` and
-/// `@run`; the block ends at the next bare ``` ``` `` line.
-fn extract_run_blocks(markdown: &str) -> Vec<String> {
-    let mut blocks = Vec::new();
-    let mut lines = markdown.lines();
-    while let Some(line) = lines.next() {
-        let t = line.trim_start();
-        if t.starts_with("```") && t.contains("glyph") && t.contains("@run") {
-            let mut code = String::new();
-            for inner in lines.by_ref() {
-                if inner.trim() == "```" {
-                    break;
-                }
-                code.push_str(inner);
-                code.push('\n');
-            }
-            blocks.push(code);
-        }
-    }
-    blocks
 }
 
 /// A declaration's name together with its annotations. `None` for an `import`,

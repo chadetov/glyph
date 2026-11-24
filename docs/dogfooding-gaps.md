@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-510 entries, 362 are fixed, 10 are partly fixed, 13 are decided or resolved, and
+511 entries, 363 are fixed, 10 are partly fixed, 13 are decided or resolved, and
 125 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -10754,7 +10754,7 @@ and is the owner's to confirm.
   reports TS2339. The calling side, where a bound is instantiated, is not
   checked yet (G264).
 
-- **G264. A bound is not checked where it is instantiated.** First filed as: elements of a bounded generic component are not checked by Glyph.
+- **G264. [FIXED] A bound is not checked where it is instantiated.** First filed as: elements of a bounded generic component are not checked by Glyph.
   `<Show />` and `<Show label="x" other="y" />` against
   `component Show<T: HasLabel>(p: T)` pass Glyph and are TS2769 under `tsc`.
 
@@ -10802,6 +10802,27 @@ and is the owner's to confirm.
   *Reproduced against 0.1.188 (the release build): `<Show />` and `<Show label="x" other="y" />` against `component Show<T: HasLabel>(p: T)` are `no diagnostics` under `--no-tsc`, and TS2769 twice with `tsc`; `id(5)` and `id<string>("s")` against `fn id<T: Named>(x: T) -> T` report nothing about the bound under `check --no-tsc` (only E0107 unused-variable warnings, exit 0), and are TS2345 and TS2344 under full `check`.*
 
   *Reproduced against 0.1.194 (the release build): `<Show />` and `<Show label="x" other="y" />` against `component Show<T: HasLabel>(p: T)` are `no diagnostics` under `--no-tsc`, and TS2769 twice with `tsc`; `id(5)` and `id<string>("s")` against `fn id<T: Named>(x: T) -> T` report nothing about the bound under `check --no-tsc` (only E0107 unused-variable warnings, exit 0), and are TS2345 and TS2344 under full `check`.*
+
+  Fixed in the release after G461 (decision record 196, section 7; D34,
+  D58, D72). After the call binds `T` to `A`, `A` is compared with the
+  bound with `T := A` put in, so `T: Cmp<T>` checks `A` against `Cmp<A>`.
+  `label(o)` with `o: Other`, `label({ title: "x", })`, `many(xs)` with an
+  `Array<Other>` and `pair(u, u)` with an unbounded `U` are E0211 at the
+  argument that bound `T`, expected the bound, with a note naming the
+  parameter (`` `T` takes `Other` from this argument, and its bound
+  `HasName` requires `name`, which `Other` does not have ``). A written
+  type argument (`label<Other>(o)`) and a type application in any type
+  position (`b: Box<Other>`, nested, in a bound) are the new E0251. Inside
+  a generic declaration `Box<U>` is accepted with `U: HasName` and refused
+  with an unbounded `U`. An element of `component Show<T: HasLabel>(p: T)`
+  is checked against `HasLabel` exactly as for `component S2(p:
+  HasLabel)`. A sibling's bounds are read through `imported_bounds`, so
+  both import spellings get the same verdict. Not judged: an object
+  literal against a `Record<string, V>` bound, an `extern_ts` or `typeof`
+  bound, a stdlib function's type parameters, a component whose bound
+  names its own parameter, and a sibling's interface bound (G541). `label(5)` against the interface bound
+  `HasName` waits for G502's primitive-against-interface rule; against a
+  record bound it is refused now.
 
 - **G265. JSX is untyped in the checker, so a JSX value passes where a string is
   declared.** `fn s() -> string { return <p>hi</p> }` passes Glyph and is
@@ -17733,3 +17754,21 @@ and is the owner's to confirm.
   verifiability answer page, which also named `array.map`, `flat_map` and
   `zip` as untyped; all four are corrected, the page item is gone, and the
   `llms.txt` mirrors and the site are regenerated.
+
+- **G541. A sibling's interface is not read across a module edge.** With
+  `pub interface HasName { name: string }` and `pub fn takes(h: HasName)`
+  in `lib`, `takes(o)` for `o: Other` (`{ title: string, }`) in another
+  module passes `check --no-tsc` under both import spellings, and so does
+  `label(o)` against `pub fn label<T: HasName>`, where the same call with
+  the interface declared locally is E0211. `tsc` refuses both (TS2345).
+  The relation reads an imported record, union and alias through
+  `imported_type_decl`, which answers only for a `type` declaration, so an
+  imported interface has no member set and every pairing against it is
+  undecided. G75's note named this as left out on purpose, as a language
+  decision about D34's structural rule, and nothing has scheduled it since.
+  Found while building G264, whose bound check is exact for a sibling's
+  record bound and silent for a sibling's interface bound for this reason.
+
+  *Reproduced against 0.1.179 (the next-g264 build, which still reports
+  0.1.179): the two calls above in a two-module project report no E0211
+  under `check --no-tsc`.*

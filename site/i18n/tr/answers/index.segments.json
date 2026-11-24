@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/index.html",
   "locale": "tr",
-  "source_hash": "f574b9ebcd22635e",
+  "source_hash": "88a6cb03294ad00e",
   "segments": [
     {
       "id": "title",
@@ -381,6 +381,18 @@
       "kind": "html",
       "en": "<code>glyph llms --json</code> emits the diagnostics, the prelude, the stdlib signatures and the tool manual out of the compiler's own tables, and a gate fails when a hand-written copy disagrees.",
       "tr": "<code>glyph llms --json</code>, diagnostic'leri, prelude'u, stdlib imzalarını ve araç kılavuzunu derleyicinin kendi tablolarından üretir; elle yazılmış bir kopya uyuşmadığında bir kontrol başarısız olur."
+    },
+    {
+      "id": "h-6f02dbb6",
+      "kind": "html",
+      "en": "Can I stop an agent importing the raw library when we have a wrapper for it?",
+      "tr": "Bir sarmalayıcımız varken bir ajanın ham kütüphaneyi içe aktarmasını engelleyebilir miyim?"
+    },
+    {
+      "id": "h-1ca6f891",
+      "kind": "html",
+      "en": "Ban the import path in <code>package.json</code> and name the replacement. An import of it is <code>E0115</code>, and the help points at your wrapper.",
+      "tr": "İçe aktarma yolunu <code>package.json</code> içinde yasaklayın ve yerine geçeni belirtin. Onu içe aktarmak <code>E0115</code> olur ve yardım metni sarmalayıcınızı gösterir."
     },
     {
       "id": "h-8479d742",

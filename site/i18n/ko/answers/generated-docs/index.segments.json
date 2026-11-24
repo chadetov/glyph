@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/generated-docs/index.html",
   "locale": "ko",
-  "source_hash": "cfa565ac48a19111",
+  "source_hash": "61722b2a96424269",
   "segments": [
     {
       "id": "title",
@@ -37,8 +37,8 @@
     {
       "id": "next.title",
       "kind": "next.title",
-      "en": "What's the editor, debugging, and error experience?",
-      "tr": "에디터, 디버깅, 오류 경험은 어떤가요?"
+      "en": "Can I stop an agent importing the raw library when we have a wrapper for it?",
+      "tr": "래퍼가 있는데도 에이전트가 원래 라이브러리를 직접 가져오지 못하게 막을 수 있나요?"
     },
     {
       "id": "h-594c6826",

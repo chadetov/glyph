@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/tooling/index.html",
   "locale": "th",
-  "source_hash": "6673445690cb5116",
+  "source_hash": "0f28a2b815f000a6",
   "segments": [
     {
       "id": "title",
@@ -25,8 +25,8 @@
     {
       "id": "prev.title",
       "kind": "prev.title",
-      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
-      "tr": "เอกสารที่เอเจนต์อ่านถูก generate ขึ้นมา หรือเขียนด้วยมือและล้าสมัย?"
+      "en": "Can I stop an agent importing the raw library when we have a wrapper for it?",
+      "tr": "ห้ามเอเจนต์ import ไลบรารีตัวดิบได้ไหม ในเมื่อเรามี wrapper ของมันอยู่แล้ว?"
     },
     {
       "id": "next.label",
@@ -41,10 +41,10 @@
       "tr": "ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?"
     },
     {
-      "id": "h-ccc1ce81",
+      "id": "h-16eeecc4",
       "kind": "html",
-      "en": "25 &middot; Day-to-day",
-      "tr": "25 &middot; การใช้งานประจำวัน"
+      "en": "26 &middot; Day-to-day",
+      "tr": "26 &middot; การใช้งานประจำวัน"
     },
     {
       "id": "h-173622d8",

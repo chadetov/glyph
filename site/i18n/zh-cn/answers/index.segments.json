@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/index.html",
   "locale": "zh-cn",
-  "source_hash": "f574b9ebcd22635e",
+  "source_hash": "88a6cb03294ad00e",
   "segments": [
     {
       "id": "title",
@@ -381,6 +381,18 @@
       "kind": "html",
       "en": "<code>glyph llms --json</code> emits the diagnostics, the prelude, the stdlib signatures and the tool manual out of the compiler's own tables, and a gate fails when a hand-written copy disagrees.",
       "tr": "<code>glyph llms --json</code> 从编译器自己的表中输出诊断、prelude、标准库签名和工具手册，手写的副本与之不一致时检查会失败。"
+    },
+    {
+      "id": "h-6f02dbb6",
+      "kind": "html",
+      "en": "Can I stop an agent importing the raw library when we have a wrapper for it?",
+      "tr": "我们已经有封装了，能阻止智能体直接导入原始库吗？"
+    },
+    {
+      "id": "h-1ca6f891",
+      "kind": "html",
+      "en": "Ban the import path in <code>package.json</code> and name the replacement. An import of it is <code>E0115</code>, and the help points at your wrapper.",
+      "tr": "在 <code>package.json</code> 中禁止该导入路径并指明替代模块。导入它会得到 <code>E0115</code>，帮助信息会指向你的封装。"
     },
     {
       "id": "h-8479d742",

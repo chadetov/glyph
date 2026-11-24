@@ -1,7 +1,7 @@
 ---
 title: คำตอบ · สิ่งที่วิศวกรถามเกี่ยวกับ Glyph · Glyph
 description: คำตอบเจาะจงสำหรับสิ่งที่วิศวกรถามเกี่ยวกับ Glyph: อะไรกันไม่ให้พังแบบเงียบๆ, React และ npm, ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ และการดีบักบน production
-source_hash: f574b9ebcd22635e
+source_hash: 88a6cb03294ad00e
 ---
       <header class="page-hero">
         <p class="eyebrow">คำตอบ</p>
@@ -67,6 +67,7 @@ source_hash: f574b9ebcd22635e
           <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">เอเจนต์ของฉันถามคอมไพเลอร์ได้ไหมว่าสัญลักษณ์คืออะไร ก่อนเขียนโค้ด?</span><p><code>glyph_symbol</code>: variant ของ union พร้อม syntax ที่ใช้สร้างแต่ละตัว ในการเรียกครั้งเดียว มีสิบเอ็ดเครื่องมือ แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code></p></a>
           <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">เมื่อ build ล้มเหลว คอมไพเลอร์บอกเอเจนต์ไหมว่าต้องแก้อย่างไร?</span><p>diagnostic มีสัญลักษณ์ที่ผิด ทางเลือกที่ถูกต้อง และสิ่งที่การแก้ต้องไม่ทำพัง <code>glyph fix</code> เขียนการแก้ที่คอมไพเลอร์ตัดสินได้เอง</p></a>
           <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">เอกสารที่เอเจนต์อ่านถูก generate ขึ้นมา หรือเขียนด้วยมือและล้าสมัย?</span><p><code>glyph llms --json</code> emit diagnostic, prelude, signature ของ stdlib และคู่มือเครื่องมือ ออกมาจากตารางของคอมไพเลอร์เอง และมี gate ที่ fail เมื่อสำเนาที่เขียนด้วยมือไม่ตรงกัน</p></a>
+          <a class="a-card" href="/answers/banned-imports/"><span class="n">25</span><span class="q">ห้ามเอเจนต์ import ไลบรารีตัวดิบได้ไหม ในเมื่อเรามี wrapper ของมันอยู่แล้ว?</span><p>แบน import path ใน <code>package.json</code> แล้วระบุตัวที่ใช้แทน การ import มันจะเป็น <code>E0115</code> และ help จะชี้ไปที่ wrapper ของคุณ</p></a>
         </div>
       </div>
 
@@ -74,10 +75,10 @@ source_hash: f574b9ebcd22635e
         <h2 class="block-label">error, editor และ production</h2>
         <p class="ans-group-sub">สิ่งที่คุณเห็นเมื่อมีอะไรผิด ตั้งแต่ใน editor จนถึงตอน on-call</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?</span><p>language server สำหรับ editor ที่รองรับ LSP และ error ที่มีรหัสคงที่ซึ่งบอกวิธีแก้</p></a>
-          <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?</span><p>บริบทของ <code>await</code>, arm ของ <code>match</code> ที่ไม่มีค่า และ <code>mut</code> ที่ขาดไป รายงานเทียบกับซอร์สของคุณแทนที่จะเป็น TypeScript ที่ emit ออกมา</p></a>
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?</span><p>field ไหน ผิดกฎข้อไหน ขัดกับ predicate <code>where</code> ตัวไหน และ <code>code</code> สำหรับแตก branch</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">เมื่อพังบน production ตอนตีสาม คนที่ on-call เห็นอะไร?</span><p>TS ที่อ่านได้และเป็นของคุณ source map ที่ชี้กลับไปยัง <code>.glyph</code> และ <code>run</code> ที่รายงานแบบเดียวกับ <code>build</code></p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">26</span><span class="q">ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?</span><p>language server สำหรับ editor ที่รองรับ LSP และ error ที่มีรหัสคงที่ซึ่งบอกวิธีแก้</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">27</span><span class="q">ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?</span><p>บริบทของ <code>await</code>, arm ของ <code>match</code> ที่ไม่มีค่า และ <code>mut</code> ที่ขาดไป รายงานเทียบกับซอร์สของคุณแทนที่จะเป็น TypeScript ที่ emit ออกมา</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">28</span><span class="q">เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?</span><p>field ไหน ผิดกฎข้อไหน ขัดกับ predicate <code>where</code> ตัวไหน และ <code>code</code> สำหรับแตก branch</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">29</span><span class="q">เมื่อพังบน production ตอนตีสาม คนที่ on-call เห็นอะไร?</span><p>TS ที่อ่านได้และเป็นของคุณ source map ที่ชี้กลับไปยัง <code>.glyph</code> และ <code>run</code> ที่รายงานแบบเดียวกับ <code>build</code></p></a>
         </div>
       </div>
 

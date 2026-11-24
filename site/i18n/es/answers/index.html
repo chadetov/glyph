@@ -1,7 +1,7 @@
 ---
 title: Respuestas · lo que preguntan los ingenieros sobre Glyph · Glyph
 description: Respuestas concretas a lo que preguntan los ingenieros sobre Glyph: qué impide las roturas silenciosas, React y npm, por qué no TypeScript con herramientas y la depuración en producción.
-source_hash: f574b9ebcd22635e
+source_hash: 88a6cb03294ad00e
 ---
       <header class="page-hero">
         <p class="eyebrow">Respuestas</p>
@@ -67,6 +67,7 @@ source_hash: f574b9ebcd22635e
           <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">¿Puede mi agente preguntarle al compilador qué es un símbolo antes de escribir código?</span><p><code>glyph_symbol</code>: las variantes de una unión con la sintaxis que construye cada una, en una sola llamada. Once herramientas, cada una con un verbo de <code>glyph query</code>.</p></a>
           <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">Cuando el build falla, ¿el compilador le dice a mi agente cómo arreglarlo?</span><p>El diagnóstico lleva el símbolo culpable, las alternativas válidas y lo que una edición de reparación no debe romper. <code>glyph fix</code> escribe las que el compilador resuelve por su cuenta.</p></a>
           <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">¿La documentación que lee mi agente se genera, o está escrita a mano y desactualizada?</span><p><code>glyph llms --json</code> emite los diagnósticos, el preludio, las firmas de la librería estándar y el manual de herramientas a partir de las propias tablas del compilador, y una comprobación falla cuando una copia escrita a mano no coincide.</p></a>
+          <a class="a-card" href="/answers/banned-imports/"><span class="n">25</span><span class="q">¿Puedo impedir que un agente importe la librería directamente cuando tenemos un wrapper para ella?</span><p>Prohíbe la ruta de importación en <code>package.json</code> y nombra el reemplazo. Importarla es <code>E0115</code>, y la ayuda apunta a tu wrapper.</p></a>
         </div>
       </div>
 
@@ -74,10 +75,10 @@ source_hash: f574b9ebcd22635e
         <h2 class="block-label">Errores, editores y producción</h2>
         <p class="ans-group-sub">Lo que ves cuando algo va mal, desde el editor hasta la guardia.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">¿Cómo es la experiencia con el editor, la depuración y los errores?</span><p>Un servidor de lenguaje para cualquier editor con LSP, y errores con un código estable que nombran el arreglo.</p></a>
-          <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">¿Por qué Glyph detecta lo mismo que tsc, pero antes?</span><p>El contexto de <code>await</code>, un brazo de <code>match</code> sin valor y un <code>mut</code> que falta, informados sobre tu código fuente en lugar de sobre el TypeScript generado.</p></a>
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">Cuando falla un parseo, ¿me entero de por qué?</span><p>Qué campo, qué regla incumplió, el predicado <code>where</code> que violó y un <code>code</code> sobre el que bifurcar.</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">Cuando se rompe en producción a las 3 de la mañana, ¿qué ve la guardia?</span><p>TS legible que es tuyo, source maps que apuntan a tu <code>.glyph</code> y un <code>run</code> que informa de lo mismo que <code>build</code>.</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">26</span><span class="q">¿Cómo es la experiencia con el editor, la depuración y los errores?</span><p>Un servidor de lenguaje para cualquier editor con LSP, y errores con un código estable que nombran el arreglo.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">27</span><span class="q">¿Por qué Glyph detecta lo mismo que tsc, pero antes?</span><p>El contexto de <code>await</code>, un brazo de <code>match</code> sin valor y un <code>mut</code> que falta, informados sobre tu código fuente en lugar de sobre el TypeScript generado.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">28</span><span class="q">Cuando falla un parseo, ¿me entero de por qué?</span><p>Qué campo, qué regla incumplió, el predicado <code>where</code> que violó y un <code>code</code> sobre el que bifurcar.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">29</span><span class="q">Cuando se rompe en producción a las 3 de la mañana, ¿qué ve la guardia?</span><p>TS legible que es tuyo, source maps que apuntan a tu <code>.glyph</code> y un <code>run</code> que informa de lo mismo que <code>build</code>.</p></a>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 ---
 title: Yanıtlar · mühendislerin Glyph hakkında sordukları · Glyph
 description: Mühendislerin Glyph hakkında sorduklarına somut yanıtlar: sessiz bozulmaları ne engelliyor, React ve npm, neden araçlarla donatılmış TypeScript değil ve production'da debug.
-source_hash: f574b9ebcd22635e
+source_hash: 88a6cb03294ad00e
 ---
       <header class="page-hero">
         <p class="eyebrow">Yanıtlar</p>
@@ -67,6 +67,7 @@ source_hash: f574b9ebcd22635e
           <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">Ajanım kod yazmadan önce derleyiciye bir sembolün ne olduğunu sorabilir mi?</span><p><code>glyph_symbol</code>: bir union'ın variant'ları, her birini oluşturan sözdizimiyle, tek çağrıda. On bir araç, her biri bir <code>glyph query</code> fiiliyle.</p></a>
           <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">Build başarısız olduğunda derleyici ajanıma nasıl düzelteceğini söylüyor mu?</span><p>Diagnostic, hatalı sembolü, geçerli alternatifleri ve onarıcı bir düzenlemenin bozmaması gerekenleri taşır. Derleyicinin kendi başına karara bağladıklarını <code>glyph fix</code> yazar.</p></a>
           <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?</span><p><code>glyph llms --json</code>, diagnostic'leri, prelude'u, stdlib imzalarını ve araç kılavuzunu derleyicinin kendi tablolarından üretir; elle yazılmış bir kopya uyuşmadığında bir kontrol başarısız olur.</p></a>
+          <a class="a-card" href="/answers/banned-imports/"><span class="n">25</span><span class="q">Bir sarmalayıcımız varken bir ajanın ham kütüphaneyi içe aktarmasını engelleyebilir miyim?</span><p>İçe aktarma yolunu <code>package.json</code> içinde yasaklayın ve yerine geçeni belirtin. Onu içe aktarmak <code>E0115</code> olur ve yardım metni sarmalayıcınızı gösterir.</p></a>
         </div>
       </div>
 
@@ -74,10 +75,10 @@ source_hash: f574b9ebcd22635e
         <h2 class="block-label">Hatalar, editörler ve production</h2>
         <p class="ans-group-sub">Bir şey yanlış olduğunda editörden nöbetçiye kadar ne gördüğünüz.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">Editör, debug ve hata deneyimi nasıl?</span><p>Her LSP editörü için bir dil sunucusu ve düzeltmeyi adıyla söyleyen, kararlı kodlu hatalar.</p></a>
-          <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">Glyph neden tsc'nin yakaladıklarını daha erken yakalıyor?</span><p><code>await</code> bağlamı, değeri olmayan bir <code>match</code> arm'ı ve eksik bir <code>mut</code>, üretilen TypeScript'e göre değil kendi kaynak kodunuza göre bildirilir.</p></a>
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">Bir parse başarısız olduğunda nedenini öğrenebiliyor muyum?</span><p>Hangi alan, hangi kuralı ihlal ettiği, ihlal ettiği <code>where</code> koşulu ve üzerinde dallanabileceğiniz bir <code>code</code>.</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">Gece 3'te production'da bozulduğunda nöbetçi ne görüyor?</span><p>Sahibi olduğunuz okunabilir TS, <code>.glyph</code> dosyanıza geri götüren source map'ler ve <code>build</code>'in bildirdiğini bildiren bir <code>run</code>.</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">26</span><span class="q">Editör, debug ve hata deneyimi nasıl?</span><p>Her LSP editörü için bir dil sunucusu ve düzeltmeyi adıyla söyleyen, kararlı kodlu hatalar.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">27</span><span class="q">Glyph neden tsc'nin yakaladıklarını daha erken yakalıyor?</span><p><code>await</code> bağlamı, değeri olmayan bir <code>match</code> arm'ı ve eksik bir <code>mut</code>, üretilen TypeScript'e göre değil kendi kaynak kodunuza göre bildirilir.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">28</span><span class="q">Bir parse başarısız olduğunda nedenini öğrenebiliyor muyum?</span><p>Hangi alan, hangi kuralı ihlal ettiği, ihlal ettiği <code>where</code> koşulu ve üzerinde dallanabileceğiniz bir <code>code</code>.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">29</span><span class="q">Gece 3'te production'da bozulduğunda nöbetçi ne görüyor?</span><p>Sahibi olduğunuz okunabilir TS, <code>.glyph</code> dosyanıza geri götüren source map'ler ve <code>build</code>'in bildirdiğini bildiren bir <code>run</code>.</p></a>
         </div>
       </div>
 

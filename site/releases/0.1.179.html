@@ -1,0 +1,20 @@
+---
+version: 0.1.179
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: A value written by mut is checked against the place it goes into
+---
+            <p>Glyph compared the value of <code>let x: number = ...</code> with its annotation, but a later <code>mut x = "s"</code> was never compared with anything. The same held for a field write, an array element write and a map write: <code>mut r.n = "x"</code>, <code>mut v[0] = 5</code> on an <code>Array&lt;string&gt;</code> and <code>mut m["k"] = 5</code> on a <code>Record&lt;string, string&gt;</code> all passed <code>check --no-tsc</code>, and only <code>tsc</code> caught them.</p>
+
+            <p>Now <code>mut P = e</code> checks <code>e</code> against P's type exactly the way an annotated <code>let</code> checks its initializer, as E0204. A name holds its annotation, or the type of its initializer when it has none, so <code>let y = 1</code> followed by <code>mut y = "s"</code> is refused too. A field holds its declared type, an array element its element type, and a map value its value type. A <code>match</code> is checked arm by arm. The note says where the place's type came from, for example <code>`y` holds a `number`: the type of its initializer at line 9, and a `mut` does not change a binding's type</code>.</p>
+
+            <p>A name whose type comes from somewhere else, such as a <code>for</code> binding, a <code>match</code> payload or a lambda parameter typed by its position, is not judged yet, and neither is a receiver the checker cannot type.</p>
+
+            <h3>A <code>let</code> over a <code>const</code></h3>
+            <p>Checking writes showed that <code>let dir = DEFAULT_DIR</code>, over an unannotated <code>const DEFAULT_DIR = "examples/apps/chat"</code>, held the exact literal type, where TypeScript widens it to <code>string</code>. Without a fix, five of the example apps would have been refused for writing a different directory into <code>dir</code>. Such a <code>let</code> now holds a <code>string</code>, locally or through an import. An annotated <code>const</code> keeps its type.</p>
+
+            <p>The key of an index expression is still not checked against the key type: <code>mut m["exec"] = 2</code> on a <code>Record&lt;Mode, number&gt;</code> passes. That is G511, scheduled for the next batch.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>let x: number = 1</code> followed by <code>mut x = "s"</code> exits 0 under 0.1.178's <code>check --no-tsc</code> and 1 under 0.1.179. Because of the <code>const</code> widening, passing such a <code>let</code> where a string-literal union is declared is now E0211, as <code>tsc</code> already reported it. Every new refusal is one <code>tsc</code> makes, apart from an element write inside an <code>is Array</code> arm, where <code>tsc</code> sees an <code>any[]</code>. Across the 375 programs the corpus script measures, the output is identical to 0.1.178.</p>

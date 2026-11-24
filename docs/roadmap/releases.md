@@ -3818,8 +3818,6 @@ is a memory leak with no log line (G120); and network `Bytes` are zero-copy view
 onto node's pooled 8 KiB buffers, so retaining a small frame per connection pins
 8 KiB each (G121).
 
-
-
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, and WebSocket integration tests all shipped. **`std/sse` did
 not, and moves to 0.1.81.** It is the least specified of the five: Node 26
@@ -4225,7 +4223,6 @@ Published 2026-08-24 and smoke-tested from a clean npx cache in an isolated
 HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
 and the headline feature itself.
 
-
 G125, found straight after 0.1.81 by an app that followed the external-imports
 guide. Installing `@types/node`, which that guide tells you to install for the
 full node builtin surface, failed every build inside the compiler's own runtime,
@@ -4268,7 +4265,6 @@ Nothing here carries the **Next** marker.
 Published 2026-08-24 and smoke-tested from a clean npx cache in an isolated
 HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
 and the headline feature itself.
-
 
 G126, from the same app that found G125 and for the same reason: the bundled
 node shim had `spawnSync` and `execFileSync` and not the async `spawn`. Both of
@@ -5355,7 +5351,6 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G171: measured in 0.1.114 and the conclusion held on a corrected argument. It stays listed only because nothing has been built on it; there is no work owed
 - G39 (member set): member access and calls on `string`, `number`, `bool` and `Array<T>` are unchecked against `Ty::Unknown` in `glyph check --no-tsc`, the LSP, the MCP server and the playground. Not a checker hole `tsc` lets through; the four surfaces just don't have `tsc` in the loop. Modelling the member set per primitive is the stdlib-from-`.d.ts` question, Q21/Q40, and waits on that architecture decision rather than growing the hand-written table further
 
-
 **0.1.120 — Shipped 2026-09-08 · The emitter consumes facts, it does not rediscover them**
 - **The principle, stated once.** The emitter must consume semantic facts computed by the resolver and the typechecker; it must not independently rediscover language semantics. The rule is recorded in `04-transpiler.md` beside the decisions it refines. Three releases in a row found the cost of breaking it: G147, where the emitter's own variant-list rule could not see an imported payload the checker knew; G207, where the `where` refusal grew a second alias walker inside the emitter instead of reading the checker's; and G212, where a pass read a type name the rest of the checker had already resolved through an alias. Each was one spelling with two answers, and each was found by an outside reading rather than by a test, because a test written against the emitter's own reading passes
 - **What the audit found (G214), and what shipped.** 49 rediscovery sites in six families. The three changes landed in order and each one uncovered a hole of the same family in the checker, which is the argument for the principle in one line:
@@ -5540,8 +5535,6 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - **Known limit (record 137).** An interpolation right after a comparison is taken to be a value. If a run-time `${x}` after `=` was meant as a column name, the `?` rewrite turns it into a value comparison. The original was an injection either way, and a column picked from constants is accepted with no rewrite
 - **Cut from this release: "the other stdlib injection sinks follow."** The stdlib has no shell sink. `regex` patterns fit the same rule but need a `regex.escape` first (G409), and `http.html` needs an escaping builder, not a constant rule (G410); both are filed in the rolling lane. `child_process` and npm drivers such as `pg` are outside the stdlib and belong to the banned-import release (0.1.182)
 
-
-
 **0.1.156 — Shipped 2026-11-21 · Release A, a lambda parameter's type is the one written** (record 130, F1 and F3; record 131 places it after 0.1.154, G384, and 0.1.155, G387; breaking; D53). Branch `dev-0.1.156`.
 - **G412 and D53, the omitted marker.** A lambda parameter is a `LambdaParam` whose annotation is `Option<TypeExpr>`: `None` when omitted. The parser used to synthesize a written `unknown` for the omitted form, so the formatter and the emitter read a written `unknown` as omitted and the checker read omitted as `unknown`. Now the checker lowers an omitted parameter to "not typed here" (judged by no rule) and a written `unknown` to the judged `unknown`; `glyph fmt` keeps `fn(p: unknown) -> number { return p + 1 }` byte for byte; the emitter writes `(p: unknown)`, so full `check` refuses `p + 1` with TS18046, and an omitted annotation still emits `(p)`. No stage matches the name `unknown` or a span to tell the two apart. Hover on an omitted parameter's use now answers `not typed here: the parameter has no annotation (contextual typing is G414)`, where it said `unknown`, and a lambda with one hovers `fn(?) -> number`
 - **G413, `is` arms narrow.** Inside an arm whose pattern is `is T`, a scrutinee that is a parameter, a `let` or a module `const` has type `T` in the arm's body, for `T` a primitive or a declared type (a prelude container, `is Record<K, V>` or `is Array<X>`, does not narrow yet: G415); outside the arm it keeps its own type. A name any `mut` reassigns anywhere in its scope, nested lambdas included, is not narrowed (record 134, B1: a lambda called inside the arm could rebind it). The predicate, a binding no `mut` reassigns, is one function (`reassign.rs`) that D52's constant `let` for `sqlite.Sql` now reads too, so constness and narrowing cannot disagree (record 136). `is User => v.nmae` is E0210 without `tsc`; hover shows `number` inside `is number =>` and `unknown` outside. Release B's unknown help depends on this
@@ -5561,8 +5554,6 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - **Measured on the corpus** against the published 0.1.156: `check --no-tsc` gives identical output on every tracked `.glyph` file and the 32 apps except the catch case and the new `tests/negative/option_joined_to_a_string` fixture, so no tracked program is newly refused; `fmt --check` is identical. The emitted TypeScript is byte-identical except two lines in `expenses` and `settle`, where a `match` over a `Decimal` method's `bool` result now carries `as boolean`, because the method is typed; both apps pass `tsc --strict` on this build
 
 **Planned, unscheduled · G416, how an `unknown` renders as text** (record 130, F2). `string.from` on an `unknown` holding a record prints `[object Object]`. Decide whether an `Error` renders as its message and an object as JSON, through `string.from` or a new function. Changing `string.from`'s runtime changes the output of the five `Issue.path` sites (G405), so it is its own release.
-
-
 
 **0.1.158 — Shipped 2026-11-21 · G414, an omitted lambda annotation takes its type from its position** (records 130, 142 and 143; record 131 places it after Release B and before G325; breaking; D55). Branch `dev-0.1.158`, rebased onto 0.1.157.
 - **The rule (D55).** An omitted lambda parameter has the type of the matching parameter of the function type expected where the lambda stands. Six positions supply one: a call argument (the callee's parameter type, with the callee's type parameters bound from the arguments before the lambda and from written type arguments, so `array.map<T, U>` binds `T` from `xs` first); an annotated `let`; an annotated module `const`; a `return` in a callable with a declared return type; a field of a record literal in one of those positions whose declared type is a record; and an attribute of a component element whose props record Glyph knows. The built-in `Array<T>` methods that take a callback (`map`, `forEach`, `flatMap`, `filter`, `find`, `findIndex`, `findLast`, `findLastIndex`, `some`, `every`, `reduce`, `reduceRight`, `sort`, `toSorted`) supply its parameter types from the receiver's element type, for context only (`(T, number, Array<T>)`; the seed's widened type then `T` for `reduce`; `(T, T)` for a comparator), so the method spelling gets the function spelling's answer (record 142, B1); their result typing is the generated row's, unchanged. The function type is read through second names and `type` aliases. A fresh literal seed binds its widened type (`array.fold(xs, "", fn(acc, x) ..)` gives `acc: string`), and each lambda's signature binds what it can for later arguments. A written annotation is untouched
@@ -5585,15 +5576,11 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - **Helps for the other two refusals (record 144).** A sync function where an async one is declared: `` `task.detach` takes an async function, and `tick` is not async. Pass `async fn() -> void { tick() }`, or declare it `async fn tick()`. ``, with the parameter's return in the wrapper and no wrapper where the function's return cannot be read (`run_num(ext)` gets ``Declare it `async fn ext() -> number`.``); a sync lambda is told ``Write it `async fn() { ... }`, keeping its body.``. An async callback to `array.map`: `` `array.map` does not wait for its callback. Await each call in a loop, `for x in xs { ... await save(x) ... }`, or run them together with `task.all`. ``, with no `async fn(`. Each is applied in a test and passes full `check`.
 - **Not in it.** G421, filed with this release for the rolling polish lane: the same pairings at a `let`, `const`, `return` or field, and a component prop, keep the general E0204 or E0211 message and help; `time.debounce`'s callback takes a rest parameter Glyph cannot spell and stays unmodeled; G406 is unchanged.
 
-
 **Planned, after 0.1.159 · G386, `bool` operands for `||`, `&&` and `!`** (agent research; breaking), so `n || 5` cannot turn a real `0` into `5`. `??` and `==` already cover the intended uses.
-
 
 **Planned, after 0.1.159 · G359, G360 and G361, `glyph fix` against the diagnostics it reads** (record 106). `glyph fix` skips an unused import whose name an E0200 in the same file lists as a missing variant, instead of deleting it; its decline names E0216 when the catch-all arm comes before the head, rather than claiming a rename would move a case; and after an applied rename completes a match it recomputes or drops the E0200 it read before the rename. One release, since all three are the fix driver reading a diagnostic list it does not refresh
 
-
 **Planned, after 0.1.159 · G379, two top-level declarations on one line are a parse error** (record 117; breaking). A top-level declaration that begins on the line where the previous item ended is E0013 with a declaration-specific help, so D1's title holds at the top level too and `grep '^pub fn b'` always finds `b`. Decide first whether an import followed by a declaration on the same line moves from E0002 to E0013, so one code means one item per line. No tracked file hits it
-
 
 **0.1.160 — Shipped 2026-11-21 · G380, a mutating method call needs `mut`** (decision record 150; breaking; D5 amended, reversing Q7). Branch `dev-0.1.160`, cut from 0.1.159.
 - **Which methods.** The generated method rows gain `mutates`. On an `Array<T>` it is `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, `reverse`, `fill` and `copyWithin`; every other array method (`toSorted`, `toReversed`, `toSpliced` and `with` included) and every `string` and `number` method is non-mutating. `lib.d.ts` has no marker, so the split is written by hand in `scripts/check_builtin_members.py` as `MUTATING` and `NON_MUTATING` per receiver, and held two ways: generation fails on a method in neither set or both, so a TypeScript bump that adds one fails CI until someone classifies it, and node calls every array method with sample arguments on a fresh `[3, 1, 2]` and checks the receiver changed exactly when the method is in `MUTATING` (moving `sort` to `NON_MUTATING` fails it, checked once on purpose)
@@ -5797,8 +5784,6 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 
 **Planned, after this batch · G438, an `==` whose operands can never be equal is refused without `tsc`** (record 163). A comparison whose decided operands are disjoint string-literal sets (`m == "zzz"` on a `Mode`) is TS2367 under full `check` and passes `--no-tsc`. The checker refuses it; then the emitter may write `===` again for a comparison with an unannotated string `const`, which G433 keeps on `__glyph_eq`. A `number` or `bool` constant keeps the helper until Glyph has literal types for those. Breaking under `--no-tsc` only.
 
-**Planned, after this batch · G439, an array index read is compared where a type is declared** (record 163, probe k08). `let b: string = ys[0]` with `ys = [1, 2]` passes `--no-tsc` and `tsc` refuses it (TS2322). The index read carries the element type into the comparison. Breaking under `--no-tsc` only.
-
 **0.1.173 — Shipped 2026-11-24 · G263, a generic bound is resolved, and a bounded parameter is decided as a value** (record 179, fork (b)). Bound names resolve like any other name: an unresolved bound is E0103 (`tsc` reports TS2304), for functions and for generic components (G264). In the same release the bounded-value rule from record 88 switches on: inside its declaring function a `T: Named` passes where `Named` is declared and is refused elsewhere (`T: Named` returned where `Other` is declared, TS2322). Breaking.
 - **The declaring side of a bound (record 182).** This release is everything about a bound inside the declaration that writes it. The calling side, where a bound is instantiated, is 0.1.179 (G264, widened), including the generic component elements the heading above names.
 - **Resolved.** The resolver binds a declaration's type parameters, then resolves each bound through the annotation path, on a `fn`, a `component`, a `type` and an `interface`. `fn c<T: Nope>(x: T) -> T` and `component Bad<T: Nope>` are E0103 (TS2304 under `tsc`), and `T: l.Nope` is E0105 (TS2694). A bound may name a sibling parameter on either side of it. An import used only in a bound is a use, so the false E0106 `unused import` on it, whose help broke the program, is gone. The E0103 explanation says a bound is a name like any other.
@@ -5865,34 +5850,38 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - **Measured.** Across 286 units (every app directory, every standalone file under `examples/` and `benchmarks/glyph/` in its own directory, `catches/*`, `tests/exact-or-absent/*/src` and `tests/negative/*`), run one at a time with `build --no-tsc --no-test` and `check --no-tsc --json`. Against 0.1.177's code (main at the 0.1.177 release commit, built locally; 0.1.177 is not on npm yet) the output is byte-identical on every unit, warnings included. Against the published 0.1.176 one unit moves, `catches/numbers-sorted-as-text`, from exit 0 to 1 by 0.1.177's E0243. No tracked program uses any of the 16 members.
 - **Breaking.** No. A warning changes no exit code: `s.substr(1, 2)` exits 0 under the published 0.1.176's `check --no-tsc`, under 0.1.177's, and under this build's, which prints the warning.
 
-**0.1.179 — Next · G501, a value written by `mut` is compared with its place** (decision record 196, section 1; breaking). Landed on `dev-0.1.179`. G501 and G512 close with it; G471 is half fixed.
+**0.1.179 — Shipped 2026-11-24 · G501, a value written by `mut` is compared with its place** (decision record 196, section 1; breaking). G501 and G512 close with it; G471 is half fixed.
 - **The rule.** `mut P = e` compares `e` with P's type the way `let x: T = e` compares its initializer: E0204, arm by arm for a `match` (G457), with D57's rules for a written literal, which is reported once. `mut x = "s"` on a `number` binding, `mut r.n = "x"`, `mut r.tags[0] = 5`, `mut v[0] = 5` on an `Array<string>`, `mut m["k"] = 5` on a `Record<string, string>` and `mut r.mode = "exec"` against `Mode` are E0204; `tsc` refuses each (TS2322). So is `mut u[0] = 5` inside an `is Array<string>` arm, which `tsc` accepts because `Array.isArray` gives it an `any[]`. A name holds its annotation or, under D66, its `let` initializer's type; a field its declared type; `v[i]` the element or value type. A name typed by neither (a `for` binding, an arm's payload, a lambda parameter typed by its slot) and a receiver the checker cannot type are not judged. The note says where the type came from (`` `y` holds a `number`: the type of its initializer at line 9, and a `mut` does not change a binding's type ``) and the help is "Write a value of that type, or bind the new value to a new name." Closes G471's index half; the method half is 0.1.181's.
 - **G512, found on the way.** A `let` over an unannotated `const` held the `const`'s literal (`let dir = DEFAULT_DIR` held `"examples/apps/chat"`), where `tsc` widens it to `string`. With G501 that refused `mut dir = ...` in five example apps. The `let` now holds a `string` when it reads an unannotated `const` of string literals (a written string or a `match` of them), local or imported by name or namespace; an annotated `const` keeps its type. D66 states both.
 - **G511, not done.** Record 196 assumed E0204's key rule holds the key of an index write to `K`. It does not, and record 201 widened the gap to every index expression, read or write, map or array (`mut m["exec"] = 2` on a `Record<Mode, number>` passes `--no-tsc`, and `tsc` reports TS7053). Record 201 decided it as E0204 and scheduled it in the next batch.
 - **Measured.** `scripts/measure_corpus.py` over its 375 units against the published 0.1.178: no unit differs, check exit pairs (0, 0) 195 and (1, 1) 180. Before G512 the same run moved five apps (chat, csvql, discord, jobq, workflow) from 0 to 1, all of them the `const` widening above.
 - **Breaking.** Yes. `let x: number = 1` then `mut x = "s"` exits 0 under the published 0.1.178's `check --no-tsc` and 1 under this build; full `check` exits 1 under both (TS2322 before, E0204 now). A `let` over an unannotated `const` holding a string literal is a `string`, so passing it where a string-literal union is declared is now E0211, as `tsc` reports it.
 
-**0.1.180 · G390, E0225 covers index and element writes across an `await`** (agent research), as it already covers field writes. Record 196, section 2: the place is a parameter plus a path of field and index segments with stable keys (a literal, or a name no `mut` reassigns), and a read through `array.get` or `record.get` counts.
+**0.1.180 — Next · G390, E0225 covers index and element writes across an `await`** (agent research), as it already covers field writes. Record 196, section 2: the place is a parameter plus a path of field and index segments with stable keys (a literal, or a name no `mut` reassigns), and a read through `array.get` or `record.get` counts.
 
 **0.1.181 · G505, a `mut` method call's arguments are checked** (record 196, section 3; breaking). `mut v.push(5)`, `mut v.fill("x", "a")` and `mut v.splice("a", 1)` on an `Array<string>` are E0211, as the same calls are in value position; a built-in rest parameter checks each argument against its element type (`string.concat`, G492). Closes G471's method half and G492. The sort comparator's parameter types wait for 0.1.183.
 
 **0.1.182 · G460 and G502, an interface and a primitive are compared** (record 196, section 4; breaking). A primitive, a string-literal union or an array where an interface is declared is compared through its apparent members (`"abc"` satisfies `interface HasLen { length: number }`, `5` does not satisfy `HasName`); an interface value where a primitive is declared is refused. `glyph_assignable` and `glyph_impact` follow the relation for these pairings.
 
-**0.1.183 · G491 and G434, a function value's parameters are compared, and function types are printed** (record 196, section 5; breaking). Parameters are compared contravariantly, a value taking more required parameters than the slot passes is refused, a generic function value is instantiated against the slot before comparison, and every diagnostic between two function types prints both signatures.
+**0.1.183 · G500, `bigint` is its own type** (decision record 200, ruling 1; breaking). The checker holds `bigint` as a type of its own (D38) instead of as `number`: `1n` is a `bigint`, a `bigint` and a `number` are not assignable to each other, and `glyph query assignable` never answers COMPATIBLE for a `bigint` against `number` or against an interface only a `number` satisfies. It ships before G491, whose full comparison of method members would otherwise make that false answer reachable.
 
-**0.1.184 · G461, a generic interface's members are checked** (record 184, N1; breaking). A member read and a method call on a value of `Cmp<string>` under `interface Cmp<X> { fn cmp(o: X) -> number  v: X }` read the member set through the application, with `X` substituted: `c.cmp("a")` returned where `string` is declared and `c.v` where `number` is declared are E0204, `c.nope` is E0210 and `c.cmp(5)` is E0211, as a non-generic interface's are today; `tsc` refuses the first three. It is what gives an F-bound such as `T: Cmp<T>` (0.1.173) something to guarantee. Measure the corpus with the two-binary run.
+**0.1.184 · G439, an index read is typed as its element** (decision record 199, ruling 2; breaking). (record 163, probe k08). `let b: string = ys[0]` with `ys = [1, 2]` passes `--no-tsc` and `tsc` refuses it (TS2322). The index read carries the element type into the comparison. Breaking under `--no-tsc` only.
 
-**0.1.185 · G264, a bound is checked where it is instantiated** (record 182; breaking). The calling side of a bound, split from 0.1.173 by risk: an upgrader's build goes red at a call site here, inside a generic body there. With `fn label<T: HasName>(x: T)`, `label(5)` and `label(o)` with `o: Other` are E0211 (TS2345 under `tsc`). A written type argument (`label<Other>(o)`) and a type application (`b: Box<Other>` under `type Box<T: HasName>`) are refused too (TS2344), by a new code or by E0233 with a "does not satisfy the bound" message; the builder reports which, and why. An element of a bounded generic component has its attributes checked against `B` as for `component S(p: B)`: `<Show />`, `<Show label="x" other="y" />` and `<Show label={5} />` against `component Show<T: HasLabel>(p: T)` are refused, as `tsc` refuses them (TS2769). Corpus exposure is small (`object_schema` called with an object literal, which G454 leaves unjudged, and `of_ranked(jobs)`); measure it with the two-binary run.
-
-**Next batch · G511, an index key is compared with the key type** (record 201; breaking). The key of every index expression, read or write, is compared with the key type: `K` on a `Record<K, V>`, `number` on an `Array<E>`. `mut m["exec"] = 2` on a `Record<Mode, number>` (TS7053), the read `u["exec"]` on a `Record<Mode, unknown>` (TS2345, which E0224 lets through because `V` is `unknown`) and `mut v["a"] = "x"` on an `Array<string>` (TS7015) are E0204 underlined at the key, with the note "`m`'s keys are `Mode`" or "an array is indexed by a number". Not E0224, which means a read may be absent, and no new code. Built right after G439, on the same index machinery, and rebased on it. Ranges G576 to G580 and D79. Measure with the corpus run; `Record<literal union, V>` writes are where any exposure is.
+**0.1.185 · G491 and G434, a function value's parameters are compared, and function types are printed** (record 196, section 5; breaking). Parameters are compared contravariantly, a value taking more required parameters than the slot passes is refused, a generic function value is instantiated against the slot before comparison, and every diagnostic between two function types prints both signatures.
 
 **0.1.186 · G506, call sites in an `@example` are in CALLS and REFERENCES** (record 196, section 8; not breaking, answers change). `glyph_impact`, `glyph_references` and `glyph_dependencies` list a call inside an `@example` with `context: "example"`; a `@doc` `glyph @run` fence is indexed or named under `not_indexed`.
 
 **0.1.187 · A project-level banned import** (agent research), set in the `package.json` `"glyph"` key, whose error names the project's own wrapper, so an agent cannot bypass it for the raw library. Specified in record 196, section 9: `glyph.banned_imports` maps an import path to `use`, optional `reason` and `allow_in`; a banned import is E0115 and a malformed `glyph` key is E0116, and the `glyph` key becomes a closed schema.
 
-**0.1.188 · A `change_behavior` kind for `glyph query impact`** (agent research), listing the transitive callers of a function and the `@example`s that cover them, for a change that keeps the signature and alters what the function does. Specified in record 196, section 10, after 0.1.186 indexes example sites.
+**0.1.188 · G461, a generic interface's members are checked** (record 184, N1; breaking). A member read and a method call on a value of `Cmp<string>` under `interface Cmp<X> { fn cmp(o: X) -> number  v: X }` read the member set through the application, with `X` substituted: `c.cmp("a")` returned where `string` is declared and `c.v` where `number` is declared are E0204, `c.nope` is E0210 and `c.cmp(5)` is E0211, as a non-generic interface's are today; `tsc` refuses the first three. It is what gives an F-bound such as `T: Cmp<T>` (0.1.173) something to guarantee. Measure the corpus with the two-binary run.
 
-**0.1.189 · Find a declaration by signature** (agent research). A `glyph query` verb and MCP tool, so an agent can find the existing helper before writing a second one (copy-paste share of changed lines rose from about 8% to 12% between 2021 and 2024 in GitClear's data). Specified in record 196, section 11; after 0.1.183, without which every function-type pairing is undecided.
+**Next batch · G264, a bound is checked where it is instantiated** (record 182; breaking). The calling side of a bound, split from 0.1.173 by risk: an upgrader's build goes red at a call site here, inside a generic body there. With `fn label<T: HasName>(x: T)`, `label(5)` and `label(o)` with `o: Other` are E0211 (TS2345 under `tsc`). A written type argument (`label<Other>(o)`) and a type application (`b: Box<Other>` under `type Box<T: HasName>`) are refused too (TS2344), by a new code or by E0233 with a "does not satisfy the bound" message; the builder reports which, and why. An element of a bounded generic component has its attributes checked against `B` as for `component S(p: B)`: `<Show />`, `<Show label="x" other="y" />` and `<Show label={5} />` against `component Show<T: HasLabel>(p: T)` are refused, as `tsc` refuses them (TS2769). Corpus exposure is small (`object_schema` called with an object literal, which G454 leaves unjudged, and `of_ranked(jobs)`); measure it with the two-binary run.
+
+**Next batch · G511, an index key is compared with the key type** (record 201; breaking). The key of every index expression, read or write, is compared with the key type: `K` on a `Record<K, V>`, `number` on an `Array<E>`. `mut m["exec"] = 2` on a `Record<Mode, number>` (TS7053), the read `u["exec"]` on a `Record<Mode, unknown>` (TS2345, which E0224 lets through because `V` is `unknown`) and `mut v["a"] = "x"` on an `Array<string>` (TS7015) are E0204 underlined at the key, with the note "`m`'s keys are `Mode`" or "an array is indexed by a number". Not E0224, which means a read may be absent, and no new code. Built right after G439, on the same index machinery, and rebased on it. Ranges G576 to G580 and D79. Measure with the corpus run; `Record<literal union, V>` writes are where any exposure is.
+
+**Next batch · A `change_behavior` kind for `glyph query impact`** (agent research), listing the transitive callers of a function and the `@example`s that cover them, for a change that keeps the signature and alters what the function does. Specified in record 196, section 10, after 0.1.186 indexes example sites.
+
+**Next batch · Find a declaration by signature** (agent research). A `glyph query` verb and MCP tool, so an agent can find the existing helper before writing a second one (copy-paste share of changed lines rose from about 8% to 12% between 2021 and 2024 in GitClear's data). Specified in record 196, section 11; after 0.1.183, without which every function-type pairing is undecided.
 
 **Next batch · G307, `array.concat` takes one element type** (record 88). Both parameters are `Array<T>`, bound by the existing rule (the first binding wins, and a `string` candidate replaces a literal union bound earlier), extended so a `number` candidate replaces a bound `int` (D31). `Array<number>` with `Array<string>` is refused, as `tsc` refuses it; both orders of each pair are tested
 
@@ -7688,7 +7677,6 @@ Published 2026-08-25 and smoke-tested from a clean npx cache in an isolated
 HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
 and the headline feature itself.
 
-
 G131. `std/process.set_exit_code` records the code the process leaves with, and
 its doc comment describes exactly the program that computes a verdict inside
 `main` and records it rather than returning it. That program exited 0. The
@@ -7742,7 +7730,6 @@ G130 did not ship here. It shipped in 0.1.93 above.
 Published 2026-08-25 and smoke-tested from a clean npx cache in an isolated
 HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
 and the headline feature itself.
-
 
 G127, from `pulse`, a CLI uptime monitor and the first app to import `std/tls`
 or `std/dns` since they shipped in 0.1.79. The program's whole shape is "check
@@ -8544,8 +8531,6 @@ green with the boundary catching a genuine bug on the first try.
 - **The typed-APIs answer page** now covers the database as a boundary, with the
   int-vs-bool bug it removes and a link to the working app.
 
-
-
 **Status: shipped.** The batch-5 completion run plus the headline compiler work of
 this cycle: the **imported-union type-resolution pass** (the proper fix for the
 recurring cross-module-`Unknown` root cause, described in the G22 item below) and
@@ -9035,7 +9020,6 @@ drew or the variant it could not bring into scope. Kept here as the record of
 where it was found, which was while writing the release notes, after the scope
 was set.
 
-
 *Closed; the ledger entry has the resolution. Kept as the record of the finding; the ledger entry is the live status.*
 **G156. Named-record identity is inconsistent, and the fork has to be settled
 before it is fixed.** `ship(d)` where `d: Draft` and `ship` takes a structurally
@@ -9062,8 +9046,6 @@ not a regression.
 fix, and it sits in the document a sceptical reader opens right after a claim
 about what the compiler catches.
 
-
-
 **G150 is fixed and G151 is open, both found by the fuzz target within minutes
 of it existing.** G150 grew a file by one copy of a comment on every `glyph fmt`
 run, without bound: format-on-save grew it for as long as the editor stayed
@@ -9082,8 +9064,6 @@ Both are the G23 family: that one moved a comment out of the construct it
 documented and its corruption was itself a fixed point, so nothing downstream
 noticed. Diff stability is the pillar all three attack.
 
-
-
 *Closed in 0.1.99. Kept as the record of the finding; the ledger entry is the live status.*
 **G149. Glyph's own checker does not catch a `let` annotation mismatch, and the
 editor is silent about it.** `let x: string = 42` produces no Glyph diagnostic;
@@ -9096,8 +9076,6 @@ A binding annotated with a type it is not is close to the most common mistake
 there is, and an editor catching it is close to the minimum anyone expects.
 This is the concrete, cheap instance of Q46's second item, so it belongs here
 rather than waiting for that whole track.
-
-
 
 The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
@@ -10208,7 +10186,6 @@ derive macro fails with `cannot find trait Update in crate salsa` at every call
 site in the query layer. It is an API migration on the incremental engine, which
 is the component every other feature reads through, so it wants its own change
 and its own testing rather than riding a dependency sweep.
-
 
 ## The stub that made the project look immature, and the dead crate behind it
 

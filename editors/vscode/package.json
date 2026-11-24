@@ -1,9 +1,9 @@
 {
   "name": "glyph-vscode",
-  "displayName": "Glyph",
+  "displayName": "Glyph (glyphlang.io)",
   "description": "Glyph language support: syntax highlighting + the glyph language server (diagnostics, hover, go-to-definition, completion, format-on-save).",
-  "version": "0.1.1",
-  "publisher": "glyph",
+  "version": "0.1.2",
+  "publisher": "chadetov",
   "license": "MIT OR Apache-2.0",
   "repository": {
     "type": "git",
@@ -11,7 +11,7 @@
     "directory": "editors/vscode"
   },
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.82.0"
   },
   "categories": [
     "Programming Languages"

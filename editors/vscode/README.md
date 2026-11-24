@@ -7,7 +7,14 @@ TypeScript, built so code an AI agent writes can be read, checked and changed wi
 
 ## Setup
 
-The extension needs the `glyph` binary, which carries the language server:
+Install the extension from the Marketplace, either from the Extensions view
+(search for "Glyph (glyphlang.io)") or from the Quick Open box (Ctrl+P / Cmd+P):
+
+```
+ext install chadetov.glyph-vscode
+```
+
+It needs the `glyph` binary, which carries the language server:
 
 ```sh
 npm install -g @glyphlang/glyph
@@ -39,8 +46,7 @@ workspace symbols, inlay hints, code actions, and formatting in the canonical
 
 The server runs Glyph's own analysis and does not run `tsc`. Errors that only
 TypeScript catches therefore do not appear while you type; they arrive at
-`glyph build`. The smallest example is `let x: string = 42`, which the editor
-reports only as an unused variable. This is tracked as G149 and is scheduled.
+`glyph build`.
 
 Member completion after `.` is not implemented.
 

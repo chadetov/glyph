@@ -22,12 +22,14 @@ glyph run
 # hello from glyph
 ```
 
-Six files: `src/main.glyph`, a `src/.types/README.md` explaining that a typed
+Seven files: `src/main.glyph`, a `src/.types/README.md` explaining that a typed
 npm package needs nothing there and the directory is for one that ships no
 types, a `package.json` pinning the compiler and the `typescript` and
-`tsx` it runs through, and a `.gitignore`.
+`tsx` it runs through, a `.gitignore`, and a `.vscode/extensions.json` that
+makes VS Code (and Cursor, Windsurf and VSCodium) offer the Glyph extension when
+you open the folder.
 
-The last two are for coding agents rather than for you. `AGENTS.md` says what
+The other two are for coding agents rather than for you. `AGENTS.md` says what
 the project is and points at `glyph llms`, which prints the whole language
 reference offline. `.mcp.json` registers `glyph mcp`, so an agent can ask the
 compiler for diagnostics, types, definitions and references instead of guessing

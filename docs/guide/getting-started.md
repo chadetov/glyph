@@ -18,7 +18,7 @@ prebuilt binary for your platform, and runs it once to scaffold the project.
 own `node_modules`, so from here on `npx glyph` runs the project's compiler and
 not whatever is on your `PATH`.
 
-The scaffold writes six files:
+The scaffold writes seven files:
 
 - `src/main.glyph`, the program.
 - `package.json`, which pins `@glyphlang/glyph` exactly (no `^`) along with the
@@ -33,6 +33,9 @@ The scaffold writes six files:
   `glyph llms`, which prints the whole language reference offline, and
   `.mcp.json` registers `glyph mcp` so an agent can ask the compiler for types
   and references.
+- `.vscode/extensions.json`, which recommends the Glyph extension. VS Code,
+  Cursor, Windsurf and VSCodium read it and offer to install the extension when
+  you open the folder.
 
 `src/main.glyph` is:
 
@@ -136,7 +139,7 @@ one-line count. A sibling module that failed to compile does not stop the run
 
 | Command | What it does |
 |---|---|
-| `glyph init [dir]` | Scaffold a runnable starter project (`src/main.glyph`, `src/.types/README.md`, `package.json`, `.gitignore`, `AGENTS.md`, `.mcp.json`). `--template web` starts an HTTP server, `--template lib` a library |
+| `glyph init [dir]` | Scaffold a runnable starter project (`src/main.glyph`, `src/.types/README.md`, `package.json`, `.gitignore`, `AGENTS.md`, `.mcp.json`, `.vscode/extensions.json`). `--template web` starts an HTTP server, `--template lib` a library |
 | `glyph check [path]` | Type-check a file or a tree without running it or writing output |
 | `glyph check --json [path]` | The same diagnostics as a JSON object on stdout, for tools and agents |
 | `glyph check --agent [path]` | The `--json` object plus, per diagnostic, the repair constraints an edit must keep and the `glyph_symbol` description of every symbol the diagnostic names |

@@ -22,7 +22,7 @@ npx glyph run
 # hello from glyph
 ```
 
-That needs Node 18 or later. It scaffolds six files, pins the compiler, `typescript` and `tsx` in `devDependencies`, and runs the program. Anyone who clones the project builds it with `npm install` and nothing global. Two of the six are for coding agents rather than for you: an `AGENTS.md` pointing at the offline language reference, and an `.mcp.json` registering the analysis server below.
+That needs Node 18 or later. It scaffolds seven files, pins the compiler, `typescript` and `tsx` in `devDependencies`, and runs the program. Anyone who clones the project builds it with `npm install` and nothing global. Two of the seven are for coding agents rather than for you: an `AGENTS.md` pointing at the offline language reference, and an `.mcp.json` registering the analysis server below. A `.vscode/extensions.json` makes VS Code offer the Glyph extension when you open the folder.
 
 Prefer it on your PATH (a global `glyph` runs and type-checks with the `tsx` and `tsc` on your PATH, so they come along):
 

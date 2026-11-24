@@ -16978,7 +16978,7 @@ and is the owner's to confirm.
   silent, `g390.glyph`'s six still fire, and `let x = first * 2` between the
   read and the `await` still fires through `x`.
 
-- **G517. E0225 does not look inside an async lambda.** `check_await_straddle`
+- **G517. [FIXED] E0225 does not look inside an async lambda.** `check_await_straddle`
   visits only top-level `async fn` declarations, so a read, an `await` and a
   write of the same place inside `async fn() -> number { ... }` report
   nothing, for fields and for indexes. Filed by decision record 197.
@@ -16991,6 +16991,14 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build) by record 197's probe `adv.glyph`: `lam` (L103, `let first = c[0]`, `await fee()`, `mut c[0] = first + f` inside an async lambda) draws no E0225 while the top-level functions draw nine; `check_await_straddle` still visits only top-level `async fn` items.*
 
   *Reproduced against 0.1.190 (the release build) by record 197's probe `adv.glyph`: `lam` (L103, `let first = c[0]`, `await fee()`, `mut c[0] = first + f` inside an async lambda) draws no E0225 while the top-level functions draw nine; `check_await_straddle` still visits only top-level `async fn` items.*
+
+  Fixed in 0.1.192 (D91, decision record 208, R11):
+  `check_await_straddle` visits every `async` lambda at any depth, in sync
+  functions, components, JSX event handlers and async functions. Inside one, a
+  place is rooted at the lambda's own parameters or at any binding it captures
+  from an enclosing scope, parameter or local. `lam` is E0225, a component's
+  `async fn()` handler that reads `count_ref.current`, awaits and writes it is
+  E0225, and a lambda-local accumulator is silent.
 
 - **G521. `Array.concat`'s arguments are not checked.** On an
   `Array<number>`, `xs.concat(["a"])`, `xs.concat("a")` and

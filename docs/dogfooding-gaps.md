@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-510 entries, 361 are fixed, 10 are partly fixed, 13 are decided or resolved, and
-126 are open. G144, the D28 boundary cast that never reached the returns a
+510 entries, 362 are fixed, 10 are partly fixed, 13 are decided or resolved, and
+125 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -17664,7 +17664,7 @@ and is the owner's to confirm.
   `check`, exit 1 under each. `tsc` 6.0.3 `--strict` accepts the same
   function in TypeScript under `: string` and under `: Mode | "c"`.*
 
-- **G626. AGENTS.md says the six functions with a `?` parameter are untyped.**
+- **G626. [FIXED] AGENTS.md says the six functions with a `?` parameter are untyped.**
   Under "std/string", AGENTS.md (and its two `llms.txt` mirrors) says that
   `string.slice`, `string.index_of`, `string.pad_start`, `string.pad_end`,
   `array.slice` and `json.stringify` "stay untyped" because "the arity check
@@ -17678,3 +17678,14 @@ and is the owner's to confirm.
   string.index_of(p, "x") { Some(i) => i, }` is E0200 ("missing variants
   `None`") under `check --no-tsc`, and the paragraph after AGENTS.md's
   `std/string` table still says it is not.*
+
+  Fixed in the next batch with G308 (decision record 211, R15). The paragraph
+  now says the six rows are modeled with a ranged arity check
+  (`string.pad_end(s)` is E0213, "Pass from 2 to 3 arguments"), that a `match`
+  on `string.index_of` with no `None` arm is E0200, and that `glyph llms
+  --json` lists their legal arities under `call_forms`. The same stale claim
+  was in `docs/reference/stdlib.md`, the D-decision note on optional stdlib
+  arguments in `docs/language/spec.md`, and a known-edge item on the
+  verifiability answer page, which also named `array.map`, `flat_map` and
+  `zip` as untyped; all four are corrected, the page item is gone, and the
+  `llms.txt` mirrors and the site are regenerated.

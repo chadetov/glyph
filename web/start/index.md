@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/start/, generated from the same source as the page. Last changed 2026-11-20. -->
+<!-- Markdown copy of https://glyphlang.io/start/, generated from the same source as the page. Last changed 2026-11-24. -->
 
 Start here · ~10 minutes
 
@@ -31,7 +31,7 @@ cd hello
 
 ## 2 · Look at what it made
 
-`glyph init` creates a runnable starter: `src/main.glyph`, `src/.types/README.md` explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a `package.json`, a `.gitignore`, and two files coding agents read on their own: `AGENTS.md`, which points at `glyph llms` for the full language reference, and `.mcp.json`, which registers `glyph mcp` so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, `glyph agents` writes those two. The `package.json` pins the compiler, `typescript` and `tsx` in `devDependencies`, so anyone who clones the project can build it with `npm install` and no global install.
+`glyph init` creates a runnable starter: `src/main.glyph`, `src/.types/README.md` explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a `package.json`, a `.gitignore`, a `.vscode/extensions.json` that makes VS Code offer the Glyph extension when you open the folder, and two files coding agents read on their own: `AGENTS.md`, which points at `glyph llms` for the full language reference, and `.mcp.json`, which registers `glyph mcp` so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, `glyph agents` writes those two. The `package.json` pins the compiler, `typescript` and `tsx` in `devDependencies`, so anyone who clones the project can build it with `npm install` and no global install.
 
 Open `src/main.glyph`. It's a hello-world:
 

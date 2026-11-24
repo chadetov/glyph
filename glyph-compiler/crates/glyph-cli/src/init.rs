@@ -2,8 +2,10 @@
 //!
 //! Writes a hello-world `src/main.glyph`, a `.types/` directory for ambient
 //! declarations, a `package.json` carrying the `"glyph"` key (so `glyph publish`
-//! works), and a `.gitignore`. Existing files are never overwritten — they are
-//! reported as skipped — so `glyph init` is safe to run in a non-empty directory.
+//! works), a `.gitignore`, `AGENTS.md` and `.mcp.json` for coding agents, and
+//! `.vscode/extensions.json` recommending the editor extension. Existing files
+//! are never overwritten — they are reported as skipped — so `glyph init` is
+//! safe to run in a non-empty directory.
 
 use std::path::{Path, PathBuf};
 
@@ -217,6 +219,14 @@ const MCP_JSON: &str = "{\n\
 \x20 }\n\
 }\n";
 
+/// Recommends the Glyph editor extension. VS Code reads this file when the
+/// folder opens and offers to install what it lists; Cursor, Windsurf and
+/// VSCodium read the same file. Without it a new user opens a `.glyph` file as
+/// plain text and has to know the extension exists to find it.
+const VSCODE_EXTENSIONS_JSON: &str = "{\n\
+\x20 \"recommendations\": [\"chadetov.glyph-vscode\"]\n\
+}\n";
+
 const GITIGNORE: &str = "dist/\n\
 node_modules/\n";
 
@@ -229,6 +239,8 @@ pub fn scaffold(dir: &Path) -> Result<InitReport, InitError> {
 /// Scaffold the given starter `template` into `dir`.
 pub fn scaffold_template(dir: &Path, template: Template) -> Result<InitReport, InitError> {
     std::fs::create_dir_all(dir.join("src").join(".types"))
+        .map_err(|e| InitError::Io(format!("cannot create {}: {e}", dir.display())))?;
+    std::fs::create_dir_all(dir.join(".vscode"))
         .map_err(|e| InitError::Io(format!("cannot create {}: {e}", dir.display())))?;
 
     // The entry file, its content, and whether the package is run or built.
@@ -272,7 +284,7 @@ pub fn scaffold_template(dir: &Path, template: Template) -> Result<InitReport, I
     );
 
     let entry = dir.join("src").join(entry_name);
-    let files: [(PathBuf, &str); 6] = [
+    let files: [(PathBuf, &str); 7] = [
         (entry.clone(), entry_content),
         (
             dir.join("src").join(".types").join("README.md"),
@@ -286,6 +298,10 @@ pub fn scaffold_template(dir: &Path, template: Template) -> Result<InitReport, I
         // without being asked.
         (dir.join("AGENTS.md"), AGENTS_MD),
         (dir.join(".mcp.json"), MCP_JSON),
+        (
+            dir.join(".vscode").join("extensions.json"),
+            VSCODE_EXTENSIONS_JSON,
+        ),
     ];
 
     let mut created = Vec::new();

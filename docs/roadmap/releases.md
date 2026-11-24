@@ -8950,6 +8950,12 @@ from the other project that a search does not land on it, and whether Open VSX
 (Cursor, VSCodium) ships in the same step. The listing is one command once the
 id exists; the id is the owner's call.
 
+**`glyph init` recommends the editor extension. Landed on main.** The scaffold
+writes `.vscode/extensions.json` listing `chadetov.glyph-vscode`, so VS Code,
+Cursor, Windsurf and VSCodium offer the extension when a new project's folder
+opens. An existing file is skipped like every other scaffold file, and
+`glyph agents` does not write it.
+
 **A scanner's finding on the emitted TypeScript has no path back to the Glyph
 line.** Every build writes a v3 `.ts.map` beside each module and `glyph build`
 remaps `tsc` errors through it, so the bridge exists. What does not exist is

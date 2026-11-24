@@ -17,7 +17,7 @@ fn unique_tmp() -> PathBuf {
 fn scaffold_writes_a_runnable_starter() {
     let dir = unique_tmp();
     let report = scaffold(&dir).expect("scaffold");
-    assert_eq!(report.created.len(), 6, "expected six files created");
+    assert_eq!(report.created.len(), 7, "expected seven files created");
     assert!(report.skipped.is_empty());
 
     for rel in [
@@ -25,6 +25,9 @@ fn scaffold_writes_a_runnable_starter() {
         "src/.types/README.md",
         "package.json",
         ".gitignore",
+        "AGENTS.md",
+        ".mcp.json",
+        ".vscode/extensions.json",
     ] {
         assert!(dir.join(rel).exists(), "missing scaffolded file: {rel}");
     }
@@ -105,8 +108,8 @@ fn re_running_never_overwrites() {
     assert_eq!(second.created.len(), 0, "second run should create nothing");
     assert_eq!(
         second.skipped.len(),
-        6,
-        "second run should skip all six files"
+        7,
+        "second run should skip all seven files"
     );
 
     let main = std::fs::read_to_string(dir.join("src/main.glyph")).unwrap();
@@ -238,6 +241,55 @@ fn the_scaffold_tells_an_agent_where_the_reference_is() {
         serde_json::from_str(&mcp).expect(".mcp.json must be valid JSON");
     assert_eq!(parsed["mcpServers"]["glyph"]["command"], "glyph");
     assert_eq!(parsed["mcpServers"]["glyph"]["args"][0], "mcp");
+}
+
+/// Opening a scaffolded project in VS Code offers the Glyph extension.
+///
+/// Without a recommendation a new user opens `main.glyph` as plain text and has
+/// to know the extension exists to go looking for it. VS Code, Cursor, Windsurf
+/// and VSCodium all read `.vscode/extensions.json` and prompt to install what it
+/// lists. The id has to be the published one or the prompt finds nothing.
+#[test]
+fn the_scaffold_recommends_the_editor_extension() {
+    let dir = unique_tmp();
+    scaffold(&dir).expect("scaffold");
+
+    let raw = std::fs::read_to_string(dir.join(".vscode/extensions.json"))
+        .expect(".vscode/extensions.json");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&raw).expect("extensions.json must be valid JSON");
+    assert_eq!(
+        parsed["recommendations"],
+        serde_json::json!(["chadetov.glyph-vscode"]),
+        "{raw}"
+    );
+
+    // The recommendation only reaches a teammate if it is committed, so the
+    // scaffold's own .gitignore must not hide it.
+    let gitignore = std::fs::read_to_string(dir.join(".gitignore")).unwrap();
+    assert!(
+        !gitignore.lines().any(|l| l.contains(".vscode")),
+        "the scaffold must not ignore .vscode/: {gitignore}"
+    );
+
+    // An existing recommendations file is the user's, and stays as it was.
+    let edited = unique_tmp();
+    std::fs::create_dir_all(edited.join(".vscode")).unwrap();
+    std::fs::write(
+        edited.join(".vscode/extensions.json"),
+        "{ \"recommendations\": [\"other.ext\"] }\n",
+    )
+    .unwrap();
+    let report = scaffold(&edited).expect("scaffold over an existing .vscode");
+    assert!(report
+        .skipped
+        .contains(&edited.join(".vscode").join("extensions.json")));
+    assert!(std::fs::read_to_string(edited.join(".vscode/extensions.json"))
+        .unwrap()
+        .contains("other.ext"));
+
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&edited);
 }
 
 /// The common case is a project that already exists, where `glyph init` would

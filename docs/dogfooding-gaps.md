@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-516 entries, 367 are fixed, 10 are partly fixed, 13 are decided or resolved, and
-126 are open. G144, the D28 boundary cast that never reached the returns a
+516 entries, 368 are fixed, 10 are partly fixed, 13 are decided or resolved, and
+125 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -17351,7 +17351,7 @@ and is the owner's to confirm.
 
   *Fixed by 0.1.190 (G536, decision record 211: the interface rule decides a `Nullable` by its argument), found at the 0.1.194 re-check: `let n2: Nullable<string> = h` with `h: HasName` is E0204 under `check --no-tsc` and full `check`, and `glyph query assignable` answers WILL_FAIL.*
 
-- **G571. Glyph has no conversion between `number` and `bigint`.** With
+- **G571. [FIXED] Glyph has no conversion between `number` and `bigint`.** With
   `bigint` its own type (G500), `id + n` with `id: bigint` and `n: number` is
   E0258, and nothing in the language or the standard library turns one into
   the other: `BigInt(n)` and `Number(b)` are E0103 (unresolved name), and no
@@ -17370,6 +17370,15 @@ and is the owner's to confirm.
   *Reproduced against 0.1.190 (the release build): `pub fn c1(x: number) -> bigint { return BigInt(x) }` is E0103 under `check --no-tsc`, `Number(b)` is E0103, and `id + n` with `id: bigint` and `n: number` is E0258.*
 
   *Reproduced against 0.1.196 (the release build): `pub fn c1(x: number) -> bigint { return BigInt(x) }` is E0103 under `check --no-tsc`, `Number(b)` is E0103, and `id + n` with `id: bigint` and `n: number` is E0258.*
+
+  Fixed by `std/bigint` (decision record 204, ruling 2; D38): a new stdlib
+  module with `bigint.from_number(n: number) -> Result<bigint, string>`, `Err`
+  for a fraction, `NaN` and either infinity, and `bigint.to_number(b: bigint)
+  -> Result<number, string>`, `Err` when `|b|` is above
+  `Number.MAX_SAFE_INTEGER`. Neither throws, and there is no bare `BigInt()` or
+  `Number()`: both stay E0103, whose help now names the conversion. E0258's
+  help names the two functions in place of "Glyph has no conversion between
+  the two".
 
 - **G531. `glyph_impact` does not decide a function read as a value.** Since
   0.1.185 the checker compares a function value against the type its use

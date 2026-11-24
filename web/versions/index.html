@@ -44,7 +44,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.181</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.182</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -406,7 +406,7 @@
       </div>
 
       <nav class="month-nav" aria-label="Releases by month">
-        <a href="/versions/2026-11/" class="active" aria-current="true"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 54 releases · 47 breaking</span></a>
+        <a href="/versions/2026-11/" class="active" aria-current="true"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 55 releases · 48 breaking</span></a>
         <a href="/versions/2026-10/"><span class="mn-month">Oct 2026</span> <span class="mn-count">· 3 releases · 3 breaking</span></a>
         <a href="/versions/2026-09/"><span class="mn-month">Sep 2026</span> <span class="mn-count">· 25 releases · 10 breaking</span></a>
         <a href="/versions/2026-08/"><span class="mn-month">Aug 2026</span> <span class="mn-count">· 66 releases · 1 breaking</span></a>
@@ -415,15 +415,38 @@
       </nav>
       <div class="month-head">
         <h2 class="month-title">November 2026</h2>
-        <p class="month-sum">54 releases, 47 breaking, 0.1.128 to 0.1.181</p>
+        <p class="month-sum">55 releases, 48 breaking, 0.1.128 to 0.1.182</p>
         <label class="breaking-only" hidden><input type="checkbox" /> Breaking only</label>
       </div>
 
       <div class="releases">
+        <article class="release" id="0.1.182" data-hl="fm" data-breaking>
+          <div class="rel-head">
+            <h3 class="rel-ver">0.1.182</h3>
+            <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <time class="rel-date" datetime="2026-11-24">24 Nov 2026</time>
+            <a class="rel-link" href="/versions/2026-11/#0.1.182" data-url="https://glyphlang.io/versions/2026-11/#0.1.182" aria-label="Link to 0.1.182">Link</a>
+          </div>
+          <details class="rel-details" open>
+            <summary><span class="rel-headline">A primitive and an interface are compared</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <p>Glyph compared a record against an interface, but not a primitive. <code>f(5)</code> with <code>f(h: HasName)</code> and <code>fn n(s: string) -&gt; HasName { return s }</code> both passed <code>check --no-tsc</code>, and <code>glyph query assignable</code> answered UNDETERMINED for them. Only <code>tsc</code> refused them.</p>
+
+            <p>A <code>string</code>, <code>number</code>, <code>int</code>, <code>bool</code>, string-literal union, refined primitive or array where an interface is declared is now compared through its apparent members, the way TypeScript does it. <code>5</code> has no <code>name</code>, so it does not satisfy <code>HasName</code>. <code>"abc"</code> has a <code>length</code>, so it does satisfy <code>interface HasLen { length: number }</code>. The other direction is simpler: an interface's value is an object, so it is refused where a <code>string</code>, a <code>number</code> or an array is declared. A bounded <code>T: HasName</code> returned where a <code>string</code> is declared is refused the same way.</p>
+
+            <p>The message ends with the reason, for example <code>`number` has no member `name`, which `HasName` requires</code>. <code>glyph query assignable</code> and <code>glyph_impact</code> now give the relation's answer for these pairings instead of UNDETERMINED.</p>
+
+            <p>Still left to <code>tsc</code>: a primitive against an interface whose members are all optional and shared with nothing (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), an interface where <code>Nullable&lt;string&gt;</code> is declared (G528), and member reads on a <code>bool</code> (G507). A <code>bigint</code> is still typed as a <code>number</code> in this release; 0.1.183 fixes that.</p>
+
+            <h4>Breaking</h4>
+            <p>Yes. <code>fn n1(s: string) -&gt; HasName { return s }</code> exits 0 under 0.1.181's <code>check --no-tsc</code> and 1 under 0.1.182. Every new refusal is one <code>tsc</code> makes. Across the 375 programs the corpus script measures, the only change is a new test fixture that refuses on purpose.</p>
+          </div>
+          </details>
+        </article>
         <article class="release" id="0.1.181" data-hl="fm" data-breaking>
           <div class="rel-head">
             <h3 class="rel-ver">0.1.181</h3>
-            <span class="rel-tag latest">Latest</span>
             <span class="rel-tag breaking">Breaking</span>
             <time class="rel-date" datetime="2026-11-24">24 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.181" data-url="https://glyphlang.io/versions/2026-11/#0.1.181" aria-label="Link to 0.1.181">Link</a>
@@ -472,7 +495,7 @@
             <time class="rel-date" datetime="2026-11-24">24 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.179" data-url="https://glyphlang.io/versions/2026-11/#0.1.179" aria-label="Link to 0.1.179">Link</a>
           </div>
-          <details class="rel-details" open>
+          <details class="rel-details">
             <summary><span class="rel-headline">A value written by mut is checked against the place it goes into</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
             <p>Glyph compared the value of <code>let x: number = ...</code> with its annotation, but a later <code>mut x = "s"</code> was never compared with anything. The same held for a field write, an array element write and a map write: <code>mut r.n = "x"</code>, <code>mut v[0] = 5</code> on an <code>Array&lt;string&gt;</code> and <code>mut m["k"] = 5</code> on a <code>Record&lt;string, string&gt;</code> all passed <code>check --no-tsc</code>, and only <code>tsc</code> caught them.</p>
@@ -1939,7 +1962,7 @@
     <script>
       (function () {
         // An anchor for a release that lives on another month's page goes there.
-        var where = {"0.1.181":"2026-11","0.1.180":"2026-11","0.1.179":"2026-11","0.1.178":"2026-11","0.1.177":"2026-11","0.1.176":"2026-11","0.1.175":"2026-11","0.1.174":"2026-11","0.1.173":"2026-11","0.1.172":"2026-11","0.1.171":"2026-11","0.1.170":"2026-11","0.1.169":"2026-11","0.1.168":"2026-11","0.1.167":"2026-11","0.1.166":"2026-11","0.1.165":"2026-11","0.1.164":"2026-11","0.1.163":"2026-11","0.1.162":"2026-11","0.1.161":"2026-11","0.1.160":"2026-11","0.1.159":"2026-11","0.1.158":"2026-11","0.1.157":"2026-11","0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
+        var where = {"0.1.182":"2026-11","0.1.181":"2026-11","0.1.180":"2026-11","0.1.179":"2026-11","0.1.178":"2026-11","0.1.177":"2026-11","0.1.176":"2026-11","0.1.175":"2026-11","0.1.174":"2026-11","0.1.173":"2026-11","0.1.172":"2026-11","0.1.171":"2026-11","0.1.170":"2026-11","0.1.169":"2026-11","0.1.168":"2026-11","0.1.167":"2026-11","0.1.166":"2026-11","0.1.165":"2026-11","0.1.164":"2026-11","0.1.163":"2026-11","0.1.162":"2026-11","0.1.161":"2026-11","0.1.160":"2026-11","0.1.159":"2026-11","0.1.158":"2026-11","0.1.157":"2026-11","0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
         var id = decodeURIComponent(location.hash.slice(1));
         if (id && !document.getElementById(id) && where[id]) {
           location.replace("/versions/" + where[id] + "/" + location.search + "#" + id);

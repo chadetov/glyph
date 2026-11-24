@@ -792,7 +792,9 @@ pub enum TypeError {
         /// of function (D40 as amended for 0.1.159): a sync function where an
         /// async one is declared, or an async callback where a sync one that
         /// keeps a value is. Computed from the program by `async_slot`, so it
-        /// names the callee and the value. `None` everywhere else.
+        /// names the callee and the value. Also the help for a `sort`
+        /// comparator with too many parameters or a return that is not a
+        /// `number` (G505). `None` everywhere else.
         kind_help: Option<String>,
         span: Span,
     },
@@ -802,20 +804,26 @@ pub enum TypeError {
     /// optional or variadic parameters in v1, and call arguments carry no spread
     /// — so a call whose argument count differs from the parameter count is
     /// always wrong. Fires only when the callee resolves to a concrete `Ty::Fn`
-    /// (a module-level fn/component or a typed lambda binding); a callee whose
-    /// signature can't be judged (a member-access method, an unresolved name)
-    /// stays `Unknown` and is left unchecked.
+    /// (a module-level fn/component, a typed lambda binding, a typed stdlib
+    /// function or a built-in method's generated row); a callee whose
+    /// signature can't be judged (an unresolved name, an untyped row) stays
+    /// `Unknown` and is left unchecked.
     ///
-    /// The stdlib's TypeScript wrappers are the one place a trailing argument is
-    /// optional (`array.slice`, `string.slice`, `pad_start`, `pad_end`,
-    /// `string.index_of`, `json.stringify`); the spec documents that boundary
-    /// convention. Those calls escape this check only because the callee types
-    /// as `Unknown`, so adding one of them to `stdlib_fn_ty` means teaching this
-    /// check a minimum and maximum arity first.
+    /// A stdlib function and a built-in method can take optional trailing
+    /// arguments, and a built-in method a rest parameter (`push`, `splice`):
+    /// there the required parameters set the floor and the whole list the
+    /// ceiling, with none for a rest parameter, and `takes` carries the range
+    /// for the help.
     #[error("wrong number of arguments: expected {expected}, found {found}")]
     ArgumentCountMismatch {
         expected: usize,
         found: usize,
+        /// The counts the callee accepts when it is not one exact number: a
+        /// built-in method or a stdlib function with optional parameters, as
+        /// the floor and the ceiling, with no ceiling for a rest parameter
+        /// (G505). `None` for a Glyph function, which takes exactly one
+        /// argument per parameter.
+        takes: Option<(usize, Option<usize>)>,
         span: Span,
     },
 
@@ -1926,6 +1934,13 @@ impl TypeError {
         }
         if let TypeError::ArgumentTypeMismatch { kind_help: Some(h), .. } = self {
             return Some(Cow::Owned(h.clone()));
+        }
+        if let TypeError::ArgumentCountMismatch { takes: Some((floor, ceiling)), .. } = self {
+            let s = if *floor == 1 { "" } else { "s" };
+            return Some(Cow::Owned(match ceiling {
+                None => format!("Pass at least {floor} argument{s}; the parameters after that are optional, and the last one takes any number of arguments."),
+                Some(c) => format!("Pass from {floor} to {c} arguments; the parameters after the first {floor} are optional."),
+            }));
         }
         if let TypeError::AsyncCallbackIntoSyncVoid {
             callback,

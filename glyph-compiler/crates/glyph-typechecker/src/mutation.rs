@@ -686,7 +686,7 @@ enum Gives {
 
 fn gives(receiver: BuiltinReceiver, m: &BuiltinMethod) -> Gives {
     let ret = match m.sig {
-        MethodSig::Typed { ret, .. } => Some(ret),
+        MethodSig::Typed { ret, .. } | MethodSig::Rest { ret, .. } => Some(ret),
         MethodSig::Untyped(_) => None,
     };
     match receiver {

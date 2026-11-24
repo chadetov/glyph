@@ -110,9 +110,18 @@ impl BuiltinReceiver {
 /// rules are these, all chosen so a row can never refuse a call `tsc`
 /// accepts:
 ///
-/// - A method with more than one signature, a `this` type anywhere in it, a
-///   type predicate, or a rest parameter is `Untyped`, with the reason. Its
-///   call stays `Unknown`, as every built-in method call was before G312.
+/// - A method with more than one signature, a `this` type anywhere in it, or
+///   a type predicate is `Untyped`, with the reason. Its call stays
+///   `Unknown`, as every built-in method call was before G312.
+/// - A rest parameter (`push(...items: T[])`) is the row's `rest`, and each
+///   argument past the fixed parameters is checked against its element type
+///   (G492). A set of overloads holding one (`splice`) is a single row when
+///   the merge is exact: the argument counts the overloads accept join into
+///   one range, and a position keeps a type only where every overload that
+///   has it agrees, so a call the row refuses is one every overload of that
+///   count refuses. Other overload sets stay `Untyped`.
+/// - On `Array<T>`, a `this` that is only the return type (`fill`, `sort`,
+///   `copyWithin`) is `T[]`, the receiver's own type.
 /// - A parameter or a return type that is not one of the shapes
 ///   [`MethodTy`] spells is `Unknown`: a union (`string | RegExp`), `any`, a
 ///   callback, a type parameter of the method itself (`map`'s `U`), and
@@ -182,6 +191,13 @@ pub enum MethodSig {
         params: &'static [MethodParam],
         ret: MethodTy,
     },
+    /// One signature ending in a rest parameter: the fixed parameters, then
+    /// any number of arguments of type `rest` (G492).
+    Rest {
+        params: &'static [MethodParam],
+        rest: MethodTy,
+        ret: MethodTy,
+    },
     /// A signature the mapping rules leave alone, and why.
     Untyped(Untyped),
 }
@@ -198,9 +214,6 @@ pub enum Untyped {
     ThisType,
     /// A type predicate (`value is S`).
     Predicate,
-    /// A rest parameter (`push(...items: T[])`), which Glyph's function type
-    /// has no way to say.
-    RestParameter,
 }
 
 /// One parameter of a typed built-in method.

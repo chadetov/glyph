@@ -13,7 +13,7 @@
 //! member's `@deprecated` tag, read off the declarations (G389, E0244), with
 //! the script's `DEPRECATED_REPLACEMENT` entry for what to write instead.
 
-use crate::builtin_members::MethodSig::{Typed, Untyped};
+use crate::builtin_members::MethodSig::{Rest, Typed, Untyped};
 use crate::builtin_members::MethodTy as T;
 use crate::builtin_members::Replacement as R;
 use crate::builtin_members::Untyped as U;
@@ -21,11 +21,11 @@ use crate::builtin_members::{opt, req, BuiltinMethod, Deprecated};
 
 pub(crate) const ARRAY_METHODS: &[BuiltinMethod] = &[
     BuiltinMethod { name: "at", mutates: false, absent: true, deprecated: None, sig: Typed { params: &[req(T::Number)], ret: T::Unknown } },
-    BuiltinMethod { name: "concat", mutates: false, absent: false, deprecated: None, sig: Untyped(U::Overloads) },
-    BuiltinMethod { name: "copyWithin", mutates: true, absent: false, deprecated: None, sig: Untyped(U::ThisType) },
+    BuiltinMethod { name: "concat", mutates: false, absent: false, deprecated: None, sig: Rest { params: &[], rest: T::Unknown, ret: T::ArrayOf(&T::Elem) } },
+    BuiltinMethod { name: "copyWithin", mutates: true, absent: false, deprecated: None, sig: Typed { params: &[req(T::Number), req(T::Number), opt(T::Number)], ret: T::ArrayOf(&T::Elem) } },
     BuiltinMethod { name: "entries", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[], ret: T::Unknown } },
     BuiltinMethod { name: "every", mutates: false, absent: false, deprecated: None, sig: Untyped(U::Overloads) },
-    BuiltinMethod { name: "fill", mutates: true, absent: false, deprecated: None, sig: Untyped(U::ThisType) },
+    BuiltinMethod { name: "fill", mutates: true, absent: false, deprecated: None, sig: Typed { params: &[req(T::Elem), opt(T::Number), opt(T::Number)], ret: T::ArrayOf(&T::Elem) } },
     BuiltinMethod { name: "filter", mutates: false, absent: false, deprecated: None, sig: Untyped(U::Overloads) },
     BuiltinMethod { name: "find", mutates: false, absent: true, deprecated: None, sig: Untyped(U::Overloads) },
     BuiltinMethod { name: "findIndex", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[req(T::Unknown), opt(T::Unknown)], ret: T::Number } },
@@ -44,21 +44,21 @@ pub(crate) const ARRAY_METHODS: &[BuiltinMethod] = &[
     BuiltinMethod { name: "map", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[req(T::Unknown), opt(T::Unknown)], ret: T::Unknown } },
     BuiltinMethod { name: "pop", mutates: true, absent: true, deprecated: None, sig: Typed { params: &[], ret: T::Unknown } },
     BuiltinMethod { name: "propertyIsEnumerable", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[req(T::Unknown)], ret: T::Bool } },
-    BuiltinMethod { name: "push", mutates: true, absent: false, deprecated: None, sig: Untyped(U::RestParameter) },
+    BuiltinMethod { name: "push", mutates: true, absent: false, deprecated: None, sig: Rest { params: &[], rest: T::Elem, ret: T::Number } },
     BuiltinMethod { name: "reduce", mutates: false, absent: false, deprecated: None, sig: Untyped(U::Overloads) },
     BuiltinMethod { name: "reduceRight", mutates: false, absent: false, deprecated: None, sig: Untyped(U::Overloads) },
     BuiltinMethod { name: "reverse", mutates: true, absent: false, deprecated: None, sig: Typed { params: &[], ret: T::ArrayOf(&T::Elem) } },
     BuiltinMethod { name: "shift", mutates: true, absent: true, deprecated: None, sig: Typed { params: &[], ret: T::Unknown } },
     BuiltinMethod { name: "slice", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[opt(T::Number), opt(T::Number)], ret: T::ArrayOf(&T::Elem) } },
     BuiltinMethod { name: "some", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[req(T::Unknown), opt(T::Unknown)], ret: T::Bool } },
-    BuiltinMethod { name: "sort", mutates: true, absent: false, deprecated: None, sig: Untyped(U::ThisType) },
-    BuiltinMethod { name: "splice", mutates: true, absent: false, deprecated: None, sig: Untyped(U::Overloads) },
+    BuiltinMethod { name: "sort", mutates: true, absent: false, deprecated: None, sig: Typed { params: &[opt(T::Unknown)], ret: T::ArrayOf(&T::Elem) } },
+    BuiltinMethod { name: "splice", mutates: true, absent: false, deprecated: None, sig: Rest { params: &[req(T::Number), opt(T::Number)], rest: T::Elem, ret: T::ArrayOf(&T::Elem) } },
     BuiltinMethod { name: "toLocaleString", mutates: false, absent: false, deprecated: None, sig: Untyped(U::Overloads) },
     BuiltinMethod { name: "toReversed", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[], ret: T::ArrayOf(&T::Elem) } },
     BuiltinMethod { name: "toSorted", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[opt(T::Unknown)], ret: T::ArrayOf(&T::Elem) } },
-    BuiltinMethod { name: "toSpliced", mutates: false, absent: false, deprecated: None, sig: Untyped(U::Overloads) },
+    BuiltinMethod { name: "toSpliced", mutates: false, absent: false, deprecated: None, sig: Rest { params: &[req(T::Number), opt(T::Number)], rest: T::Elem, ret: T::ArrayOf(&T::Elem) } },
     BuiltinMethod { name: "toString", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[], ret: T::String } },
-    BuiltinMethod { name: "unshift", mutates: true, absent: false, deprecated: None, sig: Untyped(U::RestParameter) },
+    BuiltinMethod { name: "unshift", mutates: true, absent: false, deprecated: None, sig: Rest { params: &[], rest: T::Elem, ret: T::Number } },
     BuiltinMethod { name: "valueOf", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[], ret: T::Unknown } },
     BuiltinMethod { name: "values", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[], ret: T::Unknown } },
     BuiltinMethod { name: "with", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[req(T::Number), req(T::Elem)], ret: T::ArrayOf(&T::Elem) } },
@@ -73,7 +73,7 @@ pub(crate) const STRING_METHODS: &[BuiltinMethod] = &[
     BuiltinMethod { name: "charAt", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[req(T::Number)], ret: T::String } },
     BuiltinMethod { name: "charCodeAt", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[req(T::Number)], ret: T::Number } },
     BuiltinMethod { name: "codePointAt", mutates: false, absent: true, deprecated: None, sig: Typed { params: &[req(T::Number)], ret: T::Unknown } },
-    BuiltinMethod { name: "concat", mutates: false, absent: false, deprecated: None, sig: Untyped(U::RestParameter) },
+    BuiltinMethod { name: "concat", mutates: false, absent: false, deprecated: None, sig: Rest { params: &[], rest: T::String, ret: T::String } },
     BuiltinMethod { name: "endsWith", mutates: false, absent: false, deprecated: None, sig: Typed { params: &[req(T::String), opt(T::Number)], ret: T::Bool } },
     BuiltinMethod { name: "fixed", mutates: false, absent: false, deprecated: Some(Deprecated { tag: "A legacy feature for browser compatibility", replacement: R::Markup { tag: "tt", attr: None } }), sig: Typed { params: &[], ret: T::String } },
     BuiltinMethod { name: "fontcolor", mutates: false, absent: false, deprecated: Some(Deprecated { tag: "A legacy feature for browser compatibility", replacement: R::Markup { tag: "font", attr: Some("color") } }), sig: Typed { params: &[req(T::String)], ret: T::String } },

@@ -32,7 +32,7 @@ mod text;
 use crate::lower::Lowerer;
 use crate::tail::{returns_tail, Callable};
 use crate::ty::{
-    builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive,
+    builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, DeclBounds, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive,
     RecordField, SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::builtin_members::{MethodParam, MethodSig, MethodTy};
@@ -220,6 +220,19 @@ pub trait DeclTyResolver {
     /// call through an import read its type arguments by nothing, while the
     /// same call to a local function read them (G292).
     fn imported_fn_generics(&self, _module_path: &str, _fn_name: &str) -> Option<Vec<Ident>> {
+        None
+    }
+
+    /// The type parameters of the declaration the project module at
+    /// `module_path` declares under `name` (a `fn`, a `component`, a `type`
+    /// or an `interface`) and the bound each writes, lowered on the source
+    /// side. `None` wherever the declaration cannot be read.
+    ///
+    /// A call through an import and an application of an imported generic
+    /// type check their bindings against these bounds exactly as a local
+    /// call or application does (G264), so the guarantee does not depend on
+    /// where the declaration lives or how it was imported.
+    fn imported_bounds(&self, _module_path: &str, _name: &str) -> Option<DeclBounds> {
         None
     }
 
@@ -1786,6 +1799,7 @@ impl Assigner<'_> {
                         });
                     }
                 }
+                self.check_application_bounds(base, args, *span);
                 if self.is_prelude_named(base, "Nullable") {
                     if let [arg] = args.as_slice() {
                         let lowered = self.lowerer.lower(arg);
@@ -1842,6 +1856,59 @@ impl Assigner<'_> {
             TypeExpr::Extern { .. }
             | TypeExpr::StringLiteralUnion { .. }
             | TypeExpr::TypeOf { .. } => {}
+        }
+    }
+
+    /// G264, D72. A type application (`Box<Other>`) whose arguments do not
+    /// satisfy the bounds the applied declaration writes is E0251, at the
+    /// application, in whatever type position it is written. Each argument
+    /// is checked against its parameter's bound with every argument put in,
+    /// so `type Ranked<T: Cmp<T>>` applied to `Ord` checks `Ord` against
+    /// `Cmp<Ord>`. A count that is not the declaration's is E0233's and binds
+    /// nothing, so it is not judged here.
+    ///
+    /// Inside a generic body, an argument that is the body's own parameter is
+    /// decided through its bound (`Box<U>` with `U: HasName` is accepted) and
+    /// an unbounded one is refused, as `tsc` refuses it (TS2344).
+    fn check_application_bounds(&mut self, base: &TypeExpr, args: &[TypeExpr], span: Span) {
+        let owner = match self.lowerer.lower(base) {
+            // A prelude type's symbol indexes the prelude's table, not this
+            // module's, so the declaration is taken only when the name it
+            // indexes here is the name written.
+            Ty::Named { symbol, path } => {
+                let local = self.resolved.symbols.table.get(SymbolId(symbol.0));
+                if local.map(|sym| &sym.name) != path.last() {
+                    return;
+                }
+                ParamOwner::TypeDecl(symbol)
+            }
+            Ty::Imported { module, name } => ParamOwner::ImportedTypeDecl { module, name },
+            _ => return,
+        };
+        let Some(decl) = self.owner_bounds(&owner) else { return };
+        if decl.bounds.is_empty() || decl.generics.len() != args.len() {
+            return;
+        }
+        let arg_tys: Vec<Ty> = args.iter().map(|a| self.lowerer.lower(a)).collect();
+        let subst = decl_subst(&owner, &decl.generics, &arg_tys);
+        for ((name, arg), arg_ty) in decl.generics.iter().zip(args).zip(&arg_tys) {
+            let Some(Some(bound)) = decl.bounds.get(name) else { continue };
+            if arg_ty.is_unknown() {
+                continue;
+            }
+            let applied = substitute_type_params(bound, &subst);
+            if !self.assign_incompatible(arg_ty, &applied) {
+                continue;
+            }
+            self.errors.push(TypeError::TypeArgumentBound {
+                arg: type_expr_source(arg),
+                param: name.to_string(),
+                bound: ty_display(&params_by_name(bound)),
+                owner: type_expr_source(base),
+                missing: self.bound_missing_members(arg_ty, &applied),
+                application: true,
+                span,
+            });
         }
     }
 
@@ -1922,7 +1989,41 @@ impl Assigner<'_> {
     }
 
     fn walk_decl(&mut self, decl: &Decl) {
+        // The written types of a generic declaration's signature are checked
+        // with its own parameters in scope, so a bound reads `Box<U>` through
+        // `U`'s bound (G264): `type`, `interface`, `fn` and `component`
+        // alike. A `fn` and a `component` set the same context again for
+        // their bodies below.
+        let generics: &[glyph_ast::GenericParam] = match decl {
+            Decl::Fn(f) => &f.generics,
+            Decl::Component(c) => &c.generics,
+            Decl::Type(t) => &t.generics,
+            Decl::Interface(i) => &i.generics,
+            Decl::Const(_) | Decl::Import(_) => &[],
+        };
+        let decl_start = match decl {
+            Decl::Fn(f) => Some(f.span.start),
+            Decl::Component(c) => Some(c.span.start),
+            Decl::Type(t) => Some(t.span.start),
+            Decl::Interface(i) => Some(i.span.start),
+            Decl::Const(_) | Decl::Import(_) => None,
+        };
+        if let Some(start) = decl_start.filter(|_| !generics.is_empty()) {
+            self.key_generics = generics.iter().map(|g| g.name.clone()).collect();
+            self.enclosing_owner = Some(self.lowerer.param_owner(start));
+            self.enclosing_bounded = self.bounded_generics(generics);
+        }
+        // A bound is a type position too: `<T: Box<Other>>` is checked as
+        // `Box<Other>` is anywhere else.
+        for g in generics {
+            for b in &g.bounds {
+                self.check_nullable_args(b);
+            }
+        }
         self.check_decl_nullable_args(decl);
+        self.key_generics.clear();
+        self.enclosing_owner = None;
+        self.enclosing_bounded.clear();
         match decl {
             Decl::Import(_) => {}
             // An interface is a set of type-level member signatures; there is no
@@ -3631,14 +3732,21 @@ impl Assigner<'_> {
                     let widens = self
                         .stdlib_callee(callee)
                         .is_some_and(|(key, field)| crate::stdlib::widens_literal_bindings(&key, &field));
-                    for (p, a) in params.iter().zip(args.iter()) {
+                    // Which argument bound each parameter first, so a bound
+                    // the binding does not satisfy is reported there (G264).
+                    let mut bound_by: HashMap<ParamKey, usize> = HashMap::new();
+                    for (i, (p, a)) in params.iter().zip(args.iter()).enumerate() {
                         let found = self.tm.get(a.span()).clone();
                         let found = match widens {
                             true => self.widen_fresh_literals(a, found),
                             false => found,
                         };
                         collect_type_param_bindings(&p.ty, &found, &mut subst, &keys);
+                        for k in subst.keys() {
+                            bound_by.entry(k.clone()).or_insert(i);
+                        }
                     }
+                    let mut written_args: Vec<(ParamKey, &TypeExpr)> = Vec::new();
                     // A stdlib parameter a type argument can name
                     // (`json.parse`'s `T`, G289; `json.parse_with`'s, G298) is
                     // the written type argument, else what the arguments
@@ -3696,7 +3804,8 @@ impl Assigner<'_> {
                             if names.len() == type_args.len() {
                                 for (name, t) in names.into_iter().zip(type_args.iter()) {
                                     if let Some(k) = param_key_named(&keys, &name) {
-                                        subst.insert(k, self.lowerer.lower(t));
+                                        subst.insert(k.clone(), self.lowerer.lower(t));
+                                        written_args.push((k, t));
                                     }
                                 }
                             } else {
@@ -3748,6 +3857,11 @@ impl Assigner<'_> {
                             subst.entry(k.clone()).or_insert(Ty::Unknown);
                         }
                     }
+                    self.check_call_bounds(callee, &keys, &subst, &bound_by, &written_args, args);
+                    let written_subst: Subst = written_args
+                        .iter()
+                        .filter_map(|(k, _)| Some((k.clone(), subst.get(k)?.clone())))
+                        .collect();
                     // Check each argument against its parameter type (with any
                     // inferred generics substituted in). Reports only a provable
                     // mismatch; an undecidable argument or parameter is silent.
@@ -3817,14 +3931,18 @@ impl Assigner<'_> {
                                 interface_reason: r.interface_reason,
                                 fn_cause: r.fn_cause,
                                 kind_help: kind_help.clone(),
+                                bound: None,
                                 span: r.span,
                             });
                         }
                         // Against the parameter as declared, before the
-                        // call's type arguments are put in: a field typed by
-                        // the callee's own type parameter is exempt (D57),
-                        // whatever the call binds it to.
-                        let declared = p.ty.clone();
+                        // call's inferred bindings are put in: a field typed
+                        // by the callee's own type parameter is exempt (D57),
+                        // whatever the arguments bind it to. A type argument
+                        // the call writes is put in, since the program named
+                        // that type: `label<HasName>({ .. })` judges the
+                        // literal as `let h: HasName = { .. }` does (D72).
+                        let declared = substitute_type_params(&p.ty, &written_subst);
                         self.judge_literal_fields(a, &declared, true);
                     }
                     let returned = match mentions_any_param(return_ty, &refused_params) {
@@ -4443,6 +4561,7 @@ impl Assigner<'_> {
                     interface_reason: r.interface_reason,
                     fn_cause: r.fn_cause,
                     kind_help: None,
+                    bound: None,
                     span: r.span,
                 });
             }
@@ -4501,6 +4620,7 @@ impl Assigner<'_> {
             interface_reason: None,
             fn_cause: None,
             kind_help: None,
+            bound: None,
             span: j.name_span,
         });
     }
@@ -4547,9 +4667,32 @@ impl Assigner<'_> {
         let [param] = params.as_slice() else {
             return None;
         };
-        let declared = param.ty.clone();
+        let declared = self.component_props_through_bound(&param.ty);
         let shape = self.props_record_of(&declared)?;
         Some((declared, shape))
+    }
+
+    /// A component's props type as an element is checked against it (G264,
+    /// D72). A component whose one parameter is its own bounded type
+    /// parameter (`component Show<T: HasLabel>(p: T)`) takes any record the
+    /// bound admits, so the element's attributes are checked against the
+    /// bound, exactly as for `component S2(p: HasLabel)`. A bound that names
+    /// the component's own parameters (`T: Cmp<T>`) is filled by the very
+    /// record the element builds, which this check does not infer, so the
+    /// parameter is left as it is and stays undecided, as is any bound the
+    /// checker does not read.
+    fn component_props_through_bound(&self, declared: &Ty) -> Ty {
+        let Ty::Param { name, owner } = declared else {
+            return declared.clone();
+        };
+        let bound = self
+            .owner_bounds(owner)
+            .and_then(|mut d| d.bounds.remove(name))
+            .flatten();
+        match bound {
+            Some(b) if !any_param(&b, &|_, o| o == owner) => b,
+            _ => declared.clone(),
+        }
     }
 
     /// What a component's one parameter is as a props value, with its own type
@@ -4561,9 +4704,10 @@ impl Assigner<'_> {
     /// a props record, and `tsc --strict` with React 18's types accepts
     /// `<Show label="x" />` against `<T: HasLabel>` and against `<T: L>` for a
     /// record `L`. The bound is resolved (G263) and decides the parameter
-    /// inside the component's body, but an element is not checked against it
-    /// yet (G264), so here a bounded parameter is undecided whatever the
-    /// bound says.
+    /// inside the component's body, and an element is checked against it
+    /// (G264, `component_props_through_bound`). Whether the bound is itself a
+    /// props record is not judged here, so a bounded parameter is undecided
+    /// whatever the bound says.
     fn component_props_param(&self, c: &glyph_ast::ComponentDecl, param: &Param) -> PropsParam {
         if let TypeExpr::Path { segments, .. } = &param.ty {
             if let [name] = segments.as_slice() {
@@ -9244,6 +9388,7 @@ impl Assigner<'_> {
             interface_reason: None,
             fn_cause: self.fn_cause(found, &slot),
             kind_help: self.fn_kind_help(callee, args, arg, found, &slot),
+            bound: None,
             span: arg.span(),
         })
     }
@@ -9299,6 +9444,7 @@ impl Assigner<'_> {
             interface_reason: None,
             fn_cause: self.fn_cause(&found, &slot),
             kind_help: Some(help),
+            bound: None,
             span: arg.span(),
         })
     }
@@ -9549,39 +9695,150 @@ impl Assigner<'_> {
     /// `extern_ts` or `typeof` bound, or a cycle of parameters bounding one
     /// another).
     fn bounded_generics(&self, generics: &[glyph_ast::GenericParam]) -> HashMap<Ident, Option<Ty>> {
-        let lowered: HashMap<Ident, Ty> = generics
-            .iter()
-            .filter_map(|g| Some((g.name.clone(), self.lowerer.lower(g.bounds.first()?))))
-            .collect();
-        let names: Vec<&Ident> = generics.iter().map(|g| &g.name).collect();
-        lowered
-            .iter()
-            .map(|(name, bound)| {
-                // Follow a chain of bounds that are each a bare parameter of
-                // this list (`<T: U, U: V>`); one that comes back on itself
-                // has no bound to read.
-                let mut seen = vec![name];
-                let mut cur = bound;
-                let cyclic = loop {
-                    let Ty::Param { name: next, .. } = cur else {
-                        break false;
-                    };
-                    if !names.contains(&next) {
-                        break false;
-                    }
-                    if seen.contains(&next) {
-                        break true;
-                    }
-                    seen.push(next);
-                    match lowered.get(next) {
-                        Some(b) => cur = b,
-                        None => break false,
-                    }
+        crate::lower::written_bounds(generics, &|t| self.lowerer.lower(t))
+    }
+
+    /// The bounds the declaration `owner` names writes on its type
+    /// parameters (G264), read as `bounded_generics` reads them for the
+    /// declaration's own body: a `fn`, `component`, `type` or `interface` of
+    /// this module through its symbol, a project sibling's through
+    /// `imported_bounds`. `None` for a stdlib row, whose parameters are
+    /// modeled without bounds, and for a parameter with no known owner.
+    fn owner_bounds(&self, owner: &ParamOwner) -> Option<DeclBounds> {
+        match owner {
+            ParamOwner::Callable(s) | ParamOwner::TypeDecl(s) => {
+                let sym = self.resolved.symbols.table.get(SymbolId(s.0))?;
+                let decl_idx = match sym.kind {
+                    SymbolKind::Function { decl_idx }
+                    | SymbolKind::Component { decl_idx }
+                    | SymbolKind::Type { decl_idx } => decl_idx,
+                    _ => return None,
                 };
-                let readable = !cyclic && !matches!(bound, Ty::Unknown);
-                (name.clone(), readable.then(|| bound.clone()))
-            })
+                let generics = match self.module.items.get(decl_idx as usize)? {
+                    Decl::Fn(f) => &f.generics,
+                    Decl::Component(c) => &c.generics,
+                    Decl::Type(t) => &t.generics,
+                    Decl::Interface(i) => &i.generics,
+                    _ => return None,
+                };
+                Some(DeclBounds {
+                    generics: generics.iter().map(|g| g.name.clone()).collect(),
+                    bounds: self.bounded_generics(generics),
+                })
+            }
+            ParamOwner::ImportedCallable { module, name } | ParamOwner::ImportedTypeDecl { module, name } => {
+                if module.as_str().starts_with("std/") {
+                    return None;
+                }
+                self.decl_ty_resolver.imported_bounds(module.as_str(), name.as_ref())
+            }
+            ParamOwner::Unresolved => None,
+        }
+    }
+
+    /// The bound of the type parameter `key`, with every parameter `subst`
+    /// binds put in (`T: Cmp<T>` bound to `Ord` reads `Cmp<Ord>`), when the
+    /// declaration writes one the checker reads.
+    fn instantiated_bound(&self, key: &ParamKey, subst: &Subst) -> Option<(Ty, Ty)> {
+        let bound = self.owner_bounds(&key.0)?.bounds.remove(&key.1)??;
+        let applied = substitute_type_params(&bound, subst);
+        Some((bound, applied))
+    }
+
+    /// The required members of `bound` that `found` does not have, for the
+    /// reason a bound refusal gives (G264). A record's fields, read through
+    /// any declaration (`record_fields_of`), are compared by name; a value
+    /// that is not a record at all (a primitive, a string-literal union, a
+    /// tagged union, a function) has none of them. Empty when the bound is
+    /// not read as a member set or when every member is present, which
+    /// leaves the reason to say the type is not assignable.
+    fn bound_missing_members(&self, found: &Ty, bound: &Ty) -> Vec<String> {
+        let Some(declared) = self.record_fields_of(&self.canonicalize_aliases(bound)) else {
+            return Vec::new();
+        };
+        let canonical = self.canonicalize_aliases(found);
+        let have: Vec<Ident> = match self.record_fields_of(&canonical) {
+            Some(fields) => fields.into_iter().map(|f| f.name).collect(),
+            None => match canonical {
+                Ty::Prim(_) | Ty::StringLiteralUnion(_) | Ty::Union { .. } | Ty::Fn { .. } => Vec::new(),
+                _ => return Vec::new(),
+            },
+        };
+        declared
+            .iter()
+            .filter(|d| !d.optional && !have.contains(&d.name))
+            .map(|d| d.name.to_string())
             .collect()
+    }
+
+    /// G264, D72. A call's type parameters checked against their bounds once
+    /// the call has bound them. A binding a type argument wrote is E0251 at
+    /// that type argument; one the arguments inferred is E0211 at the
+    /// argument that bound it, with the bound as the expected type and a
+    /// note naming the parameter. A binding the checker could not type, and
+    /// a bound it does not read, are not judged.
+    fn check_call_bounds(
+        &mut self,
+        callee: &Expr,
+        keys: &[ParamKey],
+        subst: &Subst,
+        bound_by: &HashMap<ParamKey, usize>,
+        written: &[(ParamKey, &TypeExpr)],
+        args: &[Expr],
+    ) {
+        for key in keys {
+            // A binding the checker could not type is not judged; the
+            // relation decides everything else, an imported type and the
+            // body's own parameter included.
+            let Some(arg_ty) = subst.get(key).filter(|t| !t.is_unknown()) else {
+                continue;
+            };
+            let Some((bound, applied)) = self.instantiated_bound(key, subst) else {
+                continue;
+            };
+            if !self.assign_incompatible(arg_ty, &applied) {
+                continue;
+            }
+            let missing = self.bound_missing_members(arg_ty, &applied);
+            if let Some((_, te)) = written.iter().find(|(k, _)| k == key) {
+                self.errors.push(TypeError::TypeArgumentBound {
+                    arg: type_expr_source(te),
+                    param: key.1.to_string(),
+                    bound: ty_display(&params_by_name(&bound)),
+                    owner: callee_source(callee),
+                    missing,
+                    application: false,
+                    span: te.span(),
+                });
+                continue;
+            }
+            let Some(arg) = bound_by.get(key).and_then(|i| args.get(*i)) else {
+                continue;
+            };
+            let shown = ty_display(&widen_literals(&self.named_params(arg_ty)));
+            let expected = self.named_params(&applied);
+            self.errors.push(TypeError::ArgumentTypeMismatch {
+                expected: ty_display(&expected),
+                found: shown.clone(),
+                accepted: None,
+                missing_fields: Vec::new(),
+                no_common_field: false,
+                children_between_tags: false,
+                sql_escape: false,
+                record_key: None,
+                unknown_value: false,
+                interface_reason: None,
+                fn_cause: None,
+                kind_help: None,
+                bound: Some(Box::new(crate::BoundBinding {
+                    param: key.1.to_string(),
+                    found: shown,
+                    bound: ty_display(&params_by_name(&bound)),
+                    missing,
+                })),
+                span: arg.span(),
+            });
+        }
     }
 
     /// The bound of one of the enclosing body's own parameters, when it
@@ -10090,6 +10347,7 @@ impl Assigner<'_> {
                 interface_reason: r.interface_reason,
                 fn_cause: r.fn_cause,
                 kind_help: None,
+                bound: None,
                 span: r.span,
             }
         } else {
@@ -27662,5 +27920,278 @@ pub fn f() -> number {
             assignability_of(src, "async fn(string) -> number", "async fn(string) -> number"),
             Assignability::Compatible { .. }
         ));
+    }
+
+    /// The line, code and message of every E0210, E0211 and E0251 in `src`,
+    /// in source order, for the G264 tests below.
+    fn bound_diags(src: &str) -> Vec<(usize, &'static str, String)> {
+        let mut out: Vec<(usize, &'static str, String)> = errors_of(src)
+            .iter()
+            .filter(|e| matches!(e.code(), "E0210" | "E0211" | "E0251"))
+            .map(|e| {
+                let line = src[..e.span().start as usize].matches('\n').count() + 1;
+                (line, e.code(), e.to_string())
+            })
+            .collect();
+        out.sort();
+        out
+    }
+
+    const G264_DECLS: &str = "module m\n\
+         interface HasName {\n  name: string\n}\n\
+         type Named = { name: string, }\n\
+         type Other = { title: string, }\n\
+         type Box<T: HasName> = { v: T, }\n\
+         fn label<T: HasName>(x: T) -> string {\n  return x.name\n}\n";
+
+    /// G264, D72 (record 196, section 7). A binding the arguments infer is
+    /// compared with the bound, and one outside it is E0211 at the argument
+    /// that bound `T`, expected the bound, found the binding. Record 196's
+    /// `g264.glyph` L16, L24, L44 and L48.
+    #[test]
+    fn an_inferred_binding_outside_its_bound_is_e0211_at_the_argument() {
+        let src = format!(
+            "{G264_DECLS}\
+             fn ok1(n: Named) -> string {{\n  return label(n)\n}}\n\
+             fn bad2(o: Other) -> string {{\n  return label(o)\n}}\n\
+             fn lit() -> string {{\n  return label({{ name: \"x\", }})\n}}\n\
+             fn litbad() -> string {{\n  return label({{ title: \"x\", }})\n}}\n"
+        );
+        let diags = bound_diags(&src);
+        assert_eq!(
+            diags.iter().map(|(l, c, _)| (*l, *c)).collect::<Vec<_>>(),
+            vec![(15, "E0211"), (21, "E0211")],
+            "{diags:?}"
+        );
+        assert_eq!(diags[0].2, "argument type mismatch: expected `HasName`, found `Other`");
+        let errs = errors_of(&src);
+        let e = errs.iter().find(|e| e.code() == "E0211").expect("an E0211");
+        assert_eq!(
+            e.note().as_deref(),
+            Some("`T` takes `Other` from this argument, and its bound `HasName` requires `name`, which `Other` does not have.")
+        );
+        assert_eq!(
+            e.help().as_deref(),
+            Some("Pass a value whose type has every member `HasName` requires; `T` is the type of the value passed here.")
+        );
+    }
+
+    /// G264. A written type argument outside its bound is E0251 at the type
+    /// argument, and so is a type application in any type position: a
+    /// parameter, a return, a field, a `let`, an alias body, nested, and a
+    /// bound. A type argument inside the bound is accepted. Record 196's
+    /// `g264.glyph` L28, L31, L36 and L40.
+    #[test]
+    fn a_written_type_argument_outside_its_bound_is_e0251() {
+        let src = format!(
+            "{G264_DECLS}\
+             fn bad3(o: Other) -> string {{\n  return label<Other>(o)\n}}\n\
+             fn bad4(b: Box<Other>) -> number {{\n  return 1\n}}\n\
+             fn ok2(n: Named) -> string {{\n  return label<Named>(n)\n}}\n\
+             fn ok3(b: Box<Named>) -> string {{\n  return b.v.name\n}}\n\
+             fn ret() -> Array<Box<Other>> {{\n  return []\n}}\n\
+             type Holder = {{ b: Box<Other>, }}\n\
+             type Alias = Box<Other>\n\
+             fn in_let() -> number {{\n  let xs: Array<Box<Other>> = []\n  return 1\n}}\n\
+             fn bounded<T: Box<Other>>(x: T) -> number {{\n  return 1\n}}\n"
+        );
+        let diags = bound_diags(&src);
+        assert_eq!(
+            diags.iter().map(|(l, c, _)| (*l, *c)).collect::<Vec<_>>(),
+            vec![(12, "E0251"), (14, "E0251"), (23, "E0251"), (26, "E0251"), (27, "E0251"), (29, "E0251"), (32, "E0251")],
+            "{diags:?}"
+        );
+        assert_eq!(
+            diags[0].2,
+            "type argument `Other` does not satisfy the bound `T: HasName` of `label`: `Other` has no field `name`"
+        );
+        assert_eq!(
+            diags[1].2,
+            "type argument `Other` does not satisfy the bound `T: HasName` of `Box`: `Other` has no field `name`"
+        );
+        let errs = errors_of(&src);
+        let helps: Vec<String> = errs
+            .iter()
+            .filter(|e| e.code() == "E0251")
+            .map(|e| e.help().expect("E0251 has help").into_owned())
+            .collect();
+        assert_eq!(
+            helps[0],
+            "Pass a type that has every member `HasName` requires, or leave the type argument out so the arguments decide `T`."
+        );
+        assert_eq!(helps[1], "Use a type that has every member `HasName` requires, or loosen `Box`'s bound.");
+        assert!(errs.iter().all(|e| e.code() != "E0233"), "{errs:?}");
+    }
+
+    /// G264. Inside a generic declaration its own parameter is read through
+    /// its bound: `Box<U>` passes with `U: HasName` and `U: Named`, and is
+    /// E0251 with an unbounded `U`, as `tsc` refuses it (TS2344). The same
+    /// holds inside a generic `type`. A call binding the callee's `T` to the
+    /// body's own `U` is judged the same way. Record 196's `g264c.glyph`
+    /// L25, L28 and L31.
+    #[test]
+    fn a_generic_body_reads_its_own_parameter_through_its_bound() {
+        let src = format!(
+            "{G264_DECLS}\
+             fn many<T: HasName>(xs: Array<T>) -> number {{\n  return 1\n}}\n\
+             fn pair<T: HasName>(a: T, b: T) -> number {{\n  return 1\n}}\n\
+             fn inner<U: HasName>(u: U) -> number {{\n  return many([u])\n}}\n\
+             fn inner2<U>(u: U) -> number {{\n  return pair(u, u)\n}}\n\
+             fn inner3<U: Named>(u: U) -> number {{\n  return pair(u, u)\n}}\n\
+             fn sig_ok<U: HasName>(b: Box<U>) -> number {{\n  return 1\n}}\n\
+             fn sig_bad<U>(b: Box<U>) -> number {{\n  return 1\n}}\n\
+             type Wrap<U: Named> = {{ b: Box<U>, }}\n\
+             type WrapBad<U> = {{ b: Box<U>, }}\n\
+             fn p3(xs: Array<Other>) -> number {{\n  return many(xs)\n}}\n"
+        );
+        let diags = bound_diags(&src);
+        assert_eq!(
+            diags.iter().map(|(l, c, _)| (*l, *c)).collect::<Vec<_>>(),
+            vec![(21, "E0211"), (29, "E0251"), (33, "E0251"), (35, "E0211")],
+            "{diags:?}"
+        );
+        assert_eq!(diags[0].2, "argument type mismatch: expected `HasName`, found `U`");
+        assert_eq!(diags[3].2, "argument type mismatch: expected `HasName`, found `Other`");
+    }
+
+    /// G264. A bound that names its own parameter is checked with the binding
+    /// put in: `T: Cmp<T>` bound to `Ord` checks `Ord` against `Cmp<Ord>`,
+    /// which `Ord` (no `cmp`) does not satisfy. A record with `cmp` taking
+    /// itself does. Record 196's last row for section 7.
+    #[test]
+    fn an_f_bound_is_checked_with_the_binding_put_in() {
+        let src = "module m\n\
+             interface Cmp<X> {\n  fn cmp(o: X) -> number\n  v: X\n}\n\
+             type Ord = { v: number, }\n\
+             type Rec = { v: Rec, cmp: fn(Rec) -> number, }\n\
+             fn fb<T: Cmp<T>>(a: T) -> number {\n  return 1\n}\n\
+             fn bad(o: Ord) -> number {\n  return fb(o)\n}\n\
+             fn good(r: Rec) -> number {\n  return fb(r)\n}\n\
+             fn written(o: Ord) -> number {\n  return fb<Ord>(o)\n}\n\
+             type Ranked<T: Cmp<T>> = { top: T, }\n\
+             fn app(r: Ranked<Ord>) -> number {\n  return 1\n}\n";
+        let diags = bound_diags(src);
+        assert_eq!(
+            diags.iter().map(|(l, c, _)| (*l, *c)).collect::<Vec<_>>(),
+            vec![(12, "E0211"), (18, "E0251"), (21, "E0251")],
+            "{diags:?}"
+        );
+        assert_eq!(diags[0].2, "argument type mismatch: expected `Cmp<Ord>`, found `Ord`");
+        assert_eq!(
+            diags[1].2,
+            "type argument `Ord` does not satisfy the bound `T: Cmp<T>` of `fb`: `Ord` has no field `cmp`"
+        );
+    }
+
+    /// G264. An element of a component whose one parameter is its own bounded
+    /// parameter is checked against the bound, exactly as for a component
+    /// whose parameter is declared the bound. Record 196's `comp.glyph` L18 to
+    /// L24.
+    #[test]
+    fn a_bounded_component_element_is_checked_against_the_bound() {
+        let src = "module m\n\
+             interface HasLabel {\n  label: string\n}\n\
+             type Lab = { label: string, }\n\
+             pub component Show<T: HasLabel>(p: T) {\n  return <span>{p.label}</span>\n}\n\
+             pub component S(p: Lab) {\n  return <span>{p.label}</span>\n}\n\
+             pub component Page() {\n  return <div>\n    <Show />\n    <Show label=\"x\" other=\"y\" />\n    <Show label={5} />\n    <Show label=\"ok\" />\n    <S />\n    <S label=\"x\" other=\"y\" />\n    <S label={5} />\n  </div>\n}\n";
+        let diags = bound_diags(src);
+        let codes = |from: usize, to: usize| -> Vec<&'static str> {
+            diags.iter().filter(|(l, _, _)| (from..=to).contains(l)).map(|(_, c, _)| *c).collect()
+        };
+        assert_eq!(codes(14, 17), vec!["E0211", "E0210", "E0211"], "{diags:?}");
+        assert_eq!(codes(18, 20), vec!["E0211", "E0210", "E0211"], "{diags:?}");
+        let shown: Vec<&str> = diags.iter().filter(|(l, _, _)| *l <= 16).map(|(_, _, m)| m.as_str()).collect();
+        assert_eq!(
+            shown,
+            vec![
+                "argument type mismatch: expected `HasLabel`, found `record`: missing field `label`",
+                "type `HasLabel` has no field `other`",
+                "argument type mismatch: expected `string`, found `number`",
+            ]
+        );
+    }
+
+    /// G264, the consistency rule. `label({ name: "x", extra: 1, })` infers
+    /// `T` as the literal's type and is accepted. Written as
+    /// `label<HasName>(..)` the literal is judged as the argument of a
+    /// parameter declared `HasName`, which is what `let h: HasName = ..`
+    /// gets. Record 196's `g264d.glyph`.
+    #[test]
+    fn a_written_bound_type_argument_judges_a_literal_like_a_let() {
+        let call = format!(
+            "{G264_DECLS}\
+             fn a() -> string {{\n  return label({{ name: \"x\", extra: 1, }})\n}}\n\
+             fn b() -> string {{\n  return label<HasName>({{ name: \"x\", extra: 1, }})\n}}\n"
+        );
+        let binding = format!(
+            "{G264_DECLS}\
+             fn c() -> string {{\n  let h: HasName = {{ name: \"x\", extra: 1, }}\n  return h.name\n}}\n"
+        );
+        let on_a: Vec<_> = bound_diags(&call).into_iter().filter(|(l, _, _)| *l == 12).collect();
+        assert!(on_a.is_empty(), "{on_a:?}");
+        let codes = |src: &str, line: usize| -> Vec<String> {
+            errors_of(src)
+                .iter()
+                .filter(|e| src[..e.span().start as usize].matches('\n').count() + 1 == line)
+                .map(|e| e.code().to_string())
+                .collect()
+        };
+        assert_eq!(codes(&call, 15), codes(&binding, 12));
+    }
+
+    /// G264. `label(5)` binds `T` to `number`. Against a record bound it is
+    /// refused now, since a primitive is never a declared record (G201).
+    #[test]
+    fn a_primitive_bound_to_a_record_bounded_parameter_is_e0211() {
+        let src = "module m\n\
+             type Named = { name: string, }\n\
+             fn label<T: Named>(x: T) -> string {\n  return x.name\n}\n\
+             fn bad() -> string {\n  return label(5)\n}\n";
+        let diags = bound_diags(src);
+        assert_eq!(
+            diags,
+            vec![(7, "E0211", "argument type mismatch: expected `Named`, found `number`".to_string())]
+        );
+    }
+
+    /// G264 with G502. `label(5)` and `many([1, 2])` against the interface
+    /// bound `HasName` are decided by G502's primitive-against-interface
+    /// rule: a `number` has no `name`, so each is E0211 at its argument.
+    #[test]
+    fn a_primitive_bound_to_an_interface_bounded_parameter_is_e0211() {
+        let src = format!(
+            "{G264_DECLS}\
+             fn many<T: HasName>(xs: Array<T>) -> number {{\n  return 1\n}}\n\
+             fn bad1() -> string {{\n  return label(5)\n}}\n\
+             fn p2() -> number {{\n  return many([1, 2])\n}}\n"
+        );
+        let diags = bound_diags(&src);
+        assert_eq!(
+            diags,
+            vec![
+                (15, "E0211", "argument type mismatch: expected `HasName`, found `number`".to_string()),
+                (18, "E0211", "argument type mismatch: expected `HasName`, found `number`".to_string()),
+            ]
+        );
+    }
+
+    /// G264. Not judged: a function referenced and not called, and a
+    /// standard-library function's type parameters, which are modeled without
+    /// bounds. A call through a value holding a bounded function is judged,
+    /// since the value's parameters carry the declaration they belong to.
+    #[test]
+    fn a_bound_is_judged_through_a_function_value_and_not_on_a_reference() {
+        let src = format!(
+            "{G264_DECLS}\
+             fn r() -> number {{\n  let f = label\n  return 1\n}}\n\
+             fn v(o: Other) -> string {{\n  let f = label\n  return f(o)\n}}\n"
+        );
+        let diags = bound_diags(&src);
+        assert_eq!(
+            diags.iter().map(|(l, c, _)| (*l, *c)).collect::<Vec<_>>(),
+            vec![(17, "E0211")],
+            "{diags:?}"
+        );
     }
 }

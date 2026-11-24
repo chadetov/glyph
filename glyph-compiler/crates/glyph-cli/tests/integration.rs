@@ -11241,6 +11241,74 @@ fn a_wrong_number_of_type_arguments_on_a_sibling_is_e0233_under_every_spelling()
 }
 
 #[test]
+fn a_sibling_bound_is_checked_where_it_is_instantiated_under_both_spellings() {
+    // G264, D72 across the module boundary. A sibling's `fn` and `type`
+    // bounds are read on its side, so a binding outside the bound is E0211
+    // at the argument and a written type argument or a type application is
+    // E0251, whether the name is imported by name or reached through the
+    // namespace. The bound is a record: a sibling interface has no member
+    // set across a module edge yet (G541), for a bound as for a parameter.
+    let root = unique_tmp("g264sibling");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\n\
+         pub type Named = { name: string, }\n\
+         pub fn label<T: Named>(x: T) -> string {\n  return x.name\n}\n\
+         pub type Box<T: Named> = { v: T, }\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import lib { label, Box, Named }\n\
+         type Other = { title: string, }\n\
+         pub fn named(o: Other, b: Box<Other>, n: Named) -> string {\n\
+         \x20 let a = label(o)\n\
+         \x20 let c = label(n)\n\
+         \x20 return label<Other>(o)\n\
+         }\n",
+    );
+    write_file(
+        &src,
+        "other.glyph",
+        "module other\n\
+         import lib\n\
+         type Other = { title: string, }\n\
+         pub fn spaced(o: Other, b: lib.Box<Other>, n: lib.Named) -> string {\n\
+         \x20 let a = lib.label(o)\n\
+         \x20 let c = lib.label(n)\n\
+         \x20 return lib.label<Other>(o)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let found = |file: &str, code: &str| -> Vec<String> {
+        report
+            .diagnostics
+            .iter()
+            .filter(|d| d.contains(code) && d.contains(&format!("[ {file}:")))
+            .cloned()
+            .collect()
+    };
+    for (file, prefix) in [("main", ""), ("other", "lib.")] {
+        let e0211 = found(file, "E0211");
+        assert_eq!(e0211.len(), 1, "{file}: {:?}", report.diagnostics);
+        assert!(e0211[0].contains("expected `Named`, found `Other`"), "{e0211:?}");
+        let e0251 = found(file, "E0251");
+        assert_eq!(e0251.len(), 2, "{file}: {:?}", report.diagnostics);
+        assert!(
+            e0251.iter().any(|d| d.contains(&format!("the bound `T: Named` of `{prefix}label`"))),
+            "{e0251:?}"
+        );
+        assert!(
+            e0251.iter().any(|d| d.contains(&format!("the bound `T: Named` of `{prefix}Box`"))),
+            "{e0251:?}"
+        );
+    }
+}
+
+#[test]
 fn type_arguments_through_a_function_value_hold_for_a_sibling_under_both_spellings() {
     // A sibling's function bound to a local keeps its type parameters, so a
     // call through the local reads its written type arguments the way a call

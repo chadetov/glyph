@@ -79,7 +79,7 @@ use glyph_resolver::{
     ResolvedModule, StdlibStubs, SymbolKind,
 };
 use glyph_typechecker::{
-    assign_types_with_relations, unannotated_const_ty, CoverageSite, CoverageSiteRef, CoverageTypeName, DeclTyResolver,
+    assign_types_with_relations, unannotated_const_ty, DeclBounds, CoverageSite, CoverageSiteRef, CoverageTypeName, DeclTyResolver,
     FieldSite, FileFieldUses,
     FileMatchCoverage, ImportedTypeDecl, Lowerer, Ty, TypeError, TypeMap,
 };
@@ -2035,6 +2035,30 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
             _ => return None,
         };
         Some(generics.iter().map(|g| g.name.clone()).collect())
+    }
+
+    fn imported_bounds(
+        &self,
+        module_path: &str,
+        name: &str,
+    ) -> Option<DeclBounds> {
+        // Lowered on the export view, as `exported_fn` lowers the signature
+        // these bounds belong to, so a bound naming a sibling type reaches
+        // the consumer as `Ty::Imported` and a bound naming the
+        // declaration's own parameter (`T: Cmp<T>`) carries the owner the
+        // consumer's copy of the signature carries.
+        let project = self.db.project_files_input();
+        let file = project
+            .entries(self.db)
+            .iter()
+            .find(|(p, _)| p == module_path)
+            .map(|(_, f)| *f)?;
+        let parsed = parse_module(self.db, file);
+        let decl = decl_by_name(parsed.module()?, name)?;
+        let resolved = resolve(self.db, file);
+        let resolved_module = resolved.resolved()?;
+        let lowerer = Lowerer::for_export(resolved_module, self.db.prelude(), module_path);
+        lowerer.lower_exported_bounds(decl)
     }
 }
 

@@ -61,7 +61,7 @@ pub use lower::{lower_type_expr, ExportLowerer, Lowerer};
 pub use stdlib::stdlib_signature;
 pub use ty::{
     builtin_union, builtin_union_of_variant, builtin_unions, BuiltinUnion, BuiltinVariant, FnParam,
-    ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, SymbolRef, Ty, UnionVariant,
+    DeclBounds, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, SymbolRef, Ty, UnionVariant,
 };
 pub use type_map::{IdentPattern, TypeMap};
 
@@ -810,6 +810,12 @@ pub enum TypeError {
         /// comparator with too many parameters or a return that is not a
         /// `number` (G505). `None` everywhere else.
         kind_help: Option<String>,
+        /// Set when the argument is refused because the type it binds a
+        /// callee's type parameter to does not satisfy that parameter's
+        /// bound (G264, D72), rather than because it does not fit the
+        /// parameter. `expected` is then the bound with the binding put in,
+        /// and the note says which parameter took which type here.
+        bound: Option<Box<BoundBinding>>,
         span: Span,
     },
 
@@ -865,6 +871,33 @@ pub enum TypeError {
         expected: usize,
         found: usize,
         value_of: Option<(String, String)>,
+        span: Span,
+    },
+
+    /// A written type argument that does not satisfy the bound of the type
+    /// parameter it fills (G264, D72): `label<Other>(o)` against `fn
+    /// label<T: HasName>`, or `Box<Other>` against `type Box<T: HasName>` in
+    /// any type position. `tsc` refuses the same programs (TS2344).
+    ///
+    /// Its own code rather than E0233's: E0233 is the wrong number of type
+    /// arguments, a different mistake with a different fix, and one code
+    /// meaning two mistakes is one an agent dispatching on codes cannot tell
+    /// apart. A binding the arguments infer is E0211 at the argument instead,
+    /// since there the argument is what the program wrote.
+    ///
+    /// `bound` is the bound as declared, with the declaration's own
+    /// parameters left in (`Cmp<T>`); `missing` is the bound's required
+    /// members the type argument does not have, when the checker can list
+    /// them. `application` is true for a type application and false for a
+    /// call, which changes the help.
+    #[error("type argument `{arg}` does not satisfy the bound `{param}: {bound}` of `{owner}`: {}", bound_reason(.arg, .bound, .missing))]
+    TypeArgumentBound {
+        arg: String,
+        param: String,
+        bound: String,
+        owner: String,
+        missing: Vec<String>,
+        application: bool,
         span: Span,
     },
 
@@ -1722,6 +1755,51 @@ fn remove_subject(record: &Option<String>, key: &str) -> String {
     }
 }
 
+/// The reason E0251 gives after its colon: the bound's members the type
+/// argument lacks, else that it is not assignable to the bound.
+fn bound_reason(arg: &str, bound: &str, missing: &[String]) -> String {
+    match missing {
+        [] => format!("`{arg}` is not assignable to `{bound}`"),
+        [one] => format!("`{arg}` has no field `{one}`"),
+        many => format!(
+            "`{arg}` has no fields {}",
+            many.iter().map(|f| format!("`{f}`")).collect::<Vec<_>>().join(", ")
+        ),
+    }
+}
+
+/// Why an argument is refused by the bound of the type parameter it binds
+/// (G264, D72), for E0211's note: the parameter, the type this argument
+/// gave it, the bound as declared, and the bound's required members that
+/// type lacks when the checker can list them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundBinding {
+    pub param: String,
+    pub found: String,
+    pub bound: String,
+    pub missing: Vec<String>,
+}
+
+impl BoundBinding {
+    /// "`T` takes `number` from this argument, and its bound `HasName`
+    /// requires `name`, which `number` does not have."
+    pub fn note(&self) -> String {
+        let BoundBinding { param, found, bound, missing } = self;
+        match missing.as_slice() {
+            [] => format!(
+                "`{param}` takes `{found}` from this argument, and `{found}` does not satisfy its bound `{bound}`."
+            ),
+            [one] => format!(
+                "`{param}` takes `{found}` from this argument, and its bound `{bound}` requires `{one}`, which `{found}` does not have."
+            ),
+            many => format!(
+                "`{param}` takes `{found}` from this argument, and its bound `{bound}` requires {}, which `{found}` does not have.",
+                many.iter().map(|f| format!("`{f}`")).collect::<Vec<_>>().join(", ")
+            ),
+        }
+    }
+}
+
 fn missing_fields_suffix(missing: &[String]) -> String {
     match missing {
         [] => String::new(),
@@ -1809,6 +1887,7 @@ impl TypeError {
             TypeError::ArgumentTypeMismatch { span, .. } => *span,
             TypeError::ArgumentCountMismatch { span, .. } => *span,
             TypeError::TypeArgumentCountMismatch { span, .. } => *span,
+            TypeError::TypeArgumentBound { span, .. } => *span,
             TypeError::UncalledBuiltinMethod { span, .. } => *span,
             TypeError::MutateConst { span, .. } => *span,
             TypeError::ComponentMultipleParams { span, .. } => *span,
@@ -1868,6 +1947,7 @@ impl TypeError {
             TypeError::MutateConst { .. } => "E0212",
             TypeError::ArgumentCountMismatch { .. } => "E0213",
             TypeError::TypeArgumentCountMismatch { .. } => "E0233",
+            TypeError::TypeArgumentBound { .. } => "E0251",
             TypeError::UncalledBuiltinMethod { .. } => "E0234",
             TypeError::ComponentMultipleParams { .. } => "E0214",
             TypeError::ComponentParamNotRecord { .. } => "E0229",
@@ -1889,6 +1969,22 @@ impl TypeError {
 
     /// A one-line, actionable fix (the Elm-quality bar): what to change.
     pub fn help(&self) -> Option<Cow<'static, str>> {
+        if let TypeError::ArgumentTypeMismatch { bound: Some(b), .. } = self {
+            return Some(Cow::Owned(format!(
+                "Pass a value whose type has every member `{}` requires; `{}` is the type of the value passed here.",
+                b.bound, b.param
+            )));
+        }
+        if let TypeError::TypeArgumentBound { param, bound, owner, application, .. } = self {
+            return Some(Cow::Owned(match application {
+                false => format!(
+                    "Pass a type that has every member `{bound}` requires, or leave the type argument out so the arguments decide `{param}`."
+                ),
+                true => format!(
+                    "Use a type that has every member `{bound}` requires, or loosen `{owner}`'s bound."
+                ),
+            }));
+        }
         if let TypeError::TypeMismatch { record_key: Some(k), .. }
         | TypeError::ArgumentTypeMismatch { record_key: Some(k), .. } = self
         {
@@ -2247,6 +2343,7 @@ impl TypeError {
             TypeError::CaseBind { .. } => unreachable!("answered above with its rewrite"),
             TypeError::PendingNotAwaited { .. } => unreachable!("answered above with the call it names"),
             TypeError::AsyncCallbackIntoSyncVoid { .. } => unreachable!("answered above with the callback it names"),
+            TypeError::TypeArgumentBound { .. } => unreachable!("answered above with the bound it names"),
             TypeError::UnseenMatchType { .. } => unreachable!("answered above with the module it names"),
             TypeError::UncalledBuiltinMethod { .. } => unreachable!("answered above with the method it names"),
             TypeError::OptionalChainOnTagged { .. } => unreachable!("answered above with the receiver it names"),
@@ -2277,6 +2374,9 @@ impl TypeError {
     }
 
     pub fn note(&self) -> Option<Cow<'static, str>> {
+        if let TypeError::ArgumentTypeMismatch { bound: Some(b), .. } = self {
+            return Some(Cow::Owned(b.note()));
+        }
         if let TypeError::TypeMismatch { record_key: Some(k), .. }
         | TypeError::ArgumentTypeMismatch { record_key: Some(k), .. } = self
         {
@@ -2438,6 +2538,7 @@ impl TypeError {
         match self {
             TypeError::TypeMismatch { missing_fields, .. }
             | TypeError::ArgumentTypeMismatch { missing_fields, .. }
+            | TypeError::TypeArgumentBound { missing: missing_fields, .. }
                 if !missing_fields.is_empty() =>
             {
                 Some(missing_fields)
@@ -2456,6 +2557,7 @@ impl TypeError {
         match self {
             TypeError::TypeMismatch { expected, .. }
             | TypeError::ArgumentTypeMismatch { expected, .. } => Some(expected),
+            TypeError::TypeArgumentBound { bound, .. } => Some(bound),
             // `?` propagates an `E` to the enclosing function's `Result<_, E>`;
             // the expected side is that `E`.
             TypeError::QuestionErrorTypeMismatch { expected, .. } => Some(expected),
@@ -2475,6 +2577,7 @@ impl TypeError {
             | TypeError::ArgumentTypeMismatch { found, .. }
             | TypeError::QuestionErrorTypeMismatch { found, .. }
             | TypeError::QuestionOnNonResult { found, .. } => Some(found),
+            TypeError::TypeArgumentBound { arg, .. } => Some(arg),
             // "a resource type" is a rule, not a type, so there is no
             // `expected` to pair with; the type in hand is still reported.
             TypeError::OwnedRequiresResourceType { ty, .. } => Some(ty),

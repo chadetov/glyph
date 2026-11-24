@@ -171,6 +171,21 @@ impl std::fmt::Display for ModuleKey {
     }
 }
 
+/// The type parameters a generic declaration lists, in order, and the bound
+/// each one writes (G264): absent for a parameter written with no bound,
+/// `None` for one whose bound the checker does not read (an `extern_ts` or
+/// `typeof` bound, or a cycle of parameters bounding one another).
+///
+/// The order is what pairs a written type argument with its parameter; the
+/// bounds are what the argument is checked against. A call site, a type
+/// application and a component element all read the declaration's bounds
+/// through this one shape, local or imported.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeclBounds {
+    pub generics: Vec<Ident>,
+    pub bounds: std::collections::HashMap<Ident, Option<Ty>>,
+}
+
 /// The lowered form of a `type` declaration as seen from *another* module: its
 /// name, its generic parameter names, and its body lowered on the source side
 /// (so any type the body names is resolved against the declaring module).

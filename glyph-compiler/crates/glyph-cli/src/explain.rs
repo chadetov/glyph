@@ -681,6 +681,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             function's `number` parameter does not take\". A generic function such as `fn \
             id<T>(x: T) -> T` is first instantiated against the slot, so \
             `array.map(xs, id)` is accepted.\n\n\
+            A call to a function with a bounded type parameter checks the type \
+            each argument binds against the bound (D72): with `fn label<T: \
+            HasName>(x: T)`, `label(o)` with `o: Other` is this error at `o`, \
+            expected `HasName`, found `Other`, and the note says `T` took \
+            `Other` from that argument. A bound that names the parameter is \
+            checked with the binding put in, so `T: Cmp<T>` bound to `Ord` \
+            checks `Ord` against `Cmp<Ord>`. A type argument written on the \
+            call is E0251 instead.\n\n\
             An `unknown` argument where any other type is declared is this \
             error, as E0204 describes for a `let` (G325): `takes(u)` with \
             `takes(s: string)` and `u: unknown`. Check it first with \
@@ -1635,6 +1643,36 @@ pub fn explain(code: &str) -> Option<&'static str> {
             these: `s.slice(i, i + n)` evaluates `i` twice.\n\n\
             Not judged: a member of a value the checker cannot type, such as an \
             npm package's or a node builtin's.",
+
+        "E0251" => "E0251: a type argument does not satisfy its bound\n\n\
+            A written type argument fills a type parameter whose bound it does \
+            not satisfy.\n\n\
+            interface HasName { name: string }\n\
+            type Other = { title: string, }\n\
+            type Box<T: HasName> = { v: T, }\n\
+            fn label<T: HasName>(x: T) -> string { return x.name }\n\n\
+            label<Other>(o)        // `Other` has no field `name`\n\
+            fn f(b: Box<Other>)    // the same, on a type application\n\n\
+            It is raised for a type argument written on a call and for a type \
+            application in any type position: a parameter, a return, a field, a \
+            `let` annotation, an alias body, a bound, nested inside another \
+            application (`Array<Box<Other>>`). A bound that names the \
+            declaration's own parameters is checked with the arguments put in, \
+            so `Ranked<Ord>` under `type Ranked<T: Cmp<T>>` checks `Ord` \
+            against `Cmp<Ord>`.\n\n\
+            Inside a generic declaration its own parameter is read through its \
+            bound: `Box<U>` is accepted with `U: HasName` and refused with an \
+            unbounded `U`, since a caller may choose any `U`.\n\n\
+            A type argument the arguments infer is not this error: `label(o)` \
+            is E0211 at `o`, since the argument is what the program wrote.\n\n\
+            Pass or write a type that has every member the bound requires. On a \
+            call you can leave the type argument out and let the arguments \
+            decide it; on a type, the other fix is to loosen the declaration's \
+            bound. Not judged: a bound written as an `extern_ts` or `typeof` \
+            type, a bound that is another module's `interface` (G541), an \
+            object literal against a `Record<string, V>` bound, a \
+            standard-library function's type parameters, and a function \
+            referenced and not called. TypeScript reports these as TS2344.",
 
         "E0300" => "E0300: construct the emitter does not handle, or a refined non-primitive base\n\n\
             E0300 covers two things. One is a construct the v1 TypeScript \
@@ -2607,7 +2645,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0211",
         phase: "typechecker",
-        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record. An async function passed where a sync `fn(...) -> void` is declared (`ids.forEach(save)`, an async lambda given to `timers.every` or a socket handler) is refused too: the slot calls it without waiting, so each call runs on its own and its errors are lost (D40). A function argument is compared with the parameter's function type by arity, by each parameter (what the slot passes must be accepted by the function's own parameter) and by the return, and the message prints both signatures and the first position that differs (G491, G434). A `match` written as the argument is compared arm by arm, as under E0204. An `unknown` argument where any type but `unknown` is declared is refused (G325). A built-in method's arguments are checked against the signature TypeScript's library declares, under `mut` as anywhere else, and a rest parameter (`push`, `unshift`, `splice`'s items, `string.concat`) checks each argument against its element type; an array's `xs.concat(..)` takes each argument as an element or an array of elements, and `array.concat(a, b)` takes two arrays of one element type (G307, G521); a `sort` or `toSorted` comparator that takes more than two parameters or returns something other than a `number` is refused (G505, G492)",
+        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record. An argument that binds a bounded type parameter to a type outside its bound is refused at that argument (D72): with `fn label<T: HasName>`, `label(o)` for `o: Other` expects `HasName` and the note names `T`. An async function passed where a sync `fn(...) -> void` is declared (`ids.forEach(save)`, an async lambda given to `timers.every` or a socket handler) is refused too: the slot calls it without waiting, so each call runs on its own and its errors are lost (D40). A function argument is compared with the parameter's function type by arity, by each parameter (what the slot passes must be accepted by the function's own parameter) and by the return, and the message prints both signatures and the first position that differs (G491, G434). A `match` written as the argument is compared arm by arm, as under E0204. An `unknown` argument where any type but `unknown` is declared is refused (G325). A built-in method's arguments are checked against the signature TypeScript's library declares, under `mut` as anywhere else, and a rest parameter (`push`, `unshift`, `splice`'s items, `string.concat`) checks each argument against its element type; an array's `xs.concat(..)` takes each argument as an element or an array of elements, and `array.concat(a, b)` takes two arrays of one element type (G307, G521); a `sort` or `toSorted` comparator that takes more than two parameters or returns something other than a `number` is refused (G505, G492)",
         fix: "Pass a value of the expected type; check an `unknown` with `T.parse` or an `is` pattern first",
     },
     CodeEntry {
@@ -2807,6 +2845,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "A built-in member TypeScript's library marks `@deprecated` (G389). A warning rather than an error: the member runs in every engine and `tsc --strict` accepts it. The 16 are string members: `substr`, `trimLeft`, `trimRight` and the 13 HTML methods (`anchor`, `big`, `blink`, `bold`, `fixed`, `fontcolor`, `fontsize`, `italics`, `link`, `small`, `strike`, `sub`, `sup`), read or called, through `?.` included. The list is read from the pinned TypeScript when the member table is generated. A member of a value the checker cannot type (an npm package's, a node builtin's) is not judged",
         fix: "Write the replacement the help names: `s.slice(1, 3)` for `s.substr(1, 2)` (`substr` takes a length, `slice` an end, and they agree when both are whole numbers of zero or more), `s.trimStart()` for `s.trimLeft()`, `s.trimEnd()` for `s.trimRight()`, a template string such as `\"<b>${s}</b>\"` for `s.bold()`. `glyph fix` does not rewrite these",
+    },
+    CodeEntry {
+        code: "E0251",
+        phase: "typechecker",
+        meaning: "A written type argument does not satisfy the bound of the type parameter it fills (D72): `label<Other>(o)` on `fn label<T: HasName>`, or `Box<Other>` on `type Box<T: HasName>` in any type position (a parameter, a return, a field, an annotation, an alias body, a bound, nested). A bound naming the declaration's own parameters is checked with the arguments put in (`Ranked<Ord>` under `T: Cmp<T>` checks `Ord` against `Cmp<Ord>`). Inside a generic declaration, its own `U` is read through its bound, so `Box<U>` is accepted with `U: HasName` and refused with an unbounded `U`. A binding the arguments infer is E0211 at the argument instead. Not judged: an `extern_ts` or `typeof` bound, a sibling module's `interface` bound (G541) and a stdlib function's type parameters. TypeScript's TS2344",
+        fix: "Write a type that has every member the bound requires; on a call, or leave the type argument out so the arguments decide it; on a type, or loosen the declaration's bound",
     },
     CodeEntry {
         code: "E0258",

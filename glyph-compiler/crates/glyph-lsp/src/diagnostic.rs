@@ -692,6 +692,7 @@ fn type_subject(err: &TypeError) -> Option<String> {
         | T::ArgumentTypeMismatch { .. }
         | T::ArgumentCountMismatch { .. }
         | T::TypeArgumentCountMismatch { .. }
+        | T::TypeArgumentBound { .. }
         | T::UncalledBuiltinMethod { .. }
         | T::MutateConst { .. }
         | T::NonExhaustiveBoolMatch { .. }

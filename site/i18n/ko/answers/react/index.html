@@ -1,9 +1,9 @@
 ---
 title: React의 hook, Context와 함께 쓸 수 있나요? · Glyph
 description: React가 내장되어 있습니다. component는 함수 컴포넌트로 컴파일되고, JSX는 createElement로 변환되며, reducer의 액션은 망라적으로 매칭됩니다.
-source_hash: 4d46f3d681c38c46
+source_hash: 74277aa2d86ec441
 prev: /answers/codegen/ | &larr; 이전 | API 명세에서 타입이 있는 클라이언트와 서버를 생성할 수 있나요?
-next: /answers/state/ | 다음 &rarr; | 함수 사이에서 변경 가능한 상태를 어떻게 공유하나요?
+next: /answers/react-not-yet/ | 다음 &rarr; | Glyph가 React에서 아직 못 하는 것은?
 ---
       <p class="q-eyebrow">13 &middot; 프런트엔드</p>
       <h1 class="q-title">React의 컴포넌트, hook, Context와 함께 쓸 수 있나요?</h1>
@@ -205,6 +205,7 @@ pub fn main() -&gt; void {
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 앞으로 할 것</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph가 아직 다루지 못하는 React 패턴은 gap 번호와 그동안 쓸 수 있는 방법과 함께 <a href="/answers/react-not-yet/">Glyph가 React에서 아직 못 하는 것은?</a>에 정리되어 있습니다.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph 검사기는 hook의 결과에 타입을 매기지 않으므로, 숫자 상태에 대한 <code>set_count("x")</code>는 에디터의 Glyph 오류가 아니라 빌드의 <code>tsc</code> 오류입니다.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code>은 페이지를 읽고 제목을 설정하는 데서 멈춥니다. React가 자신이 렌더링하는 DOM을 소유하므로 요소 setter나 이벤트 리스너는 없습니다.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">effect는 <code>fn() -&gt; void { ... }</code>로 써야 합니다. 람다는 마지막 표현식을 반환하고, React는 이를 정리 함수로 호출할 것이기 때문입니다.</span></span></li>

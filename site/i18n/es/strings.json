@@ -190,6 +190,7 @@
     "/answers/finance/": "Dinero y seguridad",
     "/answers/interactive-cli/": "Programas interactivos",
     "/answers/react/": "React",
+    "/answers/react-not-yet/": "React: todavía no",
     "/answers/long-running/": "Servidores y daemons",
     "/answers/web-serving/": "Servir la web",
     "/answers/state/": "Estado compartido",

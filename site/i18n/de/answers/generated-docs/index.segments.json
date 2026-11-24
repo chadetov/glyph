@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/generated-docs/index.html",
   "locale": "de",
-  "source_hash": "61722b2a96424269",
+  "source_hash": "587abb57cb44eb80",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "Kann ich verhindern, dass ein Agent die rohe Bibliothek importiert, wenn wir einen Wrapper dafür haben?"
     },
     {
-      "id": "h-594c6826",
+      "id": "h-c17dc3de",
       "kind": "html",
-      "en": "24 &middot; Docs that can't drift",
-      "tr": "24 &middot; Doku, die nicht veraltet"
+      "en": "25 &middot; Docs that can't drift",
+      "tr": "25 &middot; Doku, die nicht veraltet"
     },
     {
       "id": "h-bbccff1f",

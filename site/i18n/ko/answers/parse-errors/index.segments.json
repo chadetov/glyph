@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/parse-errors/index.html",
   "locale": "ko",
-  "source_hash": "96b93faf3ceb7f31",
+  "source_hash": "6ad3bf0debfead6b",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "새벽 3시에 프로덕션에서 장애가 나면 온콜 담당자는 무엇을 보나요?"
     },
     {
-      "id": "h-7967f270",
+      "id": "h-1a2ed9f4",
       "kind": "html",
-      "en": "28 &middot; Parse failures",
-      "tr": "28 &middot; 파싱 실패"
+      "en": "29 &middot; Parse failures",
+      "tr": "29 &middot; 파싱 실패"
     },
     {
       "id": "h-f32168df",

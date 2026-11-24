@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/debugging/index.html",
   "locale": "zh-cn",
-  "source_hash": "c4c547d690dbe8f7",
+  "source_hash": "0fbcd771f2e361fb",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "现在去 Playground 写点 Glyph"
     },
     {
-      "id": "h-835e069e",
+      "id": "h-cebb316a",
       "kind": "html",
-      "en": "29 &middot; Operations",
-      "tr": "29 &middot; 运维"
+      "en": "30 &middot; Operations",
+      "tr": "30 &middot; 运维"
     },
     {
       "id": "h-2a9e070d",

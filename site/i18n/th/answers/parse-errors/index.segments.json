@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/parse-errors/index.html",
   "locale": "th",
-  "source_hash": "96b93faf3ceb7f31",
+  "source_hash": "6ad3bf0debfead6b",
   "segments": [
     {
       "id": "title",
@@ -41,10 +41,10 @@
       "tr": "เมื่อพังบน production ตอนตีสาม คนที่ on-call เห็นอะไร?"
     },
     {
-      "id": "h-7967f270",
+      "id": "h-1a2ed9f4",
       "kind": "html",
-      "en": "28 &middot; Parse failures",
-      "tr": "28 &middot; parse ไม่ผ่าน"
+      "en": "29 &middot; Parse failures",
+      "tr": "29 &middot; parse ไม่ผ่าน"
     },
     {
       "id": "h-f32168df",

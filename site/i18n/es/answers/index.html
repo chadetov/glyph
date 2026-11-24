@@ -1,7 +1,7 @@
 ---
 title: Respuestas · lo que preguntan los ingenieros sobre Glyph · Glyph
 description: Respuestas concretas a lo que preguntan los ingenieros sobre Glyph: qué impide las roturas silenciosas, React y npm, por qué no TypeScript con herramientas y la depuración en producción.
-source_hash: 88a6cb03294ad00e
+source_hash: 7b426c7229ab79c8
 ---
       <header class="page-hero">
         <p class="eyebrow">Respuestas</p>
@@ -42,7 +42,8 @@ source_hash: 88a6cb03294ad00e
           <a class="a-card" href="/answers/typed-apis/"><span class="n">11</span><span class="q">¿Tengo que escribir a mano un validador para cada API?</span><p>No. Declarar un tipo genera su validador.</p></a>
           <a class="a-card" href="/answers/codegen/"><span class="n">12</span><span class="q">¿Puedo generar un cliente y un servidor tipados a partir de la especificación de mi API?</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: código que se commitea y se puede buscar con grep.</p></a>
           <a class="a-card" href="/answers/react/"><span class="n">13</span><span class="q">¿Funciona con React: componentes, hooks y Context?</span><p>JSX, hooks y acciones de reducer exhaustivas, con soporte de primera clase.</p></a>
-          <a class="a-card" href="/answers/state/"><span class="n">14</span><span class="q">¿Cómo comparto estado mutable entre funciones?</span><p>Un store: un <code>const</code> cuyos <code>.set</code>/<code>.update</code> son la superficie de escritura.</p></a>
+          <a class="a-card" href="/answers/react-not-yet/"><span class="n">14</span><span class="q">¿Qué no hace Glyph todavía con React?</span><p>Doce filas, cada una con su número de gap y qué escribir mientras tanto.</p></a>
+          <a class="a-card" href="/answers/state/"><span class="n">15</span><span class="q">¿Cómo comparto estado mutable entre funciones?</span><p>Un store: un <code>const</code> cuyos <code>.set</code>/<code>.update</code> son la superficie de escritura.</p></a>
         </div>
       </div>
 
@@ -50,12 +51,12 @@ source_hash: 88a6cb03294ad00e
         <h2 class="block-label">Qué puedes construir con él</h2>
         <p class="ans-group-sub">El lenguaje y la librería estándar, según el tipo de programa.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/language/"><span class="n">15</span><span class="q">¿Es un lenguaje de verdad o un juguete con huecos?</span><p>Visibilidad de módulos, restricciones de interfaz, defer, un <code>match</code> que funciona como cualquier valor y lleva su tipo, y una librería estándar que tiene <code>slice</code>, <code>pad_start</code> y <code>fold</code>.</p></a>
-          <a class="a-card" href="/answers/finance/"><span class="n">16</span><span class="q">¿Puedo confiarle dinero, y entradas que no controlo?</span><p>Decimales e ids exactos, invariantes como tipos, la inyección como error de compilación.</p></a>
-          <a class="a-card" href="/answers/web-serving/"><span class="n">17</span><span class="q">¿Puedo servir una página web, o solo una API JSON?</span><p>HTML, redirecciones, cabeceras de respuesta y envíos de formularios, sin un servidor escrito a mano.</p></a>
-          <a class="a-card" href="/answers/interactive-cli/"><span class="n">18</span><span class="q">¿Puedo escribir un programa en el que alguien teclee?</span><p><code>io.read_line</code> responde a cada línea según llega en lugar de esperar a que se cierre stdin, así que un REPL o un bucle de juego funcionan.</p></a>
-          <a class="a-card" href="/answers/long-running/"><span class="n">19</span><span class="q">¿Puedo escribir un servidor, o el proceso simplemente termina?</span><p><code>main</code> prepara todo y retorna; el proceso sigue vivo mientras haya sockets y timers pendientes, la misma regla que usa Node.</p></a>
-          <a class="a-card" href="/answers/binary/"><span class="n">20</span><span class="q">¿Puedo manejar datos binarios, o todo es un string?</span><p><code>std/bytes</code> es una secuencia de octetos, con codecs que rechazan la entrada mal formada en lugar de saltársela, y HMACs que reciben una clave de verdad.</p></a>
+          <a class="a-card" href="/answers/language/"><span class="n">16</span><span class="q">¿Es un lenguaje de verdad o un juguete con huecos?</span><p>Visibilidad de módulos, restricciones de interfaz, defer, un <code>match</code> que funciona como cualquier valor y lleva su tipo, y una librería estándar que tiene <code>slice</code>, <code>pad_start</code> y <code>fold</code>.</p></a>
+          <a class="a-card" href="/answers/finance/"><span class="n">17</span><span class="q">¿Puedo confiarle dinero, y entradas que no controlo?</span><p>Decimales e ids exactos, invariantes como tipos, la inyección como error de compilación.</p></a>
+          <a class="a-card" href="/answers/web-serving/"><span class="n">18</span><span class="q">¿Puedo servir una página web, o solo una API JSON?</span><p>HTML, redirecciones, cabeceras de respuesta y envíos de formularios, sin un servidor escrito a mano.</p></a>
+          <a class="a-card" href="/answers/interactive-cli/"><span class="n">19</span><span class="q">¿Puedo escribir un programa en el que alguien teclee?</span><p><code>io.read_line</code> responde a cada línea según llega en lugar de esperar a que se cierre stdin, así que un REPL o un bucle de juego funcionan.</p></a>
+          <a class="a-card" href="/answers/long-running/"><span class="n">20</span><span class="q">¿Puedo escribir un servidor, o el proceso simplemente termina?</span><p><code>main</code> prepara todo y retorna; el proceso sigue vivo mientras haya sockets y timers pendientes, la misma regla que usa Node.</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">21</span><span class="q">¿Puedo manejar datos binarios, o todo es un string?</span><p><code>std/bytes</code> es una secuencia de octetos, con codecs que rechazan la entrada mal formada en lugar de saltársela, y HMACs que reciben una clave de verdad.</p></a>
         </div>
       </div>
 
@@ -63,11 +64,11 @@ source_hash: 88a6cb03294ad00e
         <h2 class="block-label">Trabajar con un agente</h2>
         <p class="ans-group-sub">Preguntas que un agente le hace al compilador antes y después de una edición.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/impact/"><span class="n">21</span><span class="q">¿Puede el compilador decirme qué va a romper un cambio antes de hacerlo?</span><p><code>glyph_impact</code>: un veredicto por sitio, de una lista cerrada, con el motivo, antes de tocar el archivo.</p></a>
-          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">¿Puede mi agente preguntarle al compilador qué es un símbolo antes de escribir código?</span><p><code>glyph_symbol</code>: las variantes de una unión con la sintaxis que construye cada una, en una sola llamada. Once herramientas, cada una con un verbo de <code>glyph query</code>.</p></a>
-          <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">Cuando el build falla, ¿el compilador le dice a mi agente cómo arreglarlo?</span><p>El diagnóstico lleva el símbolo culpable, las alternativas válidas y lo que una edición de reparación no debe romper. <code>glyph fix</code> escribe las que el compilador resuelve por su cuenta.</p></a>
-          <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">¿La documentación que lee mi agente se genera, o está escrita a mano y desactualizada?</span><p><code>glyph llms --json</code> emite los diagnósticos, el preludio, las firmas de la librería estándar y el manual de herramientas a partir de las propias tablas del compilador, y una comprobación falla cuando una copia escrita a mano no coincide.</p></a>
-          <a class="a-card" href="/answers/banned-imports/"><span class="n">25</span><span class="q">¿Puedo impedir que un agente importe la librería directamente cuando tenemos un wrapper para ella?</span><p>Prohíbe la ruta de importación en <code>package.json</code> y nombra el reemplazo. Importarla es <code>E0115</code>, y la ayuda apunta a tu wrapper.</p></a>
+          <a class="a-card" href="/answers/impact/"><span class="n">22</span><span class="q">¿Puede el compilador decirme qué va a romper un cambio antes de hacerlo?</span><p><code>glyph_impact</code>: un veredicto por sitio, de una lista cerrada, con el motivo, antes de tocar el archivo.</p></a>
+          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">23</span><span class="q">¿Puede mi agente preguntarle al compilador qué es un símbolo antes de escribir código?</span><p><code>glyph_symbol</code>: las variantes de una unión con la sintaxis que construye cada una, en una sola llamada. Once herramientas, cada una con un verbo de <code>glyph query</code>.</p></a>
+          <a class="a-card" href="/answers/repair-protocol/"><span class="n">24</span><span class="q">Cuando el build falla, ¿el compilador le dice a mi agente cómo arreglarlo?</span><p>El diagnóstico lleva el símbolo culpable, las alternativas válidas y lo que una edición de reparación no debe romper. <code>glyph fix</code> escribe las que el compilador resuelve por su cuenta.</p></a>
+          <a class="a-card" href="/answers/generated-docs/"><span class="n">25</span><span class="q">¿La documentación que lee mi agente se genera, o está escrita a mano y desactualizada?</span><p><code>glyph llms --json</code> emite los diagnósticos, el preludio, las firmas de la librería estándar y el manual de herramientas a partir de las propias tablas del compilador, y una comprobación falla cuando una copia escrita a mano no coincide.</p></a>
+          <a class="a-card" href="/answers/banned-imports/"><span class="n">26</span><span class="q">¿Puedo impedir que un agente importe la librería directamente cuando tenemos un wrapper para ella?</span><p>Prohíbe la ruta de importación en <code>package.json</code> y nombra el reemplazo. Importarla es <code>E0115</code>, y la ayuda apunta a tu wrapper.</p></a>
         </div>
       </div>
 
@@ -75,10 +76,10 @@ source_hash: 88a6cb03294ad00e
         <h2 class="block-label">Errores, editores y producción</h2>
         <p class="ans-group-sub">Lo que ves cuando algo va mal, desde el editor hasta la guardia.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">26</span><span class="q">¿Cómo es la experiencia con el editor, la depuración y los errores?</span><p>Un servidor de lenguaje para cualquier editor con LSP, y errores con un código estable que nombran el arreglo.</p></a>
-          <a class="a-card" href="/answers/early-errors/"><span class="n">27</span><span class="q">¿Por qué Glyph detecta lo mismo que tsc, pero antes?</span><p>El contexto de <code>await</code>, un brazo de <code>match</code> sin valor y un <code>mut</code> que falta, informados sobre tu código fuente en lugar de sobre el TypeScript generado.</p></a>
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">28</span><span class="q">Cuando falla un parseo, ¿me entero de por qué?</span><p>Qué campo, qué regla incumplió, el predicado <code>where</code> que violó y un <code>code</code> sobre el que bifurcar.</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">29</span><span class="q">Cuando se rompe en producción a las 3 de la mañana, ¿qué ve la guardia?</span><p>TS legible que es tuyo, source maps que apuntan a tu <code>.glyph</code> y un <code>run</code> que informa de lo mismo que <code>build</code>.</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">27</span><span class="q">¿Cómo es la experiencia con el editor, la depuración y los errores?</span><p>Un servidor de lenguaje para cualquier editor con LSP, y errores con un código estable que nombran el arreglo.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">28</span><span class="q">¿Por qué Glyph detecta lo mismo que tsc, pero antes?</span><p>El contexto de <code>await</code>, un brazo de <code>match</code> sin valor y un <code>mut</code> que falta, informados sobre tu código fuente en lugar de sobre el TypeScript generado.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">29</span><span class="q">Cuando falla un parseo, ¿me entero de por qué?</span><p>Qué campo, qué regla incumplió, el predicado <code>where</code> que violó y un <code>code</code> sobre el que bifurcar.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">30</span><span class="q">Cuando se rompe en producción a las 3 de la mañana, ¿qué ve la guardia?</span><p>TS legible que es tuyo, source maps que apuntan a tu <code>.glyph</code> y un <code>run</code> que informa de lo mismo que <code>build</code>.</p></a>
         </div>
       </div>
 

@@ -1,9 +1,9 @@
 ---
 title: React, hook'lar ve Context ile çalışıyor mu? · Glyph
 description: React yerleşik olarak destekleniyor: bir component bir function component'e derlenir, JSX createElement'e indirgenir ve bir reducer'ın action'ları kapsamı tam olarak eşleştirilir.
-source_hash: 4d46f3d681c38c46
+source_hash: 74277aa2d86ec441
 prev: /answers/codegen/ | &larr; Önceki | API spesifikasyonumdan tipli bir istemci ve sunucu üretebilir miyim?
-next: /answers/state/ | Sonraki &rarr; | Değiştirilebilir durumu fonksiyonlar arasında nasıl paylaşırım?
+next: /answers/react-not-yet/ | Sonraki &rarr; | Glyph React için henüz neyi yapmıyor?
 ---
       <p class="q-eyebrow">13 &middot; Frontend</p>
       <h1 class="q-title">React ile çalışıyor mu: component'ler, hook'lar ve Context?</h1>
@@ -205,6 +205,7 @@ pub fn main() -&gt; void {
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Yolda olanlar</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph'in henüz desteklemediği her React kalıbı, gap numarası ve o zamana kadar ne yazılacağıyla birlikte <a href="/answers/react-not-yet/">Glyph React için henüz neyi yapmıyor?</a> sayfasında listeleniyor.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph'in checker'ı bir hook'un sonucunun tipini belirlemez, bu yüzden sayı tipindeki bir state üzerinde <code>set_count("x")</code>, editörde bir Glyph hatası değil build sırasında bir <code>tsc</code> hatasıdır.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> sayfayı okumak ve başlığını ayarlamakla sınırlı: render ettiği DOM'un sahibi React'tir, bu yüzden eleman setter'ları ya da event listener'ları yoktur.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bir effect <code>fn() -&gt; void { ... }</code> olarak yazılmak zorundadır, çünkü bir lambda son ifadesini döndürür ve React onu bir cleanup olarak çağırırdı.</span></span></li>

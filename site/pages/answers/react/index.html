@@ -6,7 +6,7 @@ article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/codegen/ | &larr; Previous | Can I generate a typed client and server from my API spec?
-next: /answers/state/ | Next &rarr; | How do I share mutable state between functions?
+next: /answers/react-not-yet/ | Next &rarr; | What doesn't Glyph do for React yet?
 head: |
   <link rel="stylesheet" href="/answer-kit.css" />
 ---
@@ -261,6 +261,7 @@ pub fn main() -&gt; void {
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> On the way</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Every React pattern Glyph does not handle yet, with its gap number and what to write meanwhile, is listed in <a href="/answers/react-not-yet/">What doesn't Glyph do for React yet?</a></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph's checker does not type a hook's result, so <code>set_count("x")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup.</span></span></li>

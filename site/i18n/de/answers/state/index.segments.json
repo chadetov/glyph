@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/state/index.html",
   "locale": "de",
-  "source_hash": "1ed9e897f4bdcd8e",
+  "source_hash": "7601b7514d2c9de8",
   "segments": [
     {
       "id": "title",
@@ -25,8 +25,8 @@
     {
       "id": "prev.title",
       "kind": "prev.title",
-      "en": "Does it work with React: components, hooks, and Context?",
-      "tr": "Funktioniert es mit React: Komponenten, Hooks und Context?"
+      "en": "What doesn't Glyph do for React yet?",
+      "tr": "Was kann Glyph bei React noch nicht?"
     },
     {
       "id": "next.label",
@@ -41,10 +41,10 @@
       "tr": "Ist das eine echte Sprache oder ein Spielzeug mit Lücken?"
     },
     {
-      "id": "h-3cfc3cc8",
+      "id": "h-525361b6",
       "kind": "html",
-      "en": "14 &middot; Shared state",
-      "tr": "14 &middot; Gemeinsamer Zustand"
+      "en": "15 &middot; Shared state",
+      "tr": "15 &middot; Gemeinsamer Zustand"
     },
     {
       "id": "h-d14ef0f9",

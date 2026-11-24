@@ -1,9 +1,9 @@
 ---
 title: ใช้กับ React, hook และ Context ได้ไหม? · Glyph
 description: React มีมาในตัว: component คอมไพล์เป็น function component, JSX ถูกแปลงเป็น createElement และ action ของ reducer ถูก match แบบครบทุกกรณี
-source_hash: 4d46f3d681c38c46
+source_hash: 74277aa2d86ec441
 prev: /answers/codegen/ | &larr; ก่อนหน้า | generate client และ server ที่มี type จากสเปก API ได้ไหม?
-next: /answers/state/ | ถัดไป &rarr; | จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?
+next: /answers/react-not-yet/ | ถัดไป &rarr; | Glyph ยังทำอะไรกับ React ไม่ได้บ้าง?
 ---
       <p class="q-eyebrow">13 &middot; Frontend</p>
       <h1 class="q-title">ใช้กับ React ได้ไหม: component, hook และ Context?</h1>
@@ -205,6 +205,7 @@ pub fn main() -&gt; void {
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังมา</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">รูปแบบของ React ที่ Glyph ยังไม่รองรับ พร้อมหมายเลข gap และสิ่งที่เขียนแทนได้ระหว่างนี้ อยู่ในหน้า <a href="/answers/react-not-yet/">Glyph ยังทำอะไรกับ React ไม่ได้บ้าง?</a></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ตัวตรวจของ Glyph ไม่ให้ type กับผลของ hook <code>set_count("x")</code> บน state ที่เป็นตัวเลขจึงเป็น error ของ <code>tsc</code> ใน build แทนที่จะเป็นของ Glyph ใน editor</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> หยุดที่การอ่านหน้าเว็บและตั้ง title: React เป็นเจ้าของ DOM ที่มัน render จึงไม่มี setter ของ element หรือ event listener</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">effect ต้องเขียนเป็น <code>fn() -&gt; void { ... }</code> เพราะ lambda คืน expression สุดท้าย และ React จะเรียกมันเป็น cleanup</span></span></li>

@@ -1,7 +1,7 @@
 ---
 title: Ответы · что инженеры спрашивают о Glyph · Glyph
 description: Конкретные ответы на вопросы инженеров о Glyph: что мешает тихим поломкам, React и npm, почему не TypeScript с инструментами и отладка в продакшене.
-source_hash: 88a6cb03294ad00e
+source_hash: 7b426c7229ab79c8
 ---
       <header class="page-hero">
         <p class="eyebrow">Ответы</p>
@@ -42,7 +42,8 @@ source_hash: 88a6cb03294ad00e
           <a class="a-card" href="/answers/typed-apis/"><span class="n">11</span><span class="q">Нужно ли писать валидатор для каждого API вручную?</span><p>Нет. Объявление типа генерирует его валидатор.</p></a>
           <a class="a-card" href="/answers/codegen/"><span class="n">12</span><span class="q">Можно ли сгенерировать типизированный клиент и сервер из спецификации API?</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: закоммиченный код, который можно искать grep.</p></a>
           <a class="a-card" href="/answers/react/"><span class="n">13</span><span class="q">Работает ли он с React: компоненты, хуки и Context?</span><p>Полноценная поддержка JSX, хуков и исчерпывающих действий редьюсера.</p></a>
-          <a class="a-card" href="/answers/state/"><span class="n">14</span><span class="q">Как разделять изменяемое состояние между функциями?</span><p>Store: <code>const</code>, у которого <code>.set</code>/<code>.update</code> составляют поверхность записи.</p></a>
+          <a class="a-card" href="/answers/react-not-yet/"><span class="n">14</span><span class="q">Чего Glyph пока не умеет с React?</span><p>Двенадцать строк, у каждой номер gap и что писать до исправления.</p></a>
+          <a class="a-card" href="/answers/state/"><span class="n">15</span><span class="q">Как разделять изменяемое состояние между функциями?</span><p>Store: <code>const</code>, у которого <code>.set</code>/<code>.update</code> составляют поверхность записи.</p></a>
         </div>
       </div>
 
@@ -50,12 +51,12 @@ source_hash: 88a6cb03294ad00e
         <h2 class="block-label">Что на нём можно построить</h2>
         <p class="ans-group-sub">Язык и стандартная библиотека по видам программ.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/language/"><span class="n">15</span><span class="q">Это настоящий язык или игрушка с дырами?</span><p>Видимость модулей, ограничения интерфейсов, defer, <code>match</code>, который работает как любое значение и несёт свой тип, и стандартная библиотека, в которой есть <code>slice</code>, <code>pad_start</code> и <code>fold</code>.</p></a>
-          <a class="a-card" href="/answers/finance/"><span class="n">16</span><span class="q">Можно ли доверить ему деньги и ввод, который я не контролирую?</span><p>Точные десятичные числа и идентификаторы, инварианты как типы, инъекция как ошибка компиляции.</p></a>
-          <a class="a-card" href="/answers/web-serving/"><span class="n">17</span><span class="q">Можно ли отдавать веб-страницу, или только JSON API?</span><p>HTML, редиректы, заголовки ответа и отправка форм без рукописного сервера.</p></a>
-          <a class="a-card" href="/answers/interactive-cli/"><span class="n">18</span><span class="q">Можно ли написать программу, в которую пользователь вводит текст?</span><p><code>io.read_line</code> отвечает на строку, как только она приходит, а не ждёт закрытия stdin, так что REPL или игровой цикл работают.</p></a>
-          <a class="a-card" href="/answers/long-running/"><span class="n">19</span><span class="q">Можно ли написать сервер, или процесс просто завершится?</span><p><code>main</code> выполняет настройку и возвращается; процесс живёт, пока есть ожидающие сокеты и таймеры, по тому же правилу, что и в Node.</p></a>
-          <a class="a-card" href="/answers/binary/"><span class="n">20</span><span class="q">Можно ли работать с бинарными данными, или всё строка?</span><p><code>std/bytes</code> это последовательность октетов с кодеками, которые отклоняют некорректный ввод, а не пропускают его, и HMAC, принимающими настоящий ключ.</p></a>
+          <a class="a-card" href="/answers/language/"><span class="n">16</span><span class="q">Это настоящий язык или игрушка с дырами?</span><p>Видимость модулей, ограничения интерфейсов, defer, <code>match</code>, который работает как любое значение и несёт свой тип, и стандартная библиотека, в которой есть <code>slice</code>, <code>pad_start</code> и <code>fold</code>.</p></a>
+          <a class="a-card" href="/answers/finance/"><span class="n">17</span><span class="q">Можно ли доверить ему деньги и ввод, который я не контролирую?</span><p>Точные десятичные числа и идентификаторы, инварианты как типы, инъекция как ошибка компиляции.</p></a>
+          <a class="a-card" href="/answers/web-serving/"><span class="n">18</span><span class="q">Можно ли отдавать веб-страницу, или только JSON API?</span><p>HTML, редиректы, заголовки ответа и отправка форм без рукописного сервера.</p></a>
+          <a class="a-card" href="/answers/interactive-cli/"><span class="n">19</span><span class="q">Можно ли написать программу, в которую пользователь вводит текст?</span><p><code>io.read_line</code> отвечает на строку, как только она приходит, а не ждёт закрытия stdin, так что REPL или игровой цикл работают.</p></a>
+          <a class="a-card" href="/answers/long-running/"><span class="n">20</span><span class="q">Можно ли написать сервер, или процесс просто завершится?</span><p><code>main</code> выполняет настройку и возвращается; процесс живёт, пока есть ожидающие сокеты и таймеры, по тому же правилу, что и в Node.</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">21</span><span class="q">Можно ли работать с бинарными данными, или всё строка?</span><p><code>std/bytes</code> это последовательность октетов с кодеками, которые отклоняют некорректный ввод, а не пропускают его, и HMAC, принимающими настоящий ключ.</p></a>
         </div>
       </div>
 
@@ -63,11 +64,11 @@ source_hash: 88a6cb03294ad00e
         <h2 class="block-label">Работа с агентом</h2>
         <p class="ans-group-sub">Вопросы, которые агент задаёт компилятору до и после правки.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/impact/"><span class="n">21</span><span class="q">Может ли компилятор сказать, что сломает изменение, до того как я его сделаю?</span><p><code>glyph_impact</code>: один вердикт на каждое место из закрытого списка, с причиной, ещё до того, как вы тронете файл.</p></a>
-          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">Может ли агент спросить у компилятора, что такое символ, до того как писать код?</span><p><code>glyph_symbol</code>: варианты union с синтаксисом, который создаёт каждый, за один вызов. Одиннадцать инструментов, у каждого есть команда <code>glyph query</code>.</p></a>
-          <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">Когда сборка падает, говорит ли компилятор агенту, как её починить?</span><p>Диагностика содержит виновный символ, допустимые альтернативы и то, что исправляющая правка не должна сломать. <code>glyph fix</code> записывает те исправления, которые компилятор определяет сам.</p></a>
-          <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">Документация, которую читает агент, генерируется или пишется вручную и устаревает?</span><p><code>glyph llms --json</code> выдаёт диагностики, прелюдию, сигнатуры стандартной библиотеки и руководство по инструментам из собственных таблиц компилятора, а гейт падает, если рукописная копия с ними расходится.</p></a>
-          <a class="a-card" href="/answers/banned-imports/"><span class="n">25</span><span class="q">Можно ли запретить агенту импортировать библиотеку напрямую, если у нас есть для неё обёртка?</span><p>Запретите путь импорта в <code>package.json</code> и укажите замену. Его импорт даёт <code>E0115</code>, а подсказка указывает на вашу обёртку.</p></a>
+          <a class="a-card" href="/answers/impact/"><span class="n">22</span><span class="q">Может ли компилятор сказать, что сломает изменение, до того как я его сделаю?</span><p><code>glyph_impact</code>: один вердикт на каждое место из закрытого списка, с причиной, ещё до того, как вы тронете файл.</p></a>
+          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">23</span><span class="q">Может ли агент спросить у компилятора, что такое символ, до того как писать код?</span><p><code>glyph_symbol</code>: варианты union с синтаксисом, который создаёт каждый, за один вызов. Одиннадцать инструментов, у каждого есть команда <code>glyph query</code>.</p></a>
+          <a class="a-card" href="/answers/repair-protocol/"><span class="n">24</span><span class="q">Когда сборка падает, говорит ли компилятор агенту, как её починить?</span><p>Диагностика содержит виновный символ, допустимые альтернативы и то, что исправляющая правка не должна сломать. <code>glyph fix</code> записывает те исправления, которые компилятор определяет сам.</p></a>
+          <a class="a-card" href="/answers/generated-docs/"><span class="n">25</span><span class="q">Документация, которую читает агент, генерируется или пишется вручную и устаревает?</span><p><code>glyph llms --json</code> выдаёт диагностики, прелюдию, сигнатуры стандартной библиотеки и руководство по инструментам из собственных таблиц компилятора, а гейт падает, если рукописная копия с ними расходится.</p></a>
+          <a class="a-card" href="/answers/banned-imports/"><span class="n">26</span><span class="q">Можно ли запретить агенту импортировать библиотеку напрямую, если у нас есть для неё обёртка?</span><p>Запретите путь импорта в <code>package.json</code> и укажите замену. Его импорт даёт <code>E0115</code>, а подсказка указывает на вашу обёртку.</p></a>
         </div>
       </div>
 
@@ -75,10 +76,10 @@ source_hash: 88a6cb03294ad00e
         <h2 class="block-label">Ошибки, редакторы и продакшен</h2>
         <p class="ans-group-sub">Что вы видите, когда что-то не так, от редактора до дежурства.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">26</span><span class="q">Как обстоят дела с редактором, отладкой и ошибками?</span><p>Языковой сервер для любого редактора с LSP и ошибки со стабильным кодом, которые называют исправление.</p></a>
-          <a class="a-card" href="/answers/early-errors/"><span class="n">27</span><span class="q">Почему Glyph ловит то же, что tsc, но раньше?</span><p>Контекст <code>await</code>, ветка <code>match</code> без значения и пропущенный <code>mut</code> сообщаются относительно вашего исходного кода, а не сгенерированного TypeScript.</p></a>
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">28</span><span class="q">Когда разбор не удаётся, узнаю ли я почему?</span><p>Какое поле, какое правило нарушено, какой предикат <code>where</code> не выполнен и <code>code</code>, по которому можно ветвиться.</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">29</span><span class="q">Когда в три часа ночи всё ломается в продакшене, что видит дежурный?</span><p>Читаемый TS, который принадлежит вам, source maps обратно в ваш <code>.glyph</code> и <code>run</code>, который сообщает то же, что и <code>build</code>.</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">27</span><span class="q">Как обстоят дела с редактором, отладкой и ошибками?</span><p>Языковой сервер для любого редактора с LSP и ошибки со стабильным кодом, которые называют исправление.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">28</span><span class="q">Почему Glyph ловит то же, что tsc, но раньше?</span><p>Контекст <code>await</code>, ветка <code>match</code> без значения и пропущенный <code>mut</code> сообщаются относительно вашего исходного кода, а не сгенерированного TypeScript.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">29</span><span class="q">Когда разбор не удаётся, узнаю ли я почему?</span><p>Какое поле, какое правило нарушено, какой предикат <code>where</code> не выполнен и <code>code</code>, по которому можно ветвиться.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">30</span><span class="q">Когда в три часа ночи всё ломается в продакшене, что видит дежурный?</span><p>Читаемый TS, который принадлежит вам, source maps обратно в ваш <code>.glyph</code> и <code>run</code>, который сообщает то же, что и <code>build</code>.</p></a>
         </div>
       </div>
 

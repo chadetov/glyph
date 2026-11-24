@@ -1,0 +1,124 @@
+---
+title: What doesn't Glyph do for React yet? · Glyph
+description: The React patterns Glyph does not handle yet, one row per gap number, with what to write meanwhile. Each row is removed in the release that closes it.
+layout: article
+article_class: ak
+nav: answers
+subnav: answers
+prev: /answers/react/ | &larr; Previous | Does it work with React: components, hooks, and Context?
+next: /answers/state/ | Next &rarr; | How do I share mutable state between functions?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
+---
+      <p class="q-eyebrow">14 &middot; React: not yet</p>
+      <h1 class="q-title">What doesn't Glyph do for React yet?</h1>
+
+      <p class="short-answer">
+        Twelve things, listed below. Most of them come down to one fact: Glyph's own checker
+        does not type what comes from React, so <code>tsc</code> catches those mistakes in a
+        full build while the editor and <code>check --no-tsc</code> do not. A few patterns need a
+        different spelling, Fast Refresh does not work yet, and two features are not planned.
+        Every row has a gap number, and the release that closes a gap removes its row.
+      </p>
+
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#the-list">The list</a></li>
+          <li><a href="#the-spellings-that-work">The spellings that work</a></li>
+          <li><a href="#how-the-list-is-kept">How the list is kept</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="the-list">The list<a class="ak-anchor" href="#the-list" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Each row was reproduced against the published compiler in a project with React 18 and
+        <code>@types/react</code> 18, except the React 19 row, which used 19. The gap entries
+        hold the exact programs.
+      </p>
+      <table class="ref-table">
+        <thead><tr><th>What</th><th>Today</th><th>Meanwhile</th><th>Gap</th></tr></thead>
+        <tbody>
+          <tr><td data-label="What">Hook results</td><td data-label="Today">Glyph's own checker does not type what a hook returns. <code>set_count("x")</code> on a <code>useState(0)</code> pair passes <code>check --no-tsc</code> and the editor; a full <code>glyph check</code> reports TS2345 at <code>"x"</code>. Hover on <code>count</code> answers <code>null</code>.</td><td data-label="Meanwhile">Run the full <code>glyph check</code> or <code>glyph build</code> before you trust a React change. The <code>tsc</code> step checks every hook against <code>@types/react</code>.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G257</a></td></tr>
+          <tr><td data-label="What">Element refs</td><td data-label="Today"><code>useRef(null)</code> is E0103, because Glyph has no <code>null</code> and <code>std/nullable</code> cannot build one. <code>&lt;input ref={useRef(0)} /&gt;</code> passes both Glyph and <code>tsc</code>.</td><td data-label="Meanwhile">Use a callback ref and unwrap the element with <code>nullable.to_option</code>, as in the module below.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G630</a></td></tr>
+          <tr><td data-label="What">Children</td><td data-label="Today"><code>&lt;Card title="x"&gt;hello&lt;/Card&gt;</code> is E0211 when <code>Card</code> declares <code>children: ReactNode</code>. Written children are not part of the props object Glyph checks, so a required <code>children</code> is never filled.</td><td data-label="Meanwhile">Declare <code>children?: ReactNode</code>, or pass the children as an attribute: <code>children={&lt;p&gt;hello&lt;/p&gt;}</code>.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G631</a></td></tr>
+          <tr><td data-label="What">Rules of hooks</td><td data-label="Today">A hook called inside a <code>match</code> arm or a loop compiles, and <code>tsc</code> has no rule against it either. React matches hooks by call order, so the component breaks at run time once the order changes between renders.</td><td data-label="Meanwhile">Call every hook at the top of the component and use its values inside the arms.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G632</a></td></tr>
+          <tr><td data-label="What">Effect cleanup</td><td data-label="Today"><code>useEffect(fn() { storage.set("k", "v") }, [])</code> passes <code>--no-tsc</code>. The lambda returns its last expression, and React calls whatever an effect returns as its cleanup. A full check reports TS2345.</td><td data-label="Meanwhile">Write every effect as <code>fn() -&gt; void { ... }</code>. The annotation stops the last expression from being returned.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G633</a></td></tr>
+          <tr><td data-label="What">forwardRef</td><td data-label="Today"><code>ref</code> on a <code>component</code> is E0210, which matches React 18. <code>forwardRef(fn(props: { label: string }, ref) { ... })</code> compiles, but only <code>tsc</code> checks the props of the component it returns.</td><td data-label="Meanwhile">Use <code>forwardRef</code> and rely on the full check for its props.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G634</a></td></tr>
+          <tr><td data-label="What">Context</td><td data-label="Today"><code>createContext</code>, <code>&lt;Theme.Provider&gt;</code> and <code>useContext</code> work. Glyph's checker does not type the context value, so <code>let n: number = useContext(Theme)</code> is caught by <code>tsc</code> only. How Context and custom hooks should look in Glyph is <a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md#q44-react-context--effectful-custom-hook-composition">open question Q44</a>.</td><td data-label="Meanwhile">Use React's API as it is, with the full check.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G635</a>, <a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md#q44-react-context--effectful-custom-hook-composition">Q44</a></td></tr>
+          <tr><td data-label="What">Other hooks</td><td data-label="Today">The planned fix for G257 types <code>useState</code>, <code>useReducer</code>, <code>useMemo</code>, <code>useCallback</code>, <code>useRef</code>, <code>useEffect</code> and <code>useLayoutEffect</code>. <code>useId</code>, <code>useTransition</code>, <code>useDeferredValue</code>, <code>useSyncExternalStore</code>, <code>useImperativeHandle</code> and <code>useContext</code> are outside it and stay checked by <code>tsc</code> only.</td><td data-label="Meanwhile">Call them as in TypeScript; the full check covers them.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G636</a></td></tr>
+          <tr><td data-label="What">@types/react 19</td><td data-label="Today">React 19 works: the todo app passes a full check against <code>@types/react</code> 19.3.0. The planned hook types are written against <code>@types/react</code> 18, so a project on 19 will keep its hooks checked by <code>tsc</code> only after G257 ships.</td><td data-label="Meanwhile">Either version builds. Stay on 18 if you want Glyph's own hook checks when they land.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G637</a></td></tr>
+          <tr><td data-label="What">Fast Refresh</td><td data-label="Today">Saving a <code>.glyph</code> file under <code>glyph build --watch</code> beside a Vite dev server reloads the page, and component state is lost, even with <code>@vitejs/plugin-react</code>. Watch mode rewrites every output file, and an emitted module does not import React's JSX runtime, which the plugin needs before it hot-swaps a <code>.ts</code> file.</td><td data-label="Meanwhile">Expect a full reload on each save. <code>vite build</code> is not affected.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G444</a>, <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G638</a></td></tr>
+          <tr><td data-label="What">Class components</td><td data-label="Today">Not planned. Glyph has no classes, so <code>class Old extends Component</code> is E0003.</td><td data-label="Meanwhile">Write function components. A class component from npm still renders: <code>react-error-boundary</code>'s <code>ErrorBoundary</code> passes a full check as an element, and covers error boundaries, which React only offers as a class.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G639</a></td></tr>
+          <tr><td data-label="What">Server components</td><td data-label="Today">Not planned before 1.0. A module cannot start with <code>"use client"</code> (E0003), and a component cannot be <code>async</code> (E0002).</td><td data-label="Meanwhile">Keep the files that need a directive in TypeScript and import the emitted Glyph from them, as <a href="/answers/embedding/">the embedding answer</a> describes.</td><td data-label="Gap"><a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G640</a></td></tr>
+        </tbody>
+      </table>
+
+      <h2 class="ak-h" id="the-spellings-that-work">The spellings that work<a class="ak-anchor" href="#the-spellings-that-work" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Three of the workarounds in one module: an optional <code>children</code>, an effect
+        annotated <code>-&gt; void</code>, and a callback ref. It passes <code>glyph check</code>
+        with <code>tsc --strict</code> against React 18, and the site build compiles it again on
+        every run.
+      </p>
+      <div class="code">
+        <span class="cap">app.glyph</span>
+<pre data-check="needs-react">module app
+
+import react { useEffect, ReactNode }
+import std/dom
+import std/nullable
+import std/option { Some, None }
+
+component Card(props: { title: string, children?: ReactNode }) {
+  return &lt;section&gt;
+    &lt;h2&gt;{props.title}&lt;/h2&gt;
+    {props.children}
+  &lt;/section&gt;
+}
+
+pub component SignIn() {
+  useEffect(fn() -&gt; void { dom.set_title("Sign in") }, [])
+  return &lt;Card title="Sign in"&gt;
+    &lt;input ref={fn(el) {
+      match nullable.to_option(el) {
+        Some(input) =&gt; input.focus(),
+        None =&gt; {},
+      }
+    }} /&gt;
+  &lt;/Card&gt;
+}</pre>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The element in the callback is typed by
+        <code>tsc</code> as <code>HTMLInputElement | null</code>, which is why it goes through
+        <code>nullable.to_option</code> before <code>focus()</code>. Glyph's checker does not
+        see that type, so a misspelled method there is a <code>tsc</code> error.</p></div>
+
+      <h2 class="ak-h" id="how-the-list-is-kept">How the list is kept<a class="ak-anchor" href="#how-the-list-is-kept" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A row leaves this page in the same pull request that closes its gap, so the page does
+        not outlive the problem. The plan for each open row is in
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">the release roadmap</a>,
+        and what works today is on <a href="/answers/react/">the React answer</a>.
+      </p>
+
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Components, JSX, React's hooks imported by name, Context and prop spread, with <code>tsc</code> checking everything React declares. See <a href="/answers/react/">the React answer</a>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">React 18 and React 19 both build.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> On the way</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Typed hook results (G257), then the effect cleanup rule (G633), the rules of hooks (G632) and element refs (G630).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Written children filling a required <code>children</code> (G631), and a Vite plugin with Fast Refresh (G638).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Not planned: class components (G639), and server components before 1.0 (G640).</span></span></li>
+          </ul>
+        </section>
+      </div>

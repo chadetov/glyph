@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/react/index.html",
   "locale": "th",
-  "source_hash": "4d46f3d681c38c46",
+  "source_hash": "74277aa2d86ec441",
   "segments": [
     {
       "id": "title",
@@ -37,8 +37,8 @@
     {
       "id": "next.title",
       "kind": "next.title",
-      "en": "How do I share mutable state between functions?",
-      "tr": "จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?"
+      "en": "What doesn't Glyph do for React yet?",
+      "tr": "Glyph ยังทำอะไรกับ React ไม่ได้บ้าง?"
     },
     {
       "id": "h-cbc71a81",
@@ -399,6 +399,12 @@
       "kind": "html",
       "en": "On the way",
       "tr": "กำลังมา"
+    },
+    {
+      "id": "h-a5692a65",
+      "kind": "html",
+      "en": "Every React pattern Glyph does not handle yet, with its gap number and what to write meanwhile, is listed in <a href=\"/answers/react-not-yet/\">What doesn't Glyph do for React yet?</a>",
+      "tr": "รูปแบบของ React ที่ Glyph ยังไม่รองรับ พร้อมหมายเลข gap และสิ่งที่เขียนแทนได้ระหว่างนี้ อยู่ในหน้า <a href=\"/answers/react-not-yet/\">Glyph ยังทำอะไรกับ React ไม่ได้บ้าง?</a>"
     },
     {
       "id": "h-c06f1ed9",

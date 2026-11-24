@@ -1,9 +1,9 @@
 ---
 title: Работает ли он с React, хуками и Context? · Glyph
 description: React встроен: компонент компилируется в функциональный компонент, JSX понижается в createElement, а действия редьюсера сопоставляются исчерпывающе.
-source_hash: 4d46f3d681c38c46
+source_hash: 74277aa2d86ec441
 prev: /answers/codegen/ | &larr; Назад | Можно ли сгенерировать типизированный клиент и сервер из спецификации API?
-next: /answers/state/ | Далее &rarr; | Как разделять изменяемое состояние между функциями?
+next: /answers/react-not-yet/ | Далее &rarr; | Чего Glyph пока не умеет с React?
 ---
       <p class="q-eyebrow">13 &middot; Фронтенд</p>
       <h1 class="q-title">Работает ли он с React: компоненты, хуки и Context?</h1>
@@ -205,6 +205,7 @@ pub fn main() -&gt; void {
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> В работе</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Все приёмы React, которые Glyph пока не поддерживает, с номером gap и тем, что писать до исправления, собраны на странице <a href="/answers/react-not-yet/">Чего Glyph пока не умеет с React?</a></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Проверка Glyph не типизирует результат хука, поэтому <code>set_count("x")</code> на числовом состоянии это ошибка <code>tsc</code> при сборке, а не ошибка Glyph в редакторе.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> ограничивается чтением страницы и установкой её заголовка: DOM, который рендерит React, принадлежит React, поэтому сеттеров элементов и обработчиков событий там нет.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Эффект нужно писать как <code>fn() -&gt; void { ... }</code>, потому что лямбда возвращает своё последнее выражение, и React вызвал бы его как функцию очистки.</span></span></li>

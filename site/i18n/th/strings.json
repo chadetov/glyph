@@ -190,6 +190,7 @@
     "/answers/finance/": "เงินและความปลอดภัย",
     "/answers/interactive-cli/": "โปรแกรมแบบโต้ตอบ",
     "/answers/react/": "React",
+    "/answers/react-not-yet/": "React: ยังไม่รองรับ",
     "/answers/long-running/": "server และ daemon",
     "/answers/web-serving/": "ให้บริการเว็บ",
     "/answers/state/": "state ที่ใช้ร่วมกัน",

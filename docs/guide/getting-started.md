@@ -236,18 +236,16 @@ rather than reporting a pass it never checked.
 
 ## Editor support
 
-The repository ships a VS Code extension (`editors/vscode/`) that launches
-`glyph lsp` and gives you live diagnostics, hover types, go-to-definition,
-completion, and format-on-save:
+The VS Code extension launches `glyph lsp` and gives you live diagnostics,
+hover types, go-to-definition, completion, and format-on-save. Install it from
+the Marketplace:
 
 ```sh
-cd editors/vscode
-npm install
-code .          # then press F5 to open an Extension Development Host
+code --install-extension chadetov.glyph-vscode
 ```
 
 Point `glyph.serverPath` at your `glyph` binary if it is not on `PATH`. For
-packaging a `.vsix`, format-on-save, other editors, and troubleshooting, see the
+format-on-save, other editors, and troubleshooting, see the
 [editor setup guide](editor-setup.md).
 
 ## Tests live next to the code

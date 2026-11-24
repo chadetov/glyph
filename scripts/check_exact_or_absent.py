@@ -2154,12 +2154,12 @@ def case_bigint_is_not_a_number() -> tuple[bool, str]:
         got = call(CORPUS / ASSIGNABLE, "glyph_assignable", {"path": path, "from": "bigint", "to": to})
         if got.get("verdict") != "WILL_FAIL":
             return False, f"`bigint` into `{to}` is {got.get('verdict', got)}, not WILL_FAIL"
-    # `Shows` asks for a method every value has. The checker does not refuse
-    # it, and its answer is the one a `number` gets: a method member is
-    # accepted only once function values are compared in full (G491).
+    # `Shows` asks for a method every value has. Since 0.1.185 a method
+    # member is compared in full (G491), so both a `bigint` and a `number`
+    # are accepted.
     shows = assignable(CORPUS / ASSIGNABLE, "bigint", "Shows")
     number = assignable(CORPUS / ASSIGNABLE, "number", "Shows")
-    if shows.get("verdict") == "WILL_FAIL" or shows.get("verdict") != number.get("verdict"):
+    if shows.get("verdict") != "COMPATIBLE" or number.get("verdict") != "COMPATIBLE":
         return False, f"`bigint` into `Shows` is {shows.get('verdict', shows)}, and `number` is {number.get('verdict')}"
     return True, "`bigint` and `number` are refused both ways, and a `bigint` meets an interface by its own members"
 

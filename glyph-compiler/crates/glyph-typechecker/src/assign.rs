@@ -26116,9 +26116,10 @@ fn f(a: Answer) -> number {
 
     /// `glyph_assignable` and the impact cells follow the relation (record
     /// 196 section 0): a pairing it reads is decided, an acceptance is
-    /// claimed only when every member is typed by the table and accepted, and
-    /// a member the table does not type (a method compared by its return
-    /// alone) leaves the pairing without a rule rather than accepted.
+    /// claimed only when every member is typed by the table and accepted. A
+    /// method member is compared in full since G491, so `string` against
+    /// `Trims` is accepted; an all-optional interface the value shares no
+    /// member with stays without a rule.
     #[test]
     fn assignability_answers_a_primitive_against_an_interface() {
         const IFACES: &str = "module m\n\
@@ -26129,13 +26130,18 @@ fn f(a: Answer) -> number {
         for (from, to) in [("string", "HasName"), ("HasName", "string"), ("bool", "HasName"), ("HasLen", "Array<string>")] {
             assert_eq!(assignability_of(IFACES, from, to), Assignability::Incompatible, "{from} -> {to}");
         }
-        for (from, to) in [("string", "HasLen"), ("Array<bool>", "HasLen"), ("\"a\" | \"b\"", "HasLen")] {
+        for (from, to) in [
+            ("string", "HasLen"),
+            ("Array<bool>", "HasLen"),
+            ("\"a\" | \"b\"", "HasLen"),
+            ("string", "Trims"),
+        ] {
             assert!(
                 matches!(assignability_of(IFACES, from, to), Assignability::Compatible { .. }),
                 "{from} -> {to}"
             );
         }
-        for (from, to) in [("string", "Trims"), ("string", "Weak")] {
+        for (from, to) in [("string", "Weak")] {
             assert_eq!(assignability_of(IFACES, from, to), Assignability::NoRule, "{from} -> {to}");
         }
     }

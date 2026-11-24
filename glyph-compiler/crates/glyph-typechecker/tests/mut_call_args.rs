@@ -40,10 +40,10 @@ fn mismatch(expected: &str, found: &str) -> String {
     format!("argument type mismatch: expected `{expected}`, found `{found}`")
 }
 
-/// Record 196's probe `m2b.glyph`, function `a`: lines 5 to 11 and 13 are
-/// E0211 each, and the comparator on line 12, whose parameters are the wrong
-/// type but whose count and return are right, stays silent until function
-/// parameters are compared (G491, 0.1.183).
+/// Record 196's probe `m2b.glyph`, function `a`: lines 5 to 13 are E0211
+/// each. The comparator on line 12 has the right count and return and the
+/// wrong parameter type, which is refused since function parameters are
+/// compared (G491, 0.1.185).
 #[test]
 fn every_mutating_array_call_in_the_probe_is_checked() {
     let src = "module m2\n\
@@ -71,6 +71,14 @@ fn every_mutating_array_call_in_the_probe_is_checked() {
             ("E0211", 9, mismatch("number", "string")),
             ("E0211", 10, mismatch("string", "number")),
             ("E0211", 11, mismatch("number", "string")),
+            (
+                "E0211",
+                12,
+                format!(
+                    "{}: parameter 1: the slot passes a `string`, which the function's `number` parameter does not take",
+                    mismatch("fn(string, string) -> number", "fn(number, number) -> number")
+                )
+            ),
             ("E0211", 13, mismatch("string", "number")),
         ]
     );
@@ -216,15 +224,24 @@ fn a_sort_comparator_is_held_to_its_count_and_return() {
         got,
         vec![
             (
-                mismatch("fn(string, string) -> number", "fn(string, string, string) -> number"),
+                format!(
+                    "{}: the function takes 3 parameters and the slot passes 2",
+                    mismatch("fn(string, string) -> number", "fn(string, string, string) -> number")
+                ),
                 "A comparator is called with two elements, and this one takes 3. Write it with two parameters: `fn(a: string, b: string) -> number`.".to_string()
             ),
             (
-                mismatch("fn(string, string) -> number", "fn(string, string) -> string"),
+                format!(
+                    "{}: the return: the function returns a `string`, where the slot declares `number`",
+                    mismatch("fn(string, string) -> number", "fn(string, string) -> string")
+                ),
                 returns.to_string()
             ),
             (
-                mismatch("fn(number, number) -> number", "fn(number, number) -> bool"),
+                format!(
+                    "{}: the return: the function returns a `bool`, where the slot declares `number`",
+                    mismatch("fn(number, number) -> number", "fn(number, number) -> bool")
+                ),
                 returns.to_string()
             ),
         ]

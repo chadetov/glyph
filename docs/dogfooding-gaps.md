@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-509 entries, 360 are fixed, 10 are partly fixed, 13 are decided or resolved, and
+510 entries, 361 are fixed, 10 are partly fixed, 13 are decided or resolved, and
 126 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -12021,7 +12021,7 @@ and is the owner's to confirm.
   order. `return array.concat([1, 2], ["a"])` under `-> Array<number>` is
   E0211 at `"a"`.
 
-- **G308. A trailing optional parameter is published as required.**
+- **G308. [FIXED] A trailing optional parameter is published as required.**
   `string.pad_end`, `string.pad_start`, `string.slice`, `string.index_of` and
   `array.slice` each take an optional last argument. The checker's rows say so
   (`optional(...)`), and `string.pad_end(s, 4)` passes `glyph check`, but
@@ -12066,6 +12066,21 @@ and is the owner's to confirm.
   *Reproduced against 0.1.185 (the release build): `string.pad_end(s, 4)` is `no diagnostics` under `--no-tsc` and passes `tsc --strict`, and `glyph llms --json` gives `pad_end` and `pad_start` the signature `fn(string, number, string) -> string`.*
 
   *Reproduced against 0.1.191 (the release build): `string.pad_end(s, 4)` is `no diagnostics` under `--no-tsc` and passes `tsc --strict`, and `glyph llms --json` gives `pad_end` and `pad_start` the signature `fn(string, number, string) -> string`.*
+
+  Fixed in the next batch (decision record 208, R15; D93). A row with an
+  optional parameter publishes `signature: null`, `signature_absent` naming
+  the parameter ("parameter 3 may be left out, and a Glyph function type
+  cannot spell an optional parameter"), and a new field `call_forms` with one
+  complete function type per legal arity: `pad_end` is `["fn(string, number)
+  -> string", "fn(string, number, string) -> string"]`. Eight rows take it:
+  `array.slice`, `collections.deque`, `json.stringify` (whose forms keep
+  their `?` and their `signature_partial`), `set.create`, `string.index_of`,
+  `string.pad_end`, `string.pad_start` and `string.slice`. A unit test reads
+  the list off the checker's table and pins it, so a new optional parameter
+  fails until it is published the same way. `check_stdlib_signatures.py`
+  checks such a row as its longest form with the omittable parameters
+  optional, which is the row the checker enforces, and all seven of its G308
+  exemptions are gone.
 
 - **G309. [FIXED] The array runtime takes `ReadonlyArray<T>` where the rows declare
   `Array<T>`.** Nineteen `std/array` rows (`any`, `concat`, `filter`, `find`,
@@ -17648,3 +17663,18 @@ and is the owner's to confirm.
   expected `Mode`, found `"c"`, under both `check --no-tsc` and full
   `check`, exit 1 under each. `tsc` 6.0.3 `--strict` accepts the same
   function in TypeScript under `: string` and under `: Mode | "c"`.*
+
+- **G626. AGENTS.md says the six functions with a `?` parameter are untyped.**
+  Under "std/string", AGENTS.md (and its two `llms.txt` mirrors) says that
+  `string.slice`, `string.index_of`, `string.pad_start`, `string.pad_end`,
+  `array.slice` and `json.stringify` "stay untyped" because "the arity check
+  has no range yet", so "a `match` on `string.index_of` with no `None` arm is
+  not an E0200 and throws at run time". The arity check has had a range since
+  G39, all six rows are modeled, and that `match` is E0200. An agent reading
+  the paragraph is told to expect a hole the checker closed. Filed by the G308
+  builder, who was told to change nothing in AGENTS.md.
+
+  *Reproduced against 0.1.184 (the published release): `match
+  string.index_of(p, "x") { Some(i) => i, }` is E0200 ("missing variants
+  `None`") under `check --no-tsc`, and the paragraph after AGENTS.md's
+  `std/string` table still says it is not.*

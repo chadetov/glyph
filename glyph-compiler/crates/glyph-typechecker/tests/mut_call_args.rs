@@ -231,16 +231,23 @@ fn a_sort_comparator_is_held_to_its_count_and_return() {
     );
 }
 
-/// A receiver the checker cannot type is not judged. An element read by
-/// index (`rows[0]`) is one today: its type stays `Unknown`, so the `5` is
-/// left to `tsc`. Pinned so that typing index reads is seen to widen this
-/// check when it lands.
+/// An element read by index is typed as its element since D77 (G439), so
+/// `rows[0]` is an `Array<string>` receiver and the `5` is E0211, as `tsc`
+/// refuses it (TS2345). Before D77 its type stayed `Unknown` and the call
+/// was left to `tsc`; this test was pinned to show the widening.
 #[test]
-fn an_untyped_receiver_is_not_judged() {
+fn an_index_read_receiver_is_judged() {
     let src = "module m\n\
                pub fn f(rows: Array<Array<string>>) -> number {\n\
                \x20 mut rows[0].push(5)\n\
                \x20 return 0\n\
                }\n";
-    assert_eq!(diags(src), vec![]);
+    assert_eq!(
+        diags(src),
+        vec![(
+            "E0211",
+            3,
+            "argument type mismatch: expected `string`, found `number`".to_string()
+        )]
+    );
 }

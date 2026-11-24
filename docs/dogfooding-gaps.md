@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-507 entries, 351 are fixed, 9 are partly fixed, 13 are decided or resolved, and
-134 are open. G144, the D28 boundary cast that never reached the returns a
+507 entries, 352 are fixed, 9 are partly fixed, 13 are decided or resolved, and
+133 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16519,7 +16519,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.187 (the release build) with record 183's `a4` and `a5`: `check --no-tsc` and full `check` exit 0 on both, and `glyph run` throws `TypeError: __glyph_index(...).toUpperCase is not a function` and `TypeError: u.name.toUpperCase is not a function`.*
 
-- **G490. A value of an `extern_ts` type is refused where a string-literal
+- **G490. [FIXED] A value of an `extern_ts` type is refused where a string-literal
   union is declared.** With `type Mode = "read" | "write"` and `type Raw =
   extern_ts("\"read\"")`, `fn f(r: Raw) -> Mode { return r }` is
   ``[E0204] type mismatch: expected `Mode`, found `Raw` `` under `--no-tsc`
@@ -16537,6 +16537,20 @@ and is the owner's to confirm.
   *Reproduced against 0.1.177 (the release build): with `type Mode = "read" | "write"`, `fn f(r: Raw) -> Mode { return r }` is ``[E0204] type mismatch: expected `Mode`, found `Raw` `` for `type Raw = extern_ts("\"read\"")` and the same for `extern_ts("any")`, under `check --no-tsc` and under `build`.*
 
   *Reproduced against 0.1.183 (the release build): with `type Mode = "read" | "write"`, `fn f(r: Raw) -> Mode { return r }` is ``[E0204] type mismatch: expected `Mode`, found `Raw` `` for `type Raw = extern_ts("\"read\"")` and the same for `extern_ts("any")`, under `check --no-tsc` and under `build`.*
+
+  Fixed in 0.1.189 (decision record 208, R13). The refusal did not
+  come from the string-literal-union rule, which answered nothing for the
+  pairing; it came from the nominal rule (D49), which read `Raw` and `Mode`
+  as two different declarations. The same rule refused an `extern_ts("any")`
+  where a record or a tagged union is declared, a record where one is
+  declared, and `Raw` where `extern_ts("string")` is declared, all of which
+  `tsc` accepts. The relation now leaves any pairing with a name whose body
+  is `extern_ts` or `typeof` undecided, on either side and in every
+  position, local or imported, as it already did against a primitive.
+  Record 208's `g490.glyph` lines 8 and 11 are silent, and line 14 is still
+  `tsc`'s TS2322. `glyph query assignable` answers UNDETERMINED for those
+  pairings where it answered WILL_FAIL. The corpus run over 375 units
+  changed no diagnostic.
 
 - **G491. [FIXED] The parameter types of a function value are never compared.**
   Fixed in 0.1.185 (record 196, section 5). A function value's parameters are

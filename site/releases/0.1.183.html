@@ -1,0 +1,20 @@
+---
+version: 0.1.183
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: bigint is its own type
+---
+            <p>Glyph's checker treated a <code>bigint</code> as a <code>number</code>. <code>fn f() -&gt; number { return 5n }</code> passed <code>check --no-tsc</code>, a <code>bigint</code> passed where a <code>number</code> was declared and the other way round, and <code>glyph query assignable</code> answered COMPATIBLE for <code>bigint</code> against <code>number</code>. TypeScript refuses all of these, and at run time mixing the two throws.</p>
+
+            <p>Now <code>1n</code> and anything declared <code>bigint</code> are a <code>bigint</code>. A <code>bigint</code> and a <code>number</code> (or an <code>int</code>) are not assignable to each other in either direction: E0204 at a return or <code>let</code>, E0211 at an argument. Arithmetic, bitwise and shift operators on two bigints give a <code>bigint</code>. Mixing a <code>bigint</code> and a <code>number</code> in one operator, or using <code>&gt;&gt;&gt;</code> on a <code>bigint</code>, is the new E0258, because JavaScript throws a TypeError there. Comparisons like <code>a &lt; n</code> stay allowed, as JavaScript allows them.</p>
+
+            <p>A <code>bigint</code>'s members come from TypeScript's own declarations, so <code>x.toFixed(2)</code> is E0210, and a <code>bigint</code> where an interface is declared is checked against those members: it does not satisfy <code>interface Fx { fn toFixed(d: number) -&gt; string }</code>. E0243's help for sorting a <code>bigint</code> array now writes a comparator that compares instead of <code>a - b</code>, which would not type.</p>
+
+            <p>Glyph has no conversion between <code>number</code> and <code>bigint</code> yet. That is G571, scheduled as <code>std/bigint</code> with functions that return a <code>Result</code> rather than throwing or silently losing precision.</p>
+
+            <h3>Also in this release</h3>
+            <p><code>glyph init</code> now writes <code>.vscode/extensions.json</code>, so opening a new project in VS Code, Cursor, Windsurf or VSCodium offers to install the Glyph extension.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>fn f() -&gt; number { return 5n }</code> exits 0 under 0.1.182's <code>check --no-tsc</code> and 1 under 0.1.183. Every new refusal is one <code>tsc</code> makes. Across the 375 programs the corpus script measures, the output is identical to 0.1.182.</p>

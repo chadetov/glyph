@@ -126,4 +126,4 @@ It's idempotent, so a regen with no spec change touches nothing; it drops cleanl
 - Generating from a package's own `.d.ts` reads its `interface` and `type` declarations, so a library whose API is classes, or whose fields use computed types like `Omit`, leaves references the generator names in a note and `glyph build` reports as unresolved.
 - Importing such a class and constructing it with `new` needs no generation and is checked by `tsc`, so that path is unaffected.
 
-Code examples on this page are checked against Glyph 0.1.182 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.183 on every build. Last changed 21 Nov 2026.

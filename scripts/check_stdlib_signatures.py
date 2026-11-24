@@ -86,15 +86,6 @@ DECLARED_TO_RUNTIME = "declared -> runtime"
 # is a row in docs/dogfooding-gaps.md. Fixing the row or the runtime makes the
 # entry pass, and the check then fails until the entry is removed here.
 KNOWN: dict[tuple[str, str, str], str] = {
-    # A trailing optional parameter, which a Glyph function type cannot spell,
-    # renders as required.
-    ("std/string", "index_of", DECLARED_TO_RUNTIME): "G308",
-    ("std/string", "pad_end", DECLARED_TO_RUNTIME): "G308",
-    ("std/string", "pad_start", DECLARED_TO_RUNTIME): "G308",
-    ("std/string", "slice", DECLARED_TO_RUNTIME): "G308",
-    ("std/array", "slice", DECLARED_TO_RUNTIME): "G308",
-    ("std/set", "create", DECLARED_TO_RUNTIME): "G308",
-    ("std/collections", "deque", DECLARED_TO_RUNTIME): "G308",
     # The row says `Array<K>`; the checker answers `Array<string>` for a
     # numeric key at the call site, and the runtime spells that case as
     # `Array<K extends string ? K : string>`, which the row cannot.
@@ -138,12 +129,25 @@ def pinned_version() -> str:
     return json.loads((CI_TOOLS / "package.json").read_text())["dependencies"]["typescript"]
 
 
-def complete_rows(doc: dict) -> list[tuple[str, str, str]]:
-    """(module, export, signature) for every value export with a complete signature."""
+def complete_rows(doc: dict) -> list[tuple[str, str, str, int | None]]:
+    """(module, export, signature, omittable) for every value export with a complete signature.
+
+    A function whose trailing parameters may be left out publishes `call_forms`
+    instead of a signature (G308). It is checked as its longest form with the
+    parameters past the shortest form's arity optional, which is the row the
+    checker enforces, so `omittable` is the shortest form's arity; it is
+    `None` for every other row.
+    """
     rows = []
     for module in doc["stdlib"]["modules"]:
         for e in module["exports"]:
             sig = e.get("signature")
+            omittable = None
+            forms = e.get("call_forms")
+            if forms:
+                sig = forms[-1]
+                shortest = split_top_level(forms[0][forms[0].index("(") + 1:forms[0].index(") -> ")])
+                omittable = 0 if shortest == [""] else len(shortest or [])
             if e["kind"] != "value" or sig is None or e.get("signature_partial"):
                 continue
             if "?" in STRING_LIT.sub("", sig):
@@ -151,7 +155,7 @@ def complete_rows(doc: dict) -> list[tuple[str, str, str]]:
                 # did not mention means the two disagree, and a row with a hole
                 # has no declared type to compare at that position.
                 raise SystemExit(f"{module['path']}::{e['name']}: `?` in a row llms calls complete: {sig}")
-            rows.append((module["path"], e["name"], sig))
+            rows.append((module["path"], e["name"], sig, omittable))
     return rows
 
 
@@ -271,8 +275,11 @@ def split_top_level(text: str) -> list[str] | None:
     return parts
 
 
-def readonly_params(emitted: str, alias: str) -> tuple[str, int] | None:
+def readonly_params(emitted: str, alias: str, omittable: int | None = None) -> tuple[str, int] | None:
     """Read the alias's top-level `Array<X>` parameters as `ReadonlyArray<X>`.
+
+    With `omittable`, the parameters from that index on are written optional,
+    the way the runtime declares a parameter a call may leave out.
 
     Returns the rewritten module and how many parameters changed, or None when
     the alias, or a function type with a parameter list, is not where it should
@@ -294,15 +301,16 @@ def readonly_params(emitted: str, alias: str) -> tuple[str, int] | None:
         return None
     changed = 0
     out = []
-    for p in params:
-        pm = re.fullmatch(r"(\s*[A-Za-z_][A-Za-z0-9_]*\??: )(.*?)(\s*)", p, re.S)
+    for i, p in enumerate(params):
+        pm = re.fullmatch(r"(\s*[A-Za-z_][A-Za-z0-9_]*)(\??: )(.*?)(\s*)", p, re.S)
         if pm is None:
             return None
-        ty = pm.group(2)
+        ty = pm.group(3)
         if ty.startswith("Array<") and closing(ty, len("Array")) == len(ty) - 1:
             ty = "Readonly" + ty
             changed += 1
-        out.append(pm.group(1) + ty + pm.group(3))
+        colon = "?: " if omittable is not None and i >= omittable else pm.group(2)
+        out.append(pm.group(1) + colon + ty + pm.group(4))
     return emitted[:open_at + 1] + ",".join(out) + emitted[close_at:], changed
 
 
@@ -345,7 +353,7 @@ def main() -> int:
     sig_lines = ["module sigs", ""]
     imports: set[str] = set()
     generics: dict[str, list[str]] = {}
-    for i, (_, _, sig) in enumerate(rows):
+    for i, (_, _, sig, _) in enumerate(rows):
         params, modules = names_in(sig)
         imports |= modules
         alias = f"S{i}"
@@ -370,7 +378,7 @@ def main() -> int:
         sig_lines.append(f"{head} = {{ {fields} }}")
     # The build copies only the runtime modules a program imports, so every
     # module under test is imported, not just the ones a signature names.
-    imports |= {p.removeprefix("std/") for p, _, _ in rows}
+    imports |= {p.removeprefix("std/") for p, _, _, _ in rows}
     for m in sorted(imports, reverse=True):
         sig_lines.insert(2, f"import std/{m}")
     sig_lines.insert(2 + len(imports), "")
@@ -399,7 +407,7 @@ def main() -> int:
         # A parameter a signature uses as a `Record`'s key is constrained to
         # `PropertyKey`, which TypeScript's `Record<K, V>` requires and the
         # runtime declares (`std/record`, generic in its key since G373).
-        sig_of_alias = {f"S{i}": sig for i, (_, _, sig) in enumerate(rows)}
+        sig_of_alias = {f"S{i}": sig for i, (_, _, sig, _) in enumerate(rows)}
         for alias, params in generics.items():
             pat = re.compile(rf"^export type {alias}<{re.escape(', '.join(params))}> = ", re.M)
             bound = [
@@ -415,10 +423,10 @@ def main() -> int:
         # `type S0 = <T>(a0: ReadonlyArray<T>) => Array<T>`.
         # A row that is not a function (`math.PI` is `number`) has no
         # parameters to read; every other row must have a parameter list.
-        for i, (_, _, sig) in enumerate(rows):
+        for i, (_, _, sig, omittable) in enumerate(rows):
             if not FN_SIG.match(sig):
                 continue
-            rewritten = readonly_params(emitted, f"S{i}")
+            rewritten = readonly_params(emitted, f"S{i}", omittable)
             if rewritten is None:
                 print(f"could not find the parameter list of the emitted alias `S{i}` "
                       f"({rows[i][0]}::{rows[i][1]}) in sigs.ts.")
@@ -427,11 +435,11 @@ def main() -> int:
         (dist / "sigs.ts").write_text(emitted)
 
         check = ['import type * as S from "./sigs";']
-        for m in sorted({p for p, _, _ in rows} | {p for p, _, _, _ in tables}):
+        for m in sorted({p for p, _, _, _ in rows} | {p for p, _, _, _ in tables}):
             check.append(f'import * as {ns(m)} from "./.glyph-runtime/{m}";')
         check.append("")
         line_of: dict[int, tuple[int, str]] = {}
-        for i, (module, name, _) in enumerate(rows):
+        for i, (module, name, _, _) in enumerate(rows):
             value = f"{ns(module)}.{name}"
             check.append(f"// {module}::{name}")
             check.append(f"declare const d{i}: S.S{i};")
@@ -510,7 +518,7 @@ def main() -> int:
         return 1
 
     mismatches = {(rows[i][0], rows[i][1], d): msg for (i, d), msg in failed.items()}
-    sig_of = {(m, n): s for m, n, s in rows}
+    sig_of = {(m, n): s for m, n, s, _ in rows}
 
     unexpected = sorted(set(mismatches) - set(KNOWN))
     fixed = sorted(k for k in KNOWN if k not in mismatches and (k[0], k[1]) in sig_of)

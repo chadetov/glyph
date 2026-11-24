@@ -2019,6 +2019,7 @@ impl Assigner<'_> {
                             record_key: r.record_key,
                             unknown_value: r.unknown_value,
                             place: None,
+                            interface_reason: r.interface_reason,
                             span: r.span,
                         });
                     }
@@ -2682,6 +2683,7 @@ impl Assigner<'_> {
                             record_key: r.record_key,
                             unknown_value: r.unknown_value,
                             place: None,
+                            interface_reason: r.interface_reason,
                             span: r.span,
                         });
                     }
@@ -2924,6 +2926,7 @@ impl Assigner<'_> {
                 no_common_field: r.no_common_field,
                 record_key: r.record_key,
                 unknown_value: r.unknown_value,
+                interface_reason: r.interface_reason,
                 place,
                 span: r.span,
             });
@@ -3778,6 +3781,7 @@ impl Assigner<'_> {
                                 sql_escape,
                                 record_key: r.record_key,
                                 unknown_value: r.unknown_value,
+                                interface_reason: r.interface_reason,
                                 kind_help: kind_help.clone(),
                                 span: r.span,
                             });
@@ -4402,6 +4406,7 @@ impl Assigner<'_> {
                     sql_escape: false,
                     record_key: r.record_key,
                     unknown_value: r.unknown_value,
+                    interface_reason: r.interface_reason,
                     kind_help: None,
                     span: r.span,
                 });
@@ -4458,6 +4463,7 @@ impl Assigner<'_> {
             sql_escape: false,
             record_key: None,
             unknown_value: false,
+            interface_reason: None,
             kind_help: None,
             span: j.name_span,
         });
@@ -5638,6 +5644,7 @@ impl Assigner<'_> {
                 record_key: r.record_key,
                 unknown_value: r.unknown_value,
                 place: None,
+                interface_reason: r.interface_reason,
                 span: r.span,
             });
         }
@@ -8610,6 +8617,160 @@ impl Assigner<'_> {
         )
     }
 
+    /// What a value of `ty` has as members when it is a primitive or an
+    /// array (G502): a `string`, a string-literal union or a refined `string`,
+    /// a `number` (`int` included), a `bool`, or an `Array<T>`, written
+    /// directly or through second names. The element type comes back beside
+    /// it, for the rows that name the array's `T`. `None` for every other
+    /// type, a `void` included.
+    fn apparent_receiver(&self, ty: &Ty) -> Option<(ApparentReceiver, Ty)> {
+        if let Some((r, elem)) = self.builtin_receiver_elem(ty) {
+            return Some((ApparentReceiver::Builtin(r), elem));
+        }
+        matches!(self.expand_transparent(ty), Ty::Prim(Primitive::Bool))
+            .then_some((ApparentReceiver::Boolean, Ty::Unknown))
+    }
+
+    /// The type of the member `name` on an apparent receiver, read from the
+    /// table generated out of TypeScript's library: `None` when the receiver
+    /// has no such member, and `Ty::Unknown` when the table has the member
+    /// and gives it no type (a row the mapping rules leave untyped, or
+    /// `constructor`), which the relation reads as undecided.
+    fn apparent_member_ty(&self, recv: ApparentReceiver, elem: &Ty, name: &str) -> Option<Ty> {
+        let method = match recv {
+            ApparentReceiver::Builtin(r) => {
+                if !r.has(name) {
+                    return None;
+                }
+                if name == "length" {
+                    return Some(Ty::Prim(Primitive::Number));
+                }
+                r.method(name)
+            }
+            ApparentReceiver::Boolean => {
+                if !crate::builtin_members::BooleanMembers::has(name) {
+                    return None;
+                }
+                crate::builtin_members::BooleanMembers::method(name)
+            }
+        };
+        Some(match method {
+            Some(m) => builtin_method_ty(&m.sig, elem, |t| self.array_ty(t)),
+            None => Ty::Unknown,
+        })
+    }
+
+    /// A primitive or an array where an interface is declared, compared
+    /// through the value's apparent members (G502, D34). TypeScript lets a
+    /// `string` stand where `interface HasLen { length: number }` is declared,
+    /// because a string has a `length`, so "a primitive never satisfies an
+    /// interface" would refuse correct code. The rule is TypeScript's:
+    ///
+    /// - a member the interface requires that the receiver does not have is
+    ///   refused;
+    /// - a member both have is compared through this relation, where the
+    ///   table gives the receiver's member a type; where it does not, that
+    ///   member is undecided;
+    /// - an optional member the receiver does not have is fine.
+    ///
+    /// `None` when `found` is not a primitive or an array, so the caller
+    /// decides the pairing some other way. `Some(Ok(()))` is "not refused",
+    /// which is not an acceptance: see `apparent_acceptance`.
+    fn apparent_gap(&self, found: &Ty, members: &[RecordField]) -> Option<Result<(), ApparentGap>> {
+        let (recv, elem) = self.apparent_receiver(found)?;
+        for m in members {
+            match self.apparent_member_ty(recv, &elem, m.name.as_ref()) {
+                None if !m.optional => return Some(Err(ApparentGap::Missing(m.name.to_string()))),
+                Some(have) if self.assign_incompatible(&have, &m.ty) => {
+                    return Some(Err(ApparentGap::Mismatch(m.name.to_string())));
+                }
+                None | Some(_) => {}
+            }
+        }
+        Some(Ok(()))
+    }
+
+    /// The accepting face of `apparent_gap`: every member the interface
+    /// requires is one the receiver has, with a type the table gives and this
+    /// relation accepts, and every optional member the receiver has is
+    /// accepted the same way. An interface whose members are all optional
+    /// and none of which the receiver has is not accepted: TypeScript refuses
+    /// that pairing (TS2559), and `apparent_gap` leaves it undecided.
+    fn apparent_acceptance(&self, found: &Ty, members: &[RecordField]) -> bool {
+        let Some((recv, elem)) = self.apparent_receiver(found) else {
+            return false;
+        };
+        let mut shared = false;
+        for m in members {
+            match self.apparent_member_ty(recv, &elem, m.name.as_ref()) {
+                None if m.optional => {}
+                None => return false,
+                Some(have) => {
+                    if self.accepting_rule(&have, &m.ty).is_none() {
+                        return false;
+                    }
+                    shared = true;
+                }
+            }
+        }
+        shared || members.iter().any(|m| !m.optional) || members.is_empty()
+    }
+
+    /// Whether a value of an interface can never stand where `expected` is
+    /// declared (G460): a `string`, a `number`, a `bool`, a string-literal
+    /// union or an `Array<T>`. An interface's value is an object, so it is
+    /// none of those, whatever members the interface declares.
+    fn object_never_fits(&self, expected: &Ty) -> bool {
+        match expected {
+            Ty::Prim(p) => is_concrete_scalar(*p),
+            Ty::StringLiteralUnion(_) => true,
+            _ => {
+                self.string_literal_union_values(expected).is_some()
+                    || self.prelude_app(expected, "Array").is_some()
+            }
+        }
+    }
+
+    /// The tail of the sentence for a refusal between an interface and a
+    /// primitive or an array (G460, G502), or `None` when the refusal is not
+    /// one of those. A type parameter is read through its bound, since that
+    /// is what the relation decided it by. `shown` and `declared` are
+    /// the two types as the sentence's head displays them, so the tail
+    /// names them the same way.
+    fn interface_reason(&self, found: &Ty, expected: &Ty, shown: &str, declared: &str) -> Option<String> {
+        let found_x = self.expand_transparent(found);
+        let expected_x = self.expand_transparent(expected);
+        if let Some(members) = self.interface_member_fields(&expected_x) {
+            let iface = declared;
+            return match self.apparent_gap(&found_x, &members)? {
+                Err(ApparentGap::Missing(name)) => {
+                    Some(format!("`{shown}` has no member `{name}`, which `{iface}` requires"))
+                }
+                Err(ApparentGap::Mismatch(name)) => Some(format!(
+                    "`{shown}` has a member `{name}`, and it does not match the `{name}` `{iface}` declares"
+                )),
+                Ok(()) => None,
+            };
+        }
+        if !self.object_never_fits(&expected_x) {
+            return None;
+        }
+        // "an `Array<T>`", "a `string`".
+        let article = if self.prelude_app(&expected_x, "Array").is_some() { "an" } else { "a" };
+        if self.interface_member_fields(&found_x).is_some() {
+            return Some(format!(
+                "`{shown}` is an interface, so its value is an object, never {article} `{declared}`"
+            ));
+        }
+        let bound = self.rigid_bound(&found_x)?;
+        self.interface_member_fields(&self.expand_transparent(bound))?;
+        Some(format!(
+            "`{shown}` is bounded by `{}`, an interface, so its value is an object, never \
+             {article} `{declared}`",
+            ty_display(&self.named_params(bound))
+        ))
+    }
+
     /// True when `found` is provably not assignable to `expected`. The whole
     /// assignability relation as the checker actually applies it: the parts
     /// that need to read a declaration are decided here, and everything that
@@ -8717,6 +8878,8 @@ impl Assigner<'_> {
             // unknown` gets the same help the written word does.
             r.unknown_value =
                 !self.assign_incompatible(&unknown_top_unread(&self.canonicalize_aliases(found)), expected);
+            r.interface_reason =
+                self.interface_reason(found, expected, &r.found, &ty_display(&r.expected));
             return Some(r);
         }
         // The walk records `Ty::Unknown` for an object literal, so the type
@@ -8857,6 +9020,7 @@ impl Assigner<'_> {
             sql_escape: false,
             record_key: None,
             unknown_value: false,
+            interface_reason: None,
             kind_help: self.fn_kind_help(callee, args, arg, found, &slot),
             span: arg.span(),
         })
@@ -8904,6 +9068,7 @@ impl Assigner<'_> {
             sql_escape: false,
             record_key: None,
             unknown_value: false,
+            interface_reason: None,
             kind_help: Some(help),
             span: arg.span(),
         })
@@ -9358,6 +9523,7 @@ impl Assigner<'_> {
             no_common_field: false,
             record_key: None,
             unknown_value: false,
+            interface_reason: None,
             span,
         }
     }
@@ -9691,6 +9857,7 @@ impl Assigner<'_> {
                 sql_escape: false,
                 record_key: r.record_key,
                 unknown_value: r.unknown_value,
+                interface_reason: r.interface_reason,
                 kind_help: None,
                 span: r.span,
             }
@@ -9704,6 +9871,7 @@ impl Assigner<'_> {
                 record_key: r.record_key,
                 unknown_value: r.unknown_value,
                 place: None,
+                interface_reason: r.interface_reason,
                 span: r.span,
             }
         });
@@ -10340,10 +10508,19 @@ impl Assigner<'_> {
                     self.relating.borrow_mut().pop();
                     refused
                 }
-                // `found` is undecidable (an open generic, an unresolved value):
-                // stay permissive, exactly as the nominal path does.
-                None => false,
+                // G502. A primitive or an array carries no field set, and is
+                // compared through its apparent members instead.
+                // Anything else undecidable (an open generic, an unresolved
+                // value) stays permissive, exactly as the nominal path does.
+                None => matches!(self.apparent_gap(found, &members), Some(Err(_))),
             };
+        }
+        // G460. An interface's value is an object, so it is never a
+        // `string`, a `number`, a `bool`, a string-literal union or an array,
+        // whatever members it declares. A type parameter bounded by one
+        // reaches here through its bound (`rigid_param_verdict`).
+        if self.interface_member_fields(found).is_some() && self.object_never_fits(expected) {
+            return true;
         }
         // G293. A generic declaration applied (`Box<string>`) where a
         // `Record<K, V>` map is declared is decided the way the bare name is,
@@ -10705,8 +10882,17 @@ impl Assigner<'_> {
         // An interface is matched by member shape, and that branch answers
         // "not refused" for a value it could not read a field set from, so no
         // silence under it is an acceptance.
-        if self.interface_member_fields(expected).is_some() {
-            return None;
+        //
+        // G502. The one exception is a primitive or an array, which has no
+        // field set for that branch to miss: its apparent members come from
+        // the generated table, and `apparent_acceptance` accepts only when
+        // every member is one the table types and this rule accepts.
+        if let Some(members) = self.interface_member_fields(expected) {
+            return self.apparent_acceptance(found, &members).then_some(
+                "a primitive or an array is compared with an interface through its apparent \
+                 members, read from TypeScript's library (G502), and every member the \
+                 interface declares is one the value has, with a type that is accepted",
+            );
         }
         // Mirrors `assign_incompatible`'s own application arm, which runs
         // before canonicalization and recurses through the whole relation.
@@ -11631,6 +11817,27 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
 /// `missing_fields` is the declared record's required fields the value's
 /// record lacks, when the value is a structural record and the declared type
 /// has a field set to compare it against. Empty otherwise.
+/// A receiver whose apparent members the relation reads when it compares a
+/// primitive or an array with an interface (G502).
+#[derive(Debug, Clone, Copy)]
+enum ApparentReceiver {
+    /// An array, a string or a number: the member lists a member read is
+    /// checked against too (G288).
+    Builtin(crate::builtin_members::BuiltinReceiver),
+    /// A `bool`, whose list only this rule reads (G507).
+    Boolean,
+}
+
+/// The first member that keeps a primitive or an array from standing where an
+/// interface is declared (G502).
+#[derive(Debug, Clone)]
+enum ApparentGap {
+    /// The interface requires it, and the value has no member by that name.
+    Missing(String),
+    /// Both have it, and the relation refuses the value's member there.
+    Mismatch(String),
+}
+
 struct Refusal {
     expected: Ty,
     found: String,
@@ -11643,6 +11850,9 @@ struct Refusal {
     /// read as a type the checker does not know, the pairing is not refused.
     /// The help then names the ways to check an `unknown`.
     unknown_value: bool,
+    /// Why an interface and a primitive or an array were refused (G460,
+    /// G502), for the sentence's tail. `None` everywhere else.
+    interface_reason: Option<String>,
     span: Span,
 }
 
@@ -25350,6 +25560,146 @@ fn f(a: Answer) -> number {
                 "str_num",
             ]
         );
+    }
+
+    /// G502 and G460 (record 196). A primitive, a string-literal union, a
+    /// refined primitive, an `int` or an array where an interface is declared
+    /// is compared through the value's apparent members from the generated
+    /// table, and an interface's value where a primitive, a string-literal
+    /// union or an array is declared is refused, a bounded parameter's
+    /// through its bound. Each refused function is one `tsc` refuses (TS2322,
+    /// TS2345), and each accepted one `tsc` accepts: a `string` and an array
+    /// have a `length`, a `string` a `trim`, a `bool` a `toString`, an array
+    /// an `indexOf` and a `join`, and an interface with no members takes
+    /// anything. `weak` is TS2559 in `tsc` (a weak type sharing no member);
+    /// the rule does not judge it, so it passes here.
+    #[test]
+    fn a_primitive_and_an_interface_are_compared_through_apparent_members() {
+        let src = "module m\n\
+             interface HasName { name: string }\n\
+             interface HasLen { length: number }\n\
+             interface Trims { fn trim() -> string }\n\
+             interface Shows { fn toString() -> string }\n\
+             interface ShowsNum { fn toString() -> number }\n\
+             interface OptLen { length?: string }\n\
+             interface Weak { label?: string }\n\
+             interface Empty { }\n\
+             interface Elems { fn indexOf(x: string) -> number }\n\
+             interface Joined { fn join() -> string }\n\
+             type Slug = string where value.length > 0\n\
+             type Mode = \"a\" | \"b\"\n\
+             fn take(h: HasName) -> number { return 1 }\n\
+             fn arg_num() -> number { return take(5) }\n\
+             fn arg_str(s: string) -> number { return take(s) }\n\
+             fn str_name(s: string) -> HasName { return s }\n\
+             fn num_name(n: number) -> HasName { return n }\n\
+             fn int_name(n: int) -> HasName { return n }\n\
+             fn bool_name(b: bool) -> HasName { return b }\n\
+             fn mode_name(t: Mode) -> HasName { return t }\n\
+             fn slug_name(s: Slug) -> HasName { return s }\n\
+             fn arr_name(xs: Array<number>) -> HasName { return xs }\n\
+             fn bool_shows_num(b: bool) -> ShowsNum { return b }\n\
+             fn str_opt_len(s: string) -> OptLen { return s }\n\
+             fn str_len(s: string) -> HasLen { return s }\n\
+             fn arr_len(xs: Array<number>) -> HasLen { return xs }\n\
+             fn mode_len(t: Mode) -> HasLen { return t }\n\
+             fn slug_len(s: Slug) -> HasLen { return s }\n\
+             fn str_trims(s: string) -> Trims { return s }\n\
+             fn bool_shows(b: bool) -> Shows { return b }\n\
+             fn num_empty(n: number) -> Empty { return n }\n\
+             fn arr_elems(xs: Array<string>) -> Elems { return xs }\n\
+             fn arr_joined(xs: Array<number>) -> Joined { return xs }\n\
+             fn weak(s: string) -> Weak { return s }\n\
+             fn name_str(h: HasName) -> string { return h }\n\
+             fn name_num(h: HasName) -> number { return h }\n\
+             fn len_int(h: HasLen) -> int { return h }\n\
+             fn name_bool(h: HasName) -> bool { return h }\n\
+             fn name_mode(h: HasName) -> Mode { return h }\n\
+             fn name_arr(h: HasName) -> Array<number> { return h }\n\
+             fn empty_str(e: Empty) -> string { return e }\n\
+             fn bound_str<T: HasName>(x: T) -> string { return x }\n\
+             fn bound_arr<T: HasLen>(x: T) -> Array<string> { return x }\n\
+             fn bound_name<T: HasName>(x: T) -> HasName { return x }\n";
+        assert_eq!(
+            fns_with_mismatches(src),
+            [
+                "arg_num",
+                "arg_str",
+                "arr_name",
+                "bool_name",
+                "bool_shows_num",
+                "bound_arr",
+                "bound_str",
+                "empty_str",
+                "int_name",
+                "len_int",
+                "mode_name",
+                "name_arr",
+                "name_bool",
+                "name_mode",
+                "name_num",
+                "name_str",
+                "num_name",
+                "slug_name",
+                "str_name",
+                "str_opt_len",
+            ]
+        );
+    }
+
+    /// The sentence names why, in each direction (record 196): the member
+    /// the value lacks, a member it has that does not match, or that an
+    /// interface's value is an object. A bounded parameter names its bound.
+    #[test]
+    fn an_interface_refusal_says_which_member_or_that_it_is_an_object() {
+        let src = "module m\n\
+             interface HasName { name: string }\n\
+             interface ShowsNum { fn toString() -> number }\n\
+             fn take(h: HasName) -> number { return 1 }\n\
+             fn a() -> number { return take(5) }\n\
+             fn b(h: HasName) -> string { return h }\n\
+             fn c(b: bool) -> ShowsNum { return b }\n\
+             fn d<T: HasName>(x: T) -> Array<string> { return x }\n";
+        let msgs: Vec<String> = errors_of(src)
+            .iter()
+            .filter(|e| matches!(e, TypeError::TypeMismatch { .. } | TypeError::ArgumentTypeMismatch { .. }))
+            .map(|e| e.to_string())
+            .collect();
+        assert_eq!(
+            msgs,
+            [
+                "argument type mismatch: expected `HasName`, found `number`: `number` has no member `name`, which `HasName` requires",
+                "type mismatch: expected `string`, found `HasName`: `HasName` is an interface, so its value is an object, never a `string`",
+                "type mismatch: expected `ShowsNum`, found `bool`: `bool` has a member `toString`, and it does not match the `toString` `ShowsNum` declares",
+                "type mismatch: expected `Array<string>`, found `T`: `T` is bounded by `HasName`, an interface, so its value is an object, never an `Array<string>`",
+            ]
+        );
+    }
+
+    /// `glyph_assignable` and the impact cells follow the relation (record
+    /// 196 section 0): a pairing it reads is decided, an acceptance is
+    /// claimed only when every member is typed by the table and accepted, and
+    /// a member the table does not type (a method compared by its return
+    /// alone) leaves the pairing without a rule rather than accepted.
+    #[test]
+    fn assignability_answers_a_primitive_against_an_interface() {
+        const IFACES: &str = "module m\n\
+             interface HasName { name: string }\n\
+             interface HasLen { length: number }\n\
+             interface Trims { fn trim() -> string }\n\
+             interface Weak { label?: string }\n";
+        for (from, to) in [("string", "HasName"), ("HasName", "string"), ("bool", "HasName"), ("HasLen", "Array<string>")] {
+            assert_eq!(assignability_of(IFACES, from, to), Assignability::Incompatible, "{from} -> {to}");
+        }
+        for (from, to) in [("string", "HasLen"), ("Array<bool>", "HasLen"), ("\"a\" | \"b\"", "HasLen")] {
+            assert!(
+                matches!(assignability_of(IFACES, from, to), Assignability::Compatible { .. }),
+                "{from} -> {to}"
+            );
+        }
+        for (from, to) in [("string", "Trims"), ("string", "Weak")] {
+            assert_eq!(assignability_of(IFACES, from, to), Assignability::NoRule, "{from} -> {to}");
+        }
     }
 
     /// G263 (record 182). The bound is compared by the relation as it is,

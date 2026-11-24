@@ -10726,12 +10726,35 @@ impl Assigner<'_> {
                 None => matches!(self.apparent_gap(found, &members), Some(Err(_))),
             };
         }
+        // G490. A name whose body is `extern_ts` or `typeof` is opaque to the
+        // checker (D29, D32), so a pairing with one on either side is left to
+        // `tsc`, as the primitive rules below already leave it. Without this
+        // the rules below read two different names as two declarations and
+        // refused them: `extern_ts("\"read\"")` returned
+        // where `"read" | "write"` is declared was E0204, and so was an
+        // `extern_ts("any")` where a record or a union is declared, though
+        // `tsc` accepts each. The same name where `number` is declared was
+        // silent all along. It runs before G536's interface rule, so an
+        // interface value where an opaque name is declared, and an opaque
+        // value where an interface is, stay undecided in both spellings.
+        if self.has_opaque_body(found) || self.has_opaque_body(expected) {
+            return false;
+        }
         // G460. An interface's value is an object, so it is never a
         // `string`, a `number`, a `bool`, a string-literal union or an array,
         // whatever members it declares. A type parameter bounded by one
         // reaches here through its bound (`rigid_param_verdict`).
         if self.interface_member_fields(found).is_some() && self.object_never_fits(expected) {
             return true;
+        }
+        // G536 (record 207). A value of an interface, plain (`HasV`) or
+        // applied (`Box<number>`), is judged by one rule wherever a record,
+        // a map or a `Nullable` is declared, before either spelling reaches
+        // an arm that reads names: the plain one used to meet the nominal
+        // name check and the applied one the base-against-base walk, which
+        // answered those pairings in opposite ways.
+        if let Some(verdict) = self.interface_value_verdict(found, expected) {
+            return verdict;
         }
         // G293. A generic declaration applied (`Box<string>`) where a
         // `Record<K, V>` map is declared is decided the way the bare name is,
@@ -10825,18 +10848,6 @@ impl Assigner<'_> {
         // and has no declaration to look up.
         let found = self.canonicalize_aliases(found);
         let expected = self.canonicalize_aliases(expected);
-        // G490. A name whose body is `extern_ts` or `typeof` is opaque to the
-        // checker (D29, D32), so a pairing with one on either side is left to
-        // `tsc`, as the primitive rules above already leave it. Without this
-        // the rules below read two different names as two declarations and
-        // refused them: `extern_ts("\"read\"")` returned
-        // where `"read" | "write"` is declared was E0204, and so was an
-        // `extern_ts("any")` where a record or a union is declared, though
-        // `tsc` accepts each. The same name where `number` is declared was
-        // silent all along.
-        if self.has_opaque_body(&found) || self.has_opaque_body(&expected) {
-            return false;
-        }
         // Record 158, F-B. A modeled stdlib type is a declaration of its own
         // (D49), whatever its arguments: another stdlib type, or a record or
         // union this program declares, is refused where it is declared, even
@@ -11643,6 +11654,76 @@ impl Assigner<'_> {
             .any(|f| !f.optional && self.map_field_incompatible(&f.ty, value));
         self.relating.borrow_mut().pop();
         refused
+    }
+
+    /// G536 (record 207, D49, D34). The verdict for a value whose type is an
+    /// interface of this module, written plain (`HasV`) or as an application
+    /// (`Box<number>`, read through its arguments, G461), where `expected` is
+    /// one of the declarations below. `None` leaves the pairing to the rest
+    /// of the relation.
+    ///
+    /// - A `Nullable<X>` is the pairing against `X` (D45), so `HasV` stands
+    ///   where `Nullable<HasV>` is declared and not where `Nullable<Ord>` is.
+    /// - A `Record<K, V>` map is decided as `tsc` decides it. An interface
+    ///   has no implicit index signature, so a `string` or `number` key
+    ///   refuses it whatever `V` is (TS2322). A string-literal union key is
+    ///   the record of one required `V` member per literal, so every literal
+    ///   has to be a required member holding a `V`. A refined key, a type
+    ///   parameter and a key the checker cannot read are left to `tsc`.
+    /// - A declared record with fields, a tagged union, and a stdlib type
+    ///   whose shape the checker models are other declarations (D49). This
+    ///   is the Glyph-only refusal: `tsc` accepts an interface value where a
+    ///   record with the same fields is declared, while the record's
+    ///   validator is the type's definition of membership and the interface
+    ///   value never passed it.
+    /// - A declared record with no fields is satisfied by any object, as D49
+    ///   says and `tsc` agrees.
+    ///
+    /// `Array`, `Option` and `Result` are not decided here (G586): the
+    /// applied spelling keeps the base-against-base refusal it had, and the
+    /// plain spelling keeps what the rest of the relation answers.
+    fn interface_value_verdict(&self, found: &Ty, expected: &Ty) -> Option<bool> {
+        let members = self.interface_member_fields(found)?;
+        if let Some((container, args)) = self.prelude_container(expected) {
+            return match container {
+                "Nullable" => Some(
+                    args.first()
+                        .is_some_and(|inner| self.assign_incompatible(found, inner)),
+                ),
+                "Record" => {
+                    let [key, value] = args else {
+                        return None;
+                    };
+                    Some(self.interface_against_map_incompatible(&members, key, value))
+                }
+                _ => None,
+            };
+        }
+        if self.is_declared_type_with_identity(expected) {
+            return Some(true);
+        }
+        let empty_record = match self.declared_union_or_record_body(expected) {
+            Some(body) => matches!(body, TypeExpr::Record { fields, .. } if fields.is_empty()),
+            None => self
+                .imported_union_or_record(split_type_app(expected).0)
+                .is_some_and(|decl| decl.is_empty_record()),
+        };
+        empty_record.then_some(false)
+    }
+
+    /// G536. An interface's member set against a `Record<key, value>` map,
+    /// by `tsc`'s rule (see `interface_value_verdict`).
+    fn interface_against_map_incompatible(&self, members: &[RecordField], key: &Ty, value: &Ty) -> bool {
+        match self.key_domain(key) {
+            KeyDomain::String | KeyDomain::Number => true,
+            KeyDomain::Literals(literals) => literals.iter().any(|lit| {
+                match members.iter().find(|m| m.name.as_ref() == lit.as_str()) {
+                    Some(m) => m.optional || self.assign_incompatible(&m.ty, value),
+                    None => true,
+                }
+            }),
+            KeyDomain::Refined(_) | KeyDomain::Param(_) | KeyDomain::Undecided => false,
+        }
     }
 
     /// One required field of a closed record against the map's `V`, through
@@ -26443,6 +26524,81 @@ fn f(a: Answer) -> number {
         assert_eq!(
             fns_with_mismatches(src),
             ["a0", "a1", "arr_bad", "bx_bad", "lit_bad", "rec_v", "sn", "tree_bad"]
+        );
+    }
+
+    /// G536 (record 207). An interface value is judged the same whether its
+    /// type is written plain (`HasV`) or as an application (`Box<number>`).
+    /// Where a declared record or a tagged union is declared it is refused
+    /// in both spellings (D49, Glyph-only), and through a second name of the
+    /// record too; a record with no fields takes either. Where a
+    /// `Record<string, V>` or `Record<number, V>` map is declared it is
+    /// refused whatever `V` is, as `tsc` refuses it (TS2322, an interface
+    /// has no implicit index signature). Under a string-literal union key it
+    /// is the record of one `V` per literal, which `tsc` accepts when every
+    /// literal is a required member holding a `V`. A `Nullable<X>` is the
+    /// pairing against `X` (D45), so `Box<number>` now stands where
+    /// `Nullable<Box<number>>` is declared.
+    #[test]
+    fn an_interface_value_is_judged_the_same_in_either_spelling() {
+        let src = "module m\n\
+             interface Box<X> { v: X }\n\
+             interface HasV { v: number }\n\
+             interface Two {\n  a: number\n  b: number\n}\n\
+             interface GTwo<X> {\n  a: X\n  b: X\n}\n\
+             interface OptTwo {\n  a: number\n  b?: number\n}\n\
+             type Ord = { v: number, }\n\
+             type Ord2 = Ord\n\
+             type Empty = { }\n\
+             type Mode = \"a\" | \"b\"\n\
+             type Shape = Circle(number) | Square(number)\n\
+             fn o_plain(h: HasV) -> Ord { return h }\n\
+             fn o_app(b: Box<number>) -> Ord { return b }\n\
+             fn o2_plain(h: HasV) -> Ord2 { return h }\n\
+             fn o2_app(b: Box<number>) -> Ord2 { return b }\n\
+             fn u_plain(h: HasV) -> Shape { return h }\n\
+             fn u_app(b: Box<number>) -> Shape { return b }\n\
+             fn e_plain(h: HasV) -> Empty { return h }\n\
+             fn e_app(b: Box<number>) -> Empty { return b }\n\
+             fn m_plain(h: HasV) -> Record<string, number> { return h }\n\
+             fn m_app(b: Box<number>) -> Record<string, number> { return b }\n\
+             fn mu_plain(h: HasV) -> Record<string, unknown> { return h }\n\
+             fn mu_app(b: Box<number>) -> Record<string, unknown> { return b }\n\
+             fn mi_plain(h: HasV) -> Record<int, number> { return h }\n\
+             fn mi_app(b: Box<number>) -> Record<int, number> { return b }\n\
+             fn ml_ok_plain(t: Two) -> Record<Mode, number> { return t }\n\
+             fn ml_ok_app(t: GTwo<number>) -> Record<Mode, number> { return t }\n\
+             fn ml_miss_plain(h: HasV) -> Record<Mode, number> { return h }\n\
+             fn ml_miss_app(b: Box<number>) -> Record<Mode, number> { return b }\n\
+             fn ml_ty_app(t: GTwo<string>) -> Record<Mode, number> { return t }\n\
+             fn ml_opt(t: OptTwo) -> Record<Mode, number> { return t }\n\
+             fn n_ok_plain(h: HasV) -> Nullable<HasV> { return h }\n\
+             fn n_ok_app(b: Box<number>) -> Nullable<Box<number>> { return b }\n\
+             fn n_rec_plain(h: HasV) -> Nullable<Ord> { return h }\n\
+             fn n_rec_app(b: Box<number>) -> Nullable<Ord> { return b }\n\
+             fn i_ok(b: Box<number>) -> HasV { return b }\n";
+        assert_eq!(
+            fns_with_mismatches(src),
+            [
+                "m_app",
+                "m_plain",
+                "mi_app",
+                "mi_plain",
+                "ml_miss_app",
+                "ml_miss_plain",
+                "ml_opt",
+                "ml_ty_app",
+                "mu_app",
+                "mu_plain",
+                "n_rec_app",
+                "n_rec_plain",
+                "o2_app",
+                "o2_plain",
+                "o_app",
+                "o_plain",
+                "u_app",
+                "u_plain",
+            ]
         );
     }
 

@@ -2245,6 +2245,26 @@ def case_an_opaque_body_is_undetermined() -> tuple[bool, str]:
     return True, "an `extern_ts` name is undetermined against a literal union, a record and another name"
 
 
+def case_interface_value_either_spelling() -> tuple[bool, str]:
+    """An interface value gets one verdict however its type is spelled (G536).
+
+    `HasV` and `Box<number>` (under `interface Box<X> { v: X }`) are both
+    refused where the record `Ord` is declared (D49) and where a
+    `Record<string, number>` map is declared (TS2322 under `tsc`). Before
+    G536 each spelling was refused in one of the two places and UNDETERMINED
+    in the other, so the answer an agent got depended on how the type was
+    written.
+    """
+    project = CORPUS / ASSIGNABLE
+    path = {"path": "src/iface_spelling.glyph"}
+    for frm in ("HasV", "Box<number>"):
+        for to in ("Ord", "Record<string, number>"):
+            got = call(project, "glyph_assignable", {**path, "from": frm, "to": to})
+            if got.get("verdict") != "WILL_FAIL":
+                return False, f"assignable `{frm}` into `{to}` is {got.get('verdict')}, not WILL_FAIL: {got}"
+    return True, "an interface value is refused in both spellings where a record or a map is declared"
+
+
 DEPENDENCIES = pathlib.Path("dependencies")
 EXPORTS = pathlib.Path("exports")
 
@@ -2482,6 +2502,7 @@ HARD = [
     ("assignability: a bigint is not a number", case_bigint_is_not_a_number),
     ("a generic interface application, both tools", case_generic_interface_application_both_tools),
     ("assignability: an opaque body is undetermined", case_an_opaque_body_is_undetermined),
+    ("an interface value in either spelling", case_interface_value_either_spelling),
     ("an edge out of a declaration is exact or unclaimed", case_dependencies_out_of_an_unreadable_module),
     ("an export surface is never [] by accident", case_exports_are_never_an_empty_list_by_accident),
     ("a call in an @example is a site", case_a_site_in_an_example_is_a_site),

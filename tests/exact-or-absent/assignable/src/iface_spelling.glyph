@@ -1,0 +1,18 @@
+module iface_spelling
+
+// An interface value is judged the same however its type is spelled (G536):
+// `HasV` and `Box<number>` are both refused where the record `Ord` is
+// declared and where a `Record<string, number>` is declared.
+pub interface Box<X> {
+  v: X
+}
+
+pub interface HasV {
+  v: number
+}
+
+pub type Ord = { v: number }
+
+pub fn read(h: HasV, b: Box<number>) -> number {
+  return h.v + b.v
+}

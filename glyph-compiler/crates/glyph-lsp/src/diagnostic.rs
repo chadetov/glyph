@@ -559,7 +559,7 @@ pub fn from_type_error(
         "typecheck",
         format!("{err}"),
         err.help().as_deref(),
-        err.note().as_deref(),
+        err.note_in(source).as_deref(),
         // A checker that knew the declaration when it raised the error says
         // so on the error itself (`decl_name`), because some diagnostics are
         // reported at a span no declaration contains: an annotation is parsed

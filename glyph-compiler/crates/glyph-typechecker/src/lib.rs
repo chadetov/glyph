@@ -109,6 +109,70 @@ pub enum KeyKind {
     Param,
 }
 
+/// The place a `mut` writes, on a value refused there (G501): the place as
+/// written, the type it holds, and where that type came from, so the note can
+/// say why the place holds that type rather than only that it does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MutPlace {
+    /// The target as the program writes it: `x`, `r.n`, `v[0]`.
+    pub place: String,
+    /// The type the place holds, as the checker displays it.
+    pub holds: String,
+    pub origin: MutPlaceOrigin,
+}
+
+/// Where a `mut` target's type comes from (D66).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MutPlaceOrigin {
+    /// A name with a written annotation (a `let` or a parameter), declared at
+    /// this byte offset.
+    Declared { at: u32 },
+    /// An unannotated `let`: the type of its initializer, which starts at
+    /// this byte offset.
+    Initializer { at: u32 },
+    /// A record or interface field, declared with that type.
+    Field { field: String },
+    /// An element of an array (`map` false) or a value of a `Record` map
+    /// (`map` true), whose type is this container.
+    Element { container: String, map: bool },
+}
+
+impl MutPlace {
+    /// The note, with the line a declaration or initializer is on read off
+    /// `source`, which is the file the error is in.
+    pub fn note(&self, source: &str) -> String {
+        let line = |at: u32| {
+            let at = (at as usize).min(source.len());
+            source.as_bytes()[..at].iter().filter(|b| **b == b'\n').count() + 1
+        };
+        let article = match self.holds.chars().next() {
+            Some('a' | 'e' | 'i' | 'o' | 'u' | 'A' | 'E' | 'I' | 'O' | 'U') => "an",
+            _ => "a",
+        };
+        let head = format!("`{}` holds {article} `{}`", self.place, self.holds);
+        match &self.origin {
+            MutPlaceOrigin::Declared { at } => format!("{head}: declared at line {}.", line(*at)),
+            MutPlaceOrigin::Initializer { at } => format!(
+                "{head}: the type of its initializer at line {}, and a `mut` does not change a binding's type.",
+                line(*at)
+            ),
+            MutPlaceOrigin::Field { field } => {
+                format!("{head}: the type field `{field}` is declared with.")
+            }
+            MutPlaceOrigin::Element { container, map: false } => {
+                format!("{head}: the element type of `{container}`.")
+            }
+            MutPlaceOrigin::Element { container, map: true } => {
+                format!("{head}: the value type of `{container}`.")
+            }
+        }
+    }
+}
+
+/// The help on a value a `mut` writes that its place does not hold (G501).
+pub const MUT_PLACE_HELP: &str =
+    "Write a value of that type, or bind the new value to a new name.";
+
 /// The facts a `Record`-against-`Record` refusal carries when the two keys are
 /// different key domains (G373), so its note and help are computed from the
 /// program rather than from example names.
@@ -528,6 +592,9 @@ pub enum TypeError {
         /// The value is refused only for holding `unknown` where another type
         /// is declared (G325), so the help names the ways to check one.
         unknown_value: bool,
+        /// The place a `mut` writes, when the value is refused there (G501).
+        /// `None` at every other site.
+        place: Option<Box<MutPlace>>,
         span: Span,
     },
 
@@ -1817,6 +1884,9 @@ impl TypeError {
                 ));
             }
         }
+        if let TypeError::TypeMismatch { place: Some(_), .. } = self {
+            return Some(Cow::Borrowed(MUT_PLACE_HELP));
+        }
         if let TypeError::RecordRemoveFiniteKey { key, partial, .. } = self {
             let partial = match partial {
                 Some(p) => format!("declare a record with optional fields (`{p}`)"),
@@ -2124,6 +2194,15 @@ impl TypeError {
     ///
     /// Computed where the reason is in the program's own names: a `Record`
     /// key refusal (G373) names both keys. Every other note is fixed text.
+    /// The note as a renderer holding the file shows it: [`Self::note`],
+    /// except where the note names a line, which only the file can give.
+    pub fn note_in(&self, source: &str) -> Option<Cow<'static, str>> {
+        if let TypeError::TypeMismatch { place: Some(p), record_key: None, .. } = self {
+            return Some(Cow::Owned(p.note(source)));
+        }
+        self.note()
+    }
+
     pub fn note(&self) -> Option<Cow<'static, str>> {
         if let TypeError::TypeMismatch { record_key: Some(k), .. }
         | TypeError::ArgumentTypeMismatch { record_key: Some(k), .. } = self

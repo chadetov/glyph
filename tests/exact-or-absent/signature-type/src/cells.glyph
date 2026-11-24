@@ -2,7 +2,7 @@ module cells
 
 // A second name for a primitive, declared apart from every caller. A value of
 // it reaching `label` is a cross-module type at the call site whose chain of
-// names ends at a `string` rather than at a union or a record, which is the
-// one shape the checker's imported-declaration rule (G215) compares by
-// nothing.
+// names ends at a `string`. The checker reads the chain through to that end
+// (G315), so the pairing is a primitive against a primitive and is decided
+// (G548).
 pub type Cell = string

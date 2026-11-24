@@ -239,6 +239,16 @@ jobs:
           python3 scripts/check_docs_compile.py
           python3 scripts/check_inline_imports.py
 
+      # Every impact edge is exact or absent. This drives glyph_impact,
+      # glyph_references, glyph_assignable and the other query tools against a
+      # corpus of degenerate projects and fails on an answer that claims more
+      # than the compiler knows. It ran only from the release script, and two
+      # of its cases went stale on main without anyone seeing it (G548).
+      - name: Check the query tools are exact or absent
+        env:
+          GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
+        run: python3 scripts/check_exact_or_absent.py
+
       # The examples are the corpus the diff-stability pillar points at, and
       # for a long time 80 of them were not in the formatter's canonical form.
       # The benchmark fixtures are the programs the token counts are taken

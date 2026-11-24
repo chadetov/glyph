@@ -32,7 +32,11 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CORPUS = ROOT / "tests" / "exact-or-absent"
-BIN = ROOT / "glyph-compiler" / "target" / "release" / "glyph"
+# CI runs this against the debug build it already made and names it in
+# `GLYPH_BIN`; locally it reads the release build.
+BIN = pathlib.Path(os.environ["GLYPH_BIN"]) if os.environ.get("GLYPH_BIN") else (
+    ROOT / "glyph-compiler" / "target" / "release" / "glyph"
+)
 
 
 def ask(project: pathlib.Path, path: str, name: str, proposed: str = "") -> dict:
@@ -1948,9 +1952,11 @@ def case_signature_type_unparsed_site_is_unindexed() -> tuple[bool, str]:
     for a site it never typed. `src/broken.glyph` applies `lib::label` and does
     not parse. The answer has to name that file under the CALLS search's
     `unindexed` and carry no entry from it, while the two sites it could read
-    each get the verdict the checker's rules give them: the literal caller is
-    WILL_FAIL with E0211, and the cross-module union caller is UNDETERMINED
-    with a `because` that names what is missing.
+    each get the verdict the checker's rules give them. Both are WILL_FAIL with
+    E0211: the literal caller, and the caller passing `Cell`, an imported
+    second name for `string`, which the checker reads through to the
+    primitive (G315) and so decides as a primitive against a primitive
+    (G548; this case expected UNDETERMINED before that rule existed).
     """
     a = impact(CORPUS / SIGNATURE, "lib::label", {"kind": "change_signature_type"})
     if "error" in a:
@@ -1967,8 +1973,8 @@ def case_signature_type_unparsed_site_is_unindexed() -> tuple[bool, str]:
     seen = by_entity(a, "CALLS")
     if seen.get("ok::probe") != ["WILL_FAIL"]:
         return False, f"the literal caller is not proved to fail: {seen.get('ok::probe')}"
-    if seen.get("imported::probe") != ["UNDETERMINED"]:
-        return False, f"the cross-module caller is not UNDETERMINED: {seen.get('imported::probe')}"
+    if seen.get("imported::probe") != ["WILL_FAIL"]:
+        return False, f"the cross-module alias caller is not decided: {seen.get('imported::probe')}"
     for entry in a.get("impact") or []:
         if entry.get("verdict") == "UNDETERMINED" and not entry.get("because"):
             return False, f"UNDETERMINED states no reason: {entry}"
@@ -2030,12 +2036,16 @@ def case_assignable_has_no_rule_and_says_so() -> tuple[bool, str]:
     if fewer.get("verdict") != "COMPATIBLE":
         return False, f"a function taking fewer than the slot passes is {fewer.get('verdict')}: {fewer}"
 
-    # An alias for a primitive in another module is the second shape of the
-    # same thing: the relation reads an imported declaration only when it is a
-    # union or a record, so this one is undecided rather than accepted.
+    # An alias for a primitive in another module is read through to the
+    # primitive since second names became transparent (G315), so `number`
+    # where `lib::Id` (`type Id = string`) is declared is a decided refusal
+    # with the codes the checker draws, not an undecided pairing (G548).
     alias = assignable(CORPUS / ASSIGNABLE, "number", "lib::Id")
-    if alias.get("verdict") != "UNDETERMINED":
+    if alias.get("verdict") != "WILL_FAIL":
         return False, f"an imported primitive alias is {alias.get('verdict')}: {alias}"
+    alias_codes = [d.get("code") for d in alias.get("diagnostics") or []]
+    if alias_codes != ["E0204", "E0211"]:
+        return False, f"the imported-alias refusal names no codes: {alias}"
 
     refused = assignable(CORPUS / ASSIGNABLE, "Nullable<int>", "int")
     if refused.get("verdict") != "WILL_FAIL":
@@ -2409,7 +2419,7 @@ KNOWN: list[tuple[str, object, str]] = []
 
 def main() -> int:
     if not BIN.exists():
-        print(f"missing {BIN.relative_to(ROOT)}; run cargo build --release first")
+        print(f"missing {BIN}; run cargo build --release first")
         return 1
 
     failures, promoted = [], []

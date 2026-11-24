@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-489 entries, 349 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+490 entries, 350 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 120 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -16875,3 +16875,29 @@ and is the owner's to confirm.
   0.1.178): `glyph_dependencies` of a declaration
   whose `@example` reads a record field lists no `FIELD_ACCESS` edge for it
   and names the class under `not_indexed`.*
+
+- **G548. [FIXED] Two exact-or-absent cases went stale, and the gate was not
+  in CI.** "assignability: no rule is not compatible" expected `number` against
+  `lib::Id` (`type Id = string`) to be UNDETERMINED, and "an unparsed call site
+  is unindexed, not judged" expected a caller passing `Cell`, an imported
+  second name for `string`, to be UNDETERMINED under `change_signature_type`.
+  Since second names became transparent (G315) the checker reads both through
+  to the primitive, so the tools answer WILL_FAIL (E0204 and E0211; E0211),
+  which is right. `IMPACT_MANUAL` and the fixture comments still described the
+  old verdict, and `scripts/check_exact_or_absent.py` ran only from the release
+  script, so the gate was red on main and nobody saw it. Filed by decision
+  record 198.
+
+  *Reproduced against 0.1.178 (the published release) by record 198: the
+  script fails the same two cases, with the same output, under 0.1.178 and
+  under the 0.1.186 branch build.*
+
+  *Fixed in 0.1.186.* Both assertions expect the decided verdict and keep
+  their other halves: the function-type pairing is still UNDETERMINED with
+  the missing rule named, and the unparsed `broken.glyph` is still named under
+  `unindexed` with no verdict. The manual now lists an imported declaration
+  whose chain of names ends at an `extern_ts` or `typeof` body or at an
+  interface as UNDETERMINED, and says one ending at a primitive, a
+  string-literal union, a union or a record is decided (each probed on the
+  branch build). The fixture comments say the same, and CI runs the script
+  against its debug build (`GLYPH_BIN`).

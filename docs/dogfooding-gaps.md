@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-496 entries, 351 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-125 are open. G144, the D28 boundary cast that never reached the returns a
+507 entries, 351 are fixed, 9 are partly fixed, 13 are decided or resolved, and
+134 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -17087,3 +17087,138 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.186 (the 0.1.188 branch build on 0.1.186, which
   prints 0.1.186): both programs are E0204 with no member named.*
+
+- **G630. An element ref cannot be written, and a wrong one is not refused.**
+  React's element ref starts empty, `useRef<HTMLInputElement>(null)`, and
+  Glyph has no way to write that initial value: `useRef(null)` is E0103
+  (unresolved name `null`), and `std/nullable` has `to_option` but nothing
+  that builds a `Nullable`. In the other direction, `<input ref={useRef(0)}
+  />` passes `check --no-tsc` and full `check` alike, though a number ref is
+  not an input's ref. A callback ref, `ref={fn(el) { match
+  nullable.to_option(el) { ... } }}`, compiles and gets the element. Filed for
+  the "React: not yet" answer page, from decision record 208 (R4).
+
+  *Reproduced against 0.1.183 (the published release), in a project with
+  react@18 and @types/react 18.3.31: `let input = useRef(null)` is E0103;
+  `<input ref={useRef(0)} />` is `no diagnostics` and `tsc --strict passed`.*
+
+- **G631. Children written between the tags do not fill a required
+  `children` field.** `component Card(props: { title: string, children:
+  ReactNode })` with `<Card title="x">hello</Card>` is E0211 "missing field
+  `children`". React puts written children in the props object, so idiomatic
+  React code that declares `children` as required is refused. Declaring it
+  `children?: ReactNode`, or passing `children={...}` as an attribute, both
+  compile. G253 fixed the help text, not the pattern. Filed for the "React:
+  not yet" answer page, from decision record 208 (R5).
+
+  *Reproduced against 0.1.183 (the published release): the element above is
+  E0211 under `check --no-tsc` and full `check`; both workarounds pass full
+  `check`.*
+
+- **G632. A hook call inside a `match` arm or a loop is not refused.** React
+  matches hook calls by their order, so a hook that runs on some renders and
+  not others breaks the component at run time. `let [n, set_n] =
+  useState(0)` inside a `match` arm passes `check --no-tsc` and full `check`;
+  `tsc` has no such rule either. Filed for the "React: not yet" answer page,
+  from decision record 208 (R3), which specifies the rule as a Glyph-only
+  check.
+
+  *Reproduced against 0.1.183 (the published release): a component returning
+  a `match` whose `true` arm calls `useState` is `no diagnostics` and `tsc
+  --strict passed`.*
+
+- **G633. An effect lambda that returns its last expression passes Glyph's
+  checker.** `useEffect(fn() { storage.set("k", "v") }, [])` passes `check
+  --no-tsc`. The emitter returns an unannotated lambda's tail, so the effect
+  returns a `Result`, which React would call as a cleanup; full `check`
+  reports `TS2345 Argument of type '() => Result<void,
+  storage.StorageError>' is not assignable to parameter of type
+  'EffectCallback'`. The editor and `glyph_diagnostics` never see it.
+  Writing the lambda `fn() -> void { ... }` passes. Filed for the "React:
+  not yet" answer page, from decision record 208 (R2).
+
+  *Reproduced against 0.1.183 (the published release): `check --no-tsc`
+  exits clean; full `check` reports TS2345; the `-> void` spelling passes
+  full `check`.*
+
+- **G634. A component cannot take a `ref`, and `forwardRef` is checked by
+  `tsc` only.** `<Field label="x" ref={r} />` on a `component Field(props: {
+  label: string })` is E0210 (`type { label: string } has no field ref`),
+  which matches React 18, where a function component needs `forwardRef` to
+  take one. `const Field = forwardRef(fn(props: { label: string }, ref) {
+  ... })` compiles, but Glyph's checker does not type the result: `<Field
+  label={5} />` passes `check --no-tsc`, and full `check` reports TS2769.
+  Filed for the "React: not yet" answer page, from decision record 208.
+
+  *Reproduced against 0.1.183 (the published release), with react@18 and
+  @types/react 18.3.31: the `ref` attribute is E0210; the `forwardRef`
+  component with `label={5}` is `no diagnostics` under `--no-tsc` and
+  TS2769 under full `check`.*
+
+- **G635. Context values are not typed by Glyph's checker.** `const Theme =
+  createContext("light")`, `<Theme.Provider value="dark">` and
+  `useContext(Theme)` compile and run through `tsc`, but `let n: number =
+  useContext(Theme)` passes `check --no-tsc` (full `check` reports TS2322),
+  and `glyph query hover` answers `null` on the value. Q44 holds the open
+  question of how Context and custom hooks should look in Glyph. Filed for
+  the "React: not yet" answer page, from decision record 208.
+
+  *Reproduced against 0.1.183 (the published release): the program above is
+  `no diagnostics` under `--no-tsc`, TS2322 under full `check`, and hover on
+  the context value answers `null`.*
+
+- **G636. The hooks G257's plan leaves out stay unchecked by Glyph.**
+  Decision record 208 specifies G257's fix as a table of seven hooks:
+  `useState`, `useReducer`, `useMemo`, `useCallback`, `useRef`, `useEffect`
+  and `useLayoutEffect`. `useContext`, `useId`, `useTransition`,
+  `useDeferredValue`, `useSyncExternalStore`, `useImperativeHandle` and every
+  other export of `react` are outside it. Today `let n: number = useId()`
+  passes `check --no-tsc`, and full `check` reports TS2322. Filed for the
+  "React: not yet" answer page.
+
+  *Reproduced against 0.1.183 (the published release): `let n: number =
+  useId()` is `no diagnostics` under `--no-tsc` and TS2322 under full
+  `check`.*
+
+- **G637. The planned hook types are for `@types/react` 18 only.** Decision
+  record 208 gates G257's table on the project's installed `@types/react`
+  having major version 18; on 19, or with no types, every hook stays
+  untyped by Glyph's checker. React 19 itself works today: the todo app's
+  two modules pass full `check` against `@types/react` 19.3.0, and
+  `set_count("x")` on a `useState(0)` pair is TS2345 from `tsc` there, as on
+  18, and passes `--no-tsc`. Filed for the "React: not yet" answer page.
+
+  *Reproduced against 0.1.183 (the published release), with react@19 and
+  @types/react 19.3.0: `examples/apps/todo`'s `app.glyph` and `main.glyph`
+  pass full `check`; the `set_count("x")` counter is `no diagnostics` under
+  `--no-tsc` and TS2345 under full `check`.*
+
+- **G638. An edit to an emitted module reloads the page under Vite, even
+  when it is the only file that changed.** With `@vitejs/plugin-react` 4 and
+  Vite 5.4, a counter clicked to 2 reads 0 after `gen/app.ts` alone is
+  edited, and Vite logs `page reload gen/app.ts`. The plugin gives a `.ts`
+  module Fast Refresh only when it imports React's JSX runtime, and the
+  emitter calls `React.createElement`. So fixing G444 (watch mode rewriting
+  every output file) does not by itself keep component state. Filed for the
+  "React: not yet" answer page; decision record 208's R8 (a Vite plugin) is
+  the planned fix.
+
+  *Reproduced against 0.1.183 (the published release), driven in Playwright
+  with Chromium: under `glyph build src --out gen --watch`, editing a label
+  in `src/app.glyph` gave two page loads and a counter at 0; editing the
+  same string in `gen/app.ts` directly, with no watch running, did the same.*
+
+- **G639. [DECIDED - not planned] Class components.** Glyph has no classes,
+  so `class Old extends Component { }` is E0003 at `class`. Decision record
+  208 lists class components as not planned. A class component from an npm
+  package can still be rendered: `react-error-boundary`'s `ErrorBoundary`
+  passes full `check` as an element in a Glyph component, which covers the
+  error boundary, the one thing React still requires a class for.
+
+- **G640. [DECIDED - not planned before 1.0] Server components and `"use
+  client"`.** A module cannot start with a directive (`"use client"` before
+  `module` is E0003), and a component cannot be `async` (`async component`
+  is E0002, `expected fn after async`). Decision record 208 lists server
+  components as not planned before 1.0. A framework that needs the directive
+  can keep that file in TypeScript and import the emitted Glyph modules from
+  it.

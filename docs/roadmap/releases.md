@@ -5941,6 +5941,8 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 
 **Next batch · A Vite plugin with React Fast Refresh** (owner, 2026-11-24). Ship a Vite plugin that builds on `glyph build --watch`, so saving a `.glyph` component hot-swaps it through React Fast Refresh and keeps its state instead of reloading the page. Full page reloads will lose React developers on day one. Builds on G444 (watch mode rewriting every output file, which today defeats a dev server's module graph).
 
+**Next batch · The React rows the "not yet" page lists** (decision record 208). `/answers/react-not-yet/` lists what Glyph does not do for React yet, one row per gap, and each release that closes a row removes it in the same PR. Scheduled by record 208: G633, the effect lambda that returns its tail (R2, E0261); G632, a hook call in a `match` arm or a loop (R3, E0262); G630, element refs and the `ref` attribute (R4); G631, children between the tags filling a required `children` (R5); G638, Fast Refresh for an emitted module (R8, the Vite plugin, beside G444). Not scheduled yet, because each builds on G257's table: G634, `forwardRef` and `ref` on a component; G635, Context values (Q44 is the design question); G636, the hooks outside G257's table; G637, `@types/react` 19, which the table does not model. Decided and not scheduled: G639, class components (Glyph has no classes), and G640, server components and `"use client"` (not before 1.0).
+
 **Next batch · G511, an index key is compared with the key type** (record 201; breaking). The key of every index expression, read or write, is compared with the key type: `K` on a `Record<K, V>`, `number` on an `Array<E>`. `mut m["exec"] = 2` on a `Record<Mode, number>` (TS7053), the read `u["exec"]` on a `Record<Mode, unknown>` (TS2345, which E0224 lets through because `V` is `unknown`) and `mut v["a"] = "x"` on an `Array<string>` (TS7015) are E0204 underlined at the key, with the note "`m`'s keys are `Mode`" or "an array is indexed by a number". Not E0224, which means a read may be absent, and no new code. Built right after G439, on the same index machinery, and rebased on it. Ranges G576 to G580 and D79. Measure with the corpus run; `Record<literal union, V>` writes are where any exposure is.
 
 **Next batch · A `change_behavior` kind for `glyph query impact`** (agent research), listing the transitive callers of a function and the `@example`s that cover them, for a change that keeps the signature and alters what the function does. Specified in record 196, section 10, after 0.1.186 indexes example sites.
@@ -7893,9 +7895,9 @@ in a conversation.
    `children` written inside the props object rather than only between the tags
    (G253 fixed the error message, not the pattern), and the effect whose callback
    must be written `fn() -> void` or React reads its return value as a cleanup,
-   which should be a lint or handled by the compiler. Publish a "React: not yet"
-   list in the style of `/catches/#not-yet`. Not scheduled yet; each pattern gets
-   a gap number when it is reproduced.
+   which should be a lint or handled by the compiler. Each is now a gap (G630
+   refs, G631 children, G633 the effect) and scheduled in the next batch, and
+   the "React: not yet" list is published at `/answers/react-not-yet/`.
 6. **A component testing story.** `@example`, `@doc @run` and property tests cover
    logic. Components need Vitest and React Testing Library running on `.glyph`
    sources, with coverage reported on `.glyph` lines through the source maps. Not

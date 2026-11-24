@@ -1,8 +1,8 @@
 {
   "name": "glyph-vscode",
   "displayName": "Glyph (glyphlang.io)",
-  "description": "Glyph language support: syntax highlighting + the glyph language server (diagnostics, hover, go-to-definition, completion, format-on-save).",
-  "version": "0.1.2",
+  "description": "Glyph, the language at glyphlang.io that compiles to TypeScript: syntax highlighting and the glyph language server (diagnostics, hover, go-to-definition, completion, format-on-save).",
+  "version": "0.1.3",
   "publisher": "chadetov",
   "license": "MIT OR Apache-2.0",
   "repository": {

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.3
+
+The listing now says which Glyph this is. The description and the first line of
+the README open with "Glyph, the language at glyphlang.io that compiles to
+TypeScript", so a Marketplace or Open VSX search result can be told apart from
+the unrelated `GlyphLang.glyphlang` without opening it. The README names that
+extension once so a reader who wanted it knows where to go.
+
+No change to highlighting or the language client.
+
 ## 0.1.2
 
 First release on the VS Code Marketplace, as `chadetov.glyph-vscode`. Until now

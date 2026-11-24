@@ -85,13 +85,37 @@ warns that the extension is not bundled (about 200 files, most of them
 `vscode-languageclient`). The extension is plain CommonJS with no build step,
 and bundling would add one.
 
-## Open VSX (optional)
+## Open VSX
 
-VSCodium and other editors that cannot use Microsoft's Marketplace install from
-Open VSX. It is a separate account and token, under the same `chadetov`
-namespace:
+Cursor, Windsurf, VSCodium and other editors that cannot use Microsoft's
+Marketplace install from Open VSX. It is a separate registry with its own
+account and token, and the extension goes there under the same `chadetov`
+namespace, so the id stays `chadetov.glyph-vscode` everywhere.
+
+Once, before the first publish:
+
+1. Create an Eclipse Foundation account and log in to
+   [open-vsx.org](https://open-vsx.org) with GitHub, then link the Eclipse
+   account from the open-vsx.org profile page.
+2. Sign the Eclipse Foundation Open VSX Publisher Agreement from the same
+   profile page. Publishing is refused until it is signed.
+3. Create an access token at
+   [open-vsx.org/user-settings/tokens](https://open-vsx.org/user-settings/tokens).
+   It is shown once; keep it with the other registry tokens, outside the
+   repository.
+4. Create the namespace:
+
+   ```sh
+   npx ovsx create-namespace chadetov -p <open-vsx-token>
+   ```
+
+Every release, publish the same `.vsix` that went to the Marketplace:
 
 ```sh
-npx ovsx create-namespace chadetov -p <open-vsx-token>   # once
 npx ovsx publish /tmp/glyph-vscode.vsix -p <open-vsx-token>
 ```
+
+A new namespace shows as unverified, with a warning on the listing. To get the
+verified badge, claim ownership of `chadetov` by opening an issue on
+[EclipseFdn/open-vsx.org](https://github.com/EclipseFdn/open-vsx.org/issues)
+from the GitHub account that owns this repository.

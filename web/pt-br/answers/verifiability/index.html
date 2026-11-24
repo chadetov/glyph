@@ -1109,11 +1109,6 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
 
           <p class="ak-st-group">Ferramentas e a biblioteca padrão</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Nove funções de <code>std/string</code> e <code>std/array</code> ainda retornam valores sem tipo</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
-                <p>Os tipos de retorno da stdlib que o verificador modela cobrem a metade de aridade fixa de <code>std/string</code> e <code>std/array</code>; as seis funções com um argumento final opcional (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) e <code>array.map</code>/<code>flat_map</code>/<code>zip</code> continuam sem tipo, então um valor que sai direto de uma delas precisa de uma anotação antes de você iterá-lo com índice.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Acesso a membros em primitivos e arrays não tem diagnóstico onde o <code>tsc</code> não roda</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
                 <p>Acesso a membros e chamadas em <code>string</code>, <code>number</code>, <code>bool</code> e <code>Array&lt;T&gt;</code> ficam por conta do <code>tsc</code> por design, e não por uma brecha; o Glyph permite membros JS crus ali, então <code>s.length</code> e <code>xs.length</code> compilam e passam no <code>tsc --strict</code>, e o que continua faltando é um diagnóstico nas quatro superfícies que nunca rodam o <code>tsc</code>: <code>glyph check --no-tsc</code>, o language server, o servidor MCP e o playground.</p>

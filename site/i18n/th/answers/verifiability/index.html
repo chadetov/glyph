@@ -1,7 +1,7 @@
 ---
 title: อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ? · Glyph
 description: การเปลี่ยนแปลงที่คอมไพล์ผ่านแล้วพังใน TypeScript เช่น case ที่ขาด error ที่ไม่ได้จัดการ หรือ field ที่เปลี่ยนชื่อ เป็น compile error ใน Glyph ที่เอเจนต์ต้องแก้
-source_hash: 1e2bb584f23aca40
+source_hash: 4ef9ca89bab7351b
 next: /answers/diff-stability/ | ถัดไป &rarr; | การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?
 ---
       <p class="q-eyebrow">01 &middot; คำสัญญาหลัก</p>
@@ -640,11 +640,6 @@ pub fn guest() -&gt; Profile {
 
           <p class="ak-st-group">เครื่องมือและ standard library</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ฟังก์ชันเก้าตัวของ <code>std/string</code> และ <code>std/array</code> ยังคืนค่าที่ไม่มี type</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
-                <p>return type ของ stdlib ที่ตัวตรวจ model ไว้ครอบคลุมครึ่งที่มีจำนวน argument ตายตัวของ <code>std/string</code> และ <code>std/array</code> ฟังก์ชันหกตัวที่มี argument ท้ายที่ไม่บังคับ (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) และ <code>array.map</code>/<code>flat_map</code>/<code>zip</code> ยังไม่มี type ค่าที่ออกมาจากตัวใดตัวหนึ่งโดยตรงจึงต้องมี annotation ก่อนวนด้วย index</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การเข้าถึง member บน primitive และ array ไม่มี diagnostic ในที่ที่ <code>tsc</code> ไม่ได้รัน</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
                 <p>การเข้าถึง member และการเรียกบน <code>string</code>, <code>number</code>, <code>bool</code> และ <code>Array&lt;T&gt;</code> ถูกปล่อยให้ <code>tsc</code> โดยการออกแบบ ไม่ใช่เพราะเป็นช่องว่าง Glyph อนุญาต member ดิบของ JS ตรงนั้น <code>s.length</code> และ <code>xs.length</code> จึงคอมไพล์และผ่าน <code>tsc --strict</code> สิ่งที่ยังขาดคือ diagnostic สำหรับสี่ช่องทางที่ไม่เคยรัน <code>tsc</code>: <code>glyph check --no-tsc</code>, language server, เซิร์ฟเวอร์ MCP และ playground</p>

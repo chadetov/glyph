@@ -1368,11 +1368,6 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
 
           <p class="ak-st-group">Tooling and the standard library</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
-                <p>The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Member access on primitives and arrays has no diagnostic where <code>tsc</code> doesn't run</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
                 <p>Member access and calls on <code>string</code>, <code>number</code>, <code>bool</code> and <code>Array&lt;T&gt;</code> are left to <code>tsc</code> by design, not by gap; Glyph permits raw JS members there, so <code>s.length</code> and <code>xs.length</code> compile and pass <code>tsc --strict</code>, and what stays missing is a diagnostic for the four surfaces that never run <code>tsc</code>: <code>glyph check --no-tsc</code>, the language server, the MCP server, and the playground.</p>

@@ -1109,11 +1109,6 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
 
           <p class="ak-st-group">Araçlar ve standart kütüphane</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Dokuz <code>std/string</code> ve <code>std/array</code> fonksiyonu hâlâ tipsiz değerler döndürüyor</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
-                <p>Checker'ın modellediği stdlib dönüş tipleri, <code>std/string</code> ve <code>std/array</code>'in sabit sayıda argüman alan yarısını kapsıyor; isteğe bağlı bir son argümanı olan altı fonksiyon (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) ve <code>array.map</code>/<code>flat_map</code>/<code>zip</code> hâlâ tipsiz; dolayısıyla bunlardan birinden doğrudan çıkan bir değer, onu bir index ile yinelemeden önce bir annotation'a ihtiyaç duyuyor.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">İlkel tipler ve diziler üzerindeki üye erişiminin, <code>tsc</code>'nin çalışmadığı yerde diagnostic'i yok</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
                 <p><code>string</code>, <code>number</code>, <code>bool</code> ve <code>Array&lt;T&gt;</code> üzerindeki üye erişimi ve çağrılar bir açık yüzünden değil, tasarım gereği <code>tsc</code>'ye bırakılıyor; Glyph orada ham JS üyelerine izin veriyor, bu yüzden <code>s.length</code> ve <code>xs.length</code> derleniyor ve <code>tsc --strict</code>'ten geçiyor. Eksik kalan, hiçbir zaman <code>tsc</code> çalıştırmayan dört yüzey için bir diagnostic: <code>glyph check --no-tsc</code>, dil sunucusu, MCP sunucusu ve playground.</p>

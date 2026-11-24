@@ -1,7 +1,7 @@
 ---
 title: 에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요? · Glyph
 description: TypeScript에서는 컴파일된 뒤 깨지는 변경, 예를 들어 빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드가 Glyph에서는 에이전트가 고쳐야 하는 컴파일 오류가 됩니다.
-source_hash: 1e2bb584f23aca40
+source_hash: 4ef9ca89bab7351b
 next: /answers/diff-stability/ | 다음 &rarr; | 에이전트의 편집이 깔끔하게 유지되나요, 아니면 파일 전체를 다시 포맷하나요?
 ---
       <p class="q-eyebrow">01 &middot; 핵심 약속</p>
@@ -640,11 +640,6 @@ pub fn guest() -&gt; Profile {
 
           <p class="ak-st-group">도구와 표준 라이브러리</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/string</code>과 <code>std/array</code> 함수 아홉 개는 여전히 타입 없는 값을 반환합니다</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
-                <p>검사기가 모델링하는 stdlib 반환 타입은 <code>std/string</code>과 <code>std/array</code> 중 인자 개수가 고정된 절반을 다룹니다. 선택적인 마지막 인자가 있는 함수 여섯 개(<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>)와 <code>array.map</code>/<code>flat_map</code>/<code>zip</code>은 아직 타입이 없으므로, 이 함수들에서 바로 나온 값을 인덱스와 함께 반복하려면 먼저 타입 표기가 필요합니다.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>tsc</code>가 실행되지 않는 곳에서는 원시 타입과 배열의 멤버 접근에 대한 진단이 없습니다</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
                 <p><code>string</code>, <code>number</code>, <code>bool</code>, <code>Array&lt;T&gt;</code>에 대한 멤버 접근과 호출은 구멍이 아니라 설계상 <code>tsc</code>에 맡겨집니다. Glyph는 거기서 원시 JS 멤버를 허용하므로 <code>s.length</code>와 <code>xs.length</code>는 컴파일되고 <code>tsc --strict</code>를 통과합니다. 빠져 있는 것은 <code>tsc</code>를 실행하지 않는 네 곳, 즉 <code>glyph check --no-tsc</code>, 언어 서버, MCP 서버, 플레이그라운드에서의 진단입니다.</p>

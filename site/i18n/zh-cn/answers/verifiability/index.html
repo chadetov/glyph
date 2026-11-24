@@ -1,7 +1,7 @@
 ---
 title: 什么能防止智能体悄悄改坏我的代码？ · Glyph
 description: 在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。
-source_hash: 1e2bb584f23aca40
+source_hash: 4ef9ca89bab7351b
 next: /answers/diff-stability/ | 下一篇 &rarr; | 智能体的编辑会保持干净，还是会把整个文件重新格式化？
 ---
       <p class="q-eyebrow">01 &middot; 核心承诺</p>
@@ -640,11 +640,6 @@ pub fn guest() -&gt; Profile {
 
           <p class="ak-st-group">工具与标准库</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">九个 <code>std/string</code> 和 <code>std/array</code> 函数仍然返回无类型的值</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
-                <p>检查器建模的标准库返回类型覆盖了 <code>std/string</code> 和 <code>std/array</code> 中固定参数个数的那一半；带有可选尾部参数的六个函数（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）以及 <code>array.map</code>/<code>flat_map</code>/<code>zip</code> 仍然没有类型，所以直接从这些函数得到的值，在用索引遍历之前需要加标注。</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">在不运行 <code>tsc</code> 的地方，对基本类型和数组的成员访问没有诊断</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
                 <p>对 <code>string</code>、<code>number</code>、<code>bool</code> 和 <code>Array&lt;T&gt;</code> 的成员访问和调用，按设计交给 <code>tsc</code>，而不是遗漏；Glyph 在这些地方允许原生 JS 成员，所以 <code>s.length</code> 和 <code>xs.length</code> 能编译并通过 <code>tsc --strict</code>，仍然缺少的是在四个从不运行 <code>tsc</code> 的场景中的诊断：<code>glyph check --no-tsc</code>、语言服务器、MCP 服务器和 playground。</p>

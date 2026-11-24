@@ -814,11 +814,15 @@ on `"a😀"`, `char_at` at 1 is `Some("😀")` and at 2 is `None`. There is no
 `chars`.
 
 Glyph models the return type of these functions, so `for i, part in string.split(s, ",")`
-binds a numeric index with no annotation. The six with a `?` parameter
-(`string.slice`, `string.index_of`, `string.pad_start`, `string.pad_end`,
-`array.slice`, `json.stringify`) are the exception: the arity check has no range
-yet, so they stay untyped. That means a `match` on `string.index_of` with no
-`None` arm is not an E0200 and throws at run time. Write the `None` arm.
+binds a numeric index with no annotation. That includes the six with a `?`
+parameter (`string.slice`, `string.index_of`, `string.pad_start`,
+`string.pad_end`, `array.slice`, `json.stringify`): the arity check takes a
+range, so `string.pad_end(s, 4)` and `string.pad_end(s, 4, "-")` both pass and
+`string.pad_end(s)` is E0213 ("Pass from 2 to 3 arguments"). A `match` on
+`string.index_of` with no `None` arm is E0200. A Glyph function type cannot
+spell an optional parameter, so `glyph llms --json` gives these rows
+`signature: null` and lists one complete type per legal arity under
+`call_forms`; read that field, not `signature`, for them.
 
 ### std/io
 

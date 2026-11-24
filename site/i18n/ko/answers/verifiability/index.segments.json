@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ko",
-  "source_hash": "1e2bb584f23aca40",
+  "source_hash": "4ef9ca89bab7351b",
   "segments": [
     {
       "id": "title",
@@ -1257,18 +1257,6 @@
       "kind": "html",
       "en": "Tooling and the standard library",
       "tr": "도구와 표준 라이브러리"
-    },
-    {
-      "id": "h-3aeea93f",
-      "kind": "html",
-      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
-      "tr": "<code>std/string</code>과 <code>std/array</code> 함수 아홉 개는 여전히 타입 없는 값을 반환합니다"
-    },
-    {
-      "id": "h-b4a6a924",
-      "kind": "html",
-      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
-      "tr": "검사기가 모델링하는 stdlib 반환 타입은 <code>std/string</code>과 <code>std/array</code> 중 인자 개수가 고정된 절반을 다룹니다. 선택적인 마지막 인자가 있는 함수 여섯 개(<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>)와 <code>array.map</code>/<code>flat_map</code>/<code>zip</code>은 아직 타입이 없으므로, 이 함수들에서 바로 나온 값을 인덱스와 함께 반복하려면 먼저 타입 표기가 필요합니다."
     },
     {
       "id": "h-201d023a",

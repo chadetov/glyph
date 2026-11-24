@@ -10366,6 +10366,16 @@ server without being told they exist. The rest of this step is items 2, 3 and 4.
   as generated and `.glyph-runtime` as vendored) are fine to document, but the
   alias stays opt-in with a "remove once Glyph is in Linguist" caveat.
 
+  Name decided 2026-11-24: the submission is **GlyphTS**, with the extension
+  `.glyph` and the TextMate scope `source.glyph`. Linguist already has an unrelated
+  language named Glyph (Tcl-based, extension `.glf`), so the plain name cannot be
+  used, and GlyphLang is the name of the unrelated REST API language at
+  glyphlang.dev. `.glyph` is not claimed by any Linguist language. The grammar and
+  samples are mirrored at `chadetov/glyph-tmlanguage` (refreshed 2026-11-24). The
+  usage threshold is to be met by a coding competition with around 200
+  participants publishing their own repositories; forks do not count, so each
+  entry is a new repository holding `.glyph` files.
+
 - **D27 unknown-annotation rejection.** The spec says an unknown `@<name>`
   annotation is a hard error, but the typechecker doesn't enforce it yet (a
   `@bogus` is silently ignored). Add a recognized-annotation dispatch table.

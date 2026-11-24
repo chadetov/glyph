@@ -10378,6 +10378,24 @@ impl Assigner<'_> {
         }
     }
 
+    /// Whether `ty` names a declaration whose body the checker does not read:
+    /// an `extern_ts` or a `typeof` body, at the end of its chain of second
+    /// names, local or imported. An imported one crosses the file edge as
+    /// `Ty::Unknown`, which is what it is read as there.
+    fn has_opaque_body(&self, ty: &Ty) -> bool {
+        let end = self.resolve_alias_chain(split_type_app(ty).0);
+        match &end {
+            Ty::Named { .. } => self
+                .direct_type_decl(&end)
+                .is_some_and(|td| matches!(td.body, TypeExpr::Extern { .. } | TypeExpr::TypeOf { .. })),
+            Ty::Imported { module, name } => {
+                imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())
+                    .is_some_and(|(_, _, decl)| decl.body.is_unknown())
+            }
+            _ => false,
+        }
+    }
+
     /// The keys of two `Record` maps, when both `found` and `expected` are
     /// one: written out, or reached through aliases (`type Scores =
     /// Record<Tier, int>`, local or a sibling's). `None` when either side is
@@ -10807,6 +10825,18 @@ impl Assigner<'_> {
         // and has no declaration to look up.
         let found = self.canonicalize_aliases(found);
         let expected = self.canonicalize_aliases(expected);
+        // G490. A name whose body is `extern_ts` or `typeof` is opaque to the
+        // checker (D29, D32), so a pairing with one on either side is left to
+        // `tsc`, as the primitive rules above already leave it. Without this
+        // the rules below read two different names as two declarations and
+        // refused them: `extern_ts("\"read\"")` returned
+        // where `"read" | "write"` is declared was E0204, and so was an
+        // `extern_ts("any")` where a record or a union is declared, though
+        // `tsc` accepts each. The same name where `number` is declared was
+        // silent all along.
+        if self.has_opaque_body(&found) || self.has_opaque_body(&expected) {
+            return false;
+        }
         // Record 158, F-B. A modeled stdlib type is a declaration of its own
         // (D49), whatever its arguments: another stdlib type, or a record or
         // union this program declares, is refused where it is declared, even
@@ -15143,6 +15173,57 @@ mod tests {
             tm.get(first_let_value_span_anywhere(&m)).is_unknown(),
             "got {:?}",
             tm.get(first_let_value_span_anywhere(&m))
+        );
+    }
+
+    /// G490. A name whose body is `extern_ts` or `typeof` is not judged
+    /// against a string-literal union, a record, a tagged union or another
+    /// name, in either direction and in every position, as it was never
+    /// judged against a primitive: `tsc` accepts each of these. A `string`
+    /// where the union is declared is still refused, so is a literal the
+    /// union does not hold, and so is one declared name where another is.
+    #[test]
+    fn an_opaque_body_is_not_judged_by_name_or_literal_set() {
+        let src = "module x\ntype Mode = \"read\" | \"write\"\n\
+                   type Raw = extern_ts(\"\\\"read\\\"\")\n\
+                   type Any = extern_ts(\"any\")\n\
+                   type Wide = extern_ts(\"string\")\n\
+                   type Alias = Raw\n\
+                   const DEFAULT_MODE: Mode = \"read\"\n\
+                   type Of = typeof DEFAULT_MODE\n\
+                   pub fn f(r: Raw) -> Mode {\n  return r\n}\n\
+                   pub fn g(r: Any) -> Mode {\n  return r\n}\n\
+                   pub fn h(r: Raw) -> number {\n  return r\n}\n\
+                   pub fn i(r: Alias) -> Mode {\n  return r\n}\n\
+                   pub fn j(r: Of) -> Mode {\n  return r\n}\n\
+                   pub fn k(m: Mode) -> Wide {\n  return m\n}\n\
+                   pub fn l(rs: Array<Raw>) -> Array<Mode> {\n  return rs\n}\n\
+                   type Other = { a: string, }\n\
+                   type Tag = | A | B\n\
+                   pub fn m(r: Any) -> Other {\n  return r\n}\n\
+                   pub fn n(r: Any) -> Tag {\n  return r\n}\n\
+                   pub fn o(v: Other) -> Any {\n  return v\n}\n\
+                   pub fn p(r: Raw) -> Wide {\n  return r\n}\n\
+                   fn takes(m: Mode) -> Mode {\n  return m\n}\n\
+                   pub fn q(r: Raw) -> Mode {\n  let m: Mode = r\n  return takes(r)\n}\n";
+        let errs: Vec<String> = errors_of(src)
+            .iter()
+            .filter(|e| matches!(e.code(), "E0204" | "E0211"))
+            .map(|e| e.to_string())
+            .collect();
+        assert!(errs.is_empty(), "{errs:?}");
+
+        let still = "module x\ntype Mode = \"read\" | \"write\"\n\
+                     pub fn s(v: string) -> Mode {\n  return v\n}\n\
+                     pub fn t() -> Mode {\n  return \"exec\"\n}\n\
+                     type Other = { a: string, }\n\
+                     type Tag = | A | B\n\
+                     pub fn u(o: Other) -> Tag {\n  return o\n}\n";
+        assert_eq!(
+            errors_of(still).iter().filter(|e| e.code() == "E0204").count(),
+            3,
+            "{:?}",
+            errors_of(still)
         );
     }
 

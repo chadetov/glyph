@@ -673,11 +673,11 @@ fn charge(r: PaymentResult) -&gt; number {
           <code>5</code> is refused where <code>interface HasName { name: string }</code> is
           declared, and <code>"abc"</code> is accepted where
           <code>interface HasLen { length: number }</code> is, because a string has a
-          <code>length</code>. Three pairings are not decided yet and are left to
-          <code>tsc</code>: an interface whose members are all optional and share none with the
-          value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against
-          an interface (G527), and <code>bigint</code>, which the checker still reads as a
-          <code>number</code> (G500).
+          <code>length</code>. A <code>bigint</code> is read through its own members, so it is
+          refused there: it has no <code>length</code>. Two pairings are not decided yet and are
+          left to <code>tsc</code>: an interface whose members are all optional and share none
+          with the value (G526), and <code>Option</code>, <code>Result</code> and
+          <code>Record</code> against an interface (G527).
         </p>
       </div></details>
 

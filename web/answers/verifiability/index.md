@@ -444,7 +444,7 @@ A parameter typed `string`, `number` or `bool` used to accept a value of a decla
 
 The check reads the declaration, so it only fires where the answer is certain. A primitive alias such as `type Id = string` is read as the `string` it names, so it is decided the same way. A string-literal union (D30) is compared by its literals, and an `interface` value is refused where a `string` is declared, because its value is an object. An `extern_ts` or `typeof` body still says nothing, and `void` is excluded too. It reaches an argument, a `return`, and a `let` annotation alike, since all three share one relation.
 
-The other direction goes through the value's members, as in TypeScript: `5` is refused where `interface HasName { name: string }` is declared, and `"abc"` is accepted where `interface HasLen { length: number }` is, because a string has a `length`. Three pairings are not decided yet and are left to `tsc`: an interface whose members are all optional and share none with the value (G526), `Option`, `Result` and `Record` against an interface (G527), and `bigint`, which the checker still reads as a `number` (G500).
+The other direction goes through the value's members, as in TypeScript: `5` is refused where `interface HasName { name: string }` is declared, and `"abc"` is accepted where `interface HasLen { length: number }` is, because a string has a `length`. A `bigint` is read through its own members, so it is refused there: it has no `length`. Two pairings are not decided yet and are left to `tsc`: an interface whose members are all optional and share none with the value (G526), and `Option`, `Result` and `Record` against an interface (G527).
 
 ### An annotated `const` is typed
 

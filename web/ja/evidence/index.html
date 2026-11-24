@@ -430,7 +430,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">fixture<a class="h-anchor" href="#the-fixtures" aria-label="このセクションへのリンク">#</a></h2>
         <p>
-          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> の下の各ディレクトリには、<code>ts.ts</code>、<code>glyph.glyph</code>、そしてそれぞれが何をするかを記した <code>case.toml</code> があります。<code>scripts/check_catches.py</code> は CI で実行されます。コンパイルできない TypeScript のプログラムでは何も証明できないので、すべての <code>ts.ts</code> が <code>tsc --strict</code> を通ることを要求し、Glyph のほうはケースの種類に応じて検査します。チェック済みのケースは全部で 46 件です。TypeScript のケースが 37 件、Glyph には存在しない JavaScript の落とし穴が 5 件、Glyph がまだ塞いでいない穴が 4 件です。そのうち 28 件はビルド時に Glyph が拒否します（TypeScript のケース 23 件と落とし穴 5 件）。 ゲートが検査する種類ごとに見ると、次のとおりです。
+          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> の下の各ディレクトリには、<code>ts.ts</code>、<code>glyph.glyph</code>、そしてそれぞれが何をするかを記した <code>case.toml</code> があります。<code>scripts/check_catches.py</code> は CI で実行されます。コンパイルできない TypeScript のプログラムでは何も証明できないので、すべての <code>ts.ts</code> が <code>tsc --strict</code> を通ることを要求し、Glyph のほうはケースの種類に応じて検査します。チェック済みのケースは全部で 45 件です。TypeScript のケースが 37 件、Glyph には存在しない JavaScript の落とし穴が 5 件、Glyph がまだ塞いでいない穴が 3 件です。そのうち 28 件はビルド時に Glyph が拒否します（TypeScript のケース 23 件と落とし穴 5 件）。 ゲートが検査する種類ごとに見ると、次のとおりです。
         </p>
       </div>
 
@@ -444,7 +444,7 @@
             <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">ビルドは通り、そのコードを警告として報告する</td></tr>
             <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">プログラムは実行され、境界での検査が不正なデータを <code>Err</code> に変える</td></tr>
             <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">プログラムはビルドされ、実行時に記載どおりの出力で停止する</td></tr>
-            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">4</td><td data-label="What the gate requires of the Glyph">Glyph はプログラムを受け入れ、プログラムは誤った動作をする。穴が塞がるとゲートが失敗し、ケースを移すよう伝える</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">Glyph はプログラムを受け入れ、プログラムは誤った動作をする。穴が塞がるとゲートが失敗し、ケースを移すよう伝える</td></tr>
           </tbody>
         </table>
       </div>
@@ -538,7 +538,7 @@ glyph check: 1 <span class="e">error</span>(s) across 1 module(s)</pre>
 
         <h2 class="block-label" id="what-it-does-not-catch-yet">まだ検出できないもの<a class="h-anchor" href="#what-it-does-not-catch-yet" aria-label="このセクションへのリンク">#</a></h2>
         <p>
-          <code>gap</code> のケース 4 件は、それぞれの gap 番号とともに<a href="/ja/catches/#not-yet">検出できるもののページ</a>に載っています。Glyph でアプリを作って見つかった穴はすべて台帳 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> にあります。そこでは角括弧の印だけが現在の状態を表し（<code>[FIXED]</code>、<code>[HALF FIXED]</code>、未解決なら印なし）、未解決の項目の最後の再現が 5 リリース以上前だと <code>scripts/check_gaps.py</code> が CI を失敗させます。
+          <code>gap</code> のケース 3 件は、それぞれの gap 番号とともに<a href="/ja/catches/#not-yet">検出できるもののページ</a>に載っています。Glyph でアプリを作って見つかった穴はすべて台帳 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> にあります。そこでは角括弧の印だけが現在の状態を表し（<code>[FIXED]</code>、<code>[HALF FIXED]</code>、未解決なら印なし）、未解決の項目の最後の再現が 5 リリース以上前だと <code>scripts/check_gaps.py</code> が CI を失敗させます。
         </p>
 
         <h2 class="block-label" id="how-a-release-is-marked-breaking">リリースに Breaking の印を付ける方法<a class="h-anchor" href="#how-a-release-is-marked-breaking" aria-label="このセクションへのリンク">#</a></h2>

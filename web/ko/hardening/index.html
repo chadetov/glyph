@@ -432,7 +432,7 @@
       <section>
         <h2 class="group-head"><code>tsc --strict</code>를 통과하고 Glyph에서는 컴파일되지 않는 사례</h2>
         <p class="group-sub">
-          각 사례는 파일 두 개입니다. <code>tsc --strict</code>에서 깔끔하게 타입 검사를 통과하는 <code>.ts</code>와, Glyph로 쓴 같은 프로그램으로 컴파일되지 않는 것입니다. 빌드 게이트인 <code>scripts/check_catches.py</code>가 모든 사례를 다시 실행하고, 어느 한쪽이라도 동작이 달라지면 실패합니다. 그래서 보장이 조용히 사라지면 빌드도 함께 실패합니다. 표에는 <a href="/ko/catches/">잡아내는 것 페이지</a>의 TypeScript 사례 37건 중 이렇게 거부되는 23건이 나와 있고, 나머지(데이터가 들어올 때 검사하거나, 경고하거나, 실행 중에 멈추는 것)는 그 페이지에 있습니다. 확인된 사례는 모두 46건입니다. TypeScript 사례 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 4건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 23건, 함정 5건).
+          각 사례는 파일 두 개입니다. <code>tsc --strict</code>에서 깔끔하게 타입 검사를 통과하는 <code>.ts</code>와, Glyph로 쓴 같은 프로그램으로 컴파일되지 않는 것입니다. 빌드 게이트인 <code>scripts/check_catches.py</code>가 모든 사례를 다시 실행하고, 어느 한쪽이라도 동작이 달라지면 실패합니다. 그래서 보장이 조용히 사라지면 빌드도 함께 실패합니다. 표에는 <a href="/ko/catches/">잡아내는 것 페이지</a>의 TypeScript 사례 37건 중 이렇게 거부되는 23건이 나와 있고, 나머지(데이터가 들어올 때 검사하거나, 경고하거나, 실행 중에 멈추는 것)는 그 페이지에 있습니다. 확인된 사례는 모두 45건입니다. TypeScript 사례 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 3건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 23건, 함정 5건).
         </p>
         <table class="catches-table">
           <thead><tr><th>Glyph의 메시지</th><th>TypeScript가 통과시킨 것</th><th>파일</th></tr></thead>

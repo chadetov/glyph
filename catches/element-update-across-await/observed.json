@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "balance 90"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0225] Error: typecheck: `c[0]` is read before an `await` and written after it, so a concurrent write in between is lost\nHelp: Move the read after the `await`, so the value written is the one that is current when it is written."
+  }
+}

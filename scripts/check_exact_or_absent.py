@@ -1886,8 +1886,9 @@ def case_verdict_not_indexed() -> tuple[bool, str]:
 
     One class, run against the compiler. Adding a parameter to `api::width`
     is E0213 at `api::called`, which applies it, and nothing at all at
-    `api::sizer`, which reads it as a value: Glyph never compares a function
-    value's arity against the type its use context expects.
+    `api::sizer`, which reads it as a value: the checker compares a function
+    value's arity where it lands (G491), but impact does not follow the value
+    to that slot.
 
     The case asserts the two verdicts do not blur. A NOT_INDEXED entry names
     the class the model does not hold, and no entry in the answer is
@@ -1906,7 +1907,7 @@ def case_verdict_not_indexed() -> tuple[bool, str]:
         return False, f"the call site is not proved to fail: {seen.get('api::called')}"
     if seen.get("api::sizer") != ["NOT_INDEXED"]:
         return False, (
-            "a function read as a value is a class Glyph does not check; this "
+            "a function read as a value is a class impact does not decide; this "
             f"answer says {seen.get('api::sizer')}"
         )
     if any(e.get("verdict") == "UNDETERMINED" for e in a.get("impact") or []):
@@ -1989,18 +1990,21 @@ def case_assignable_has_no_rule_and_says_so() -> tuple[bool, str]:
 
     `glyph_assignable` is the tool most tempted to answer by the absence of a
     refusal: the relation underneath returns a bool, and its `false` covers
-    both "a rule accepted this" and "no rule looked". Two function types are
-    where the two come apart, because the relation compares the returns and
-    says nothing at all about the parameters, so a `fn(string) -> bool` where a
-    `fn(number) -> bool` is declared draws nothing and is not thereby correct.
-    That pairing has to come back UNDETERMINED with the missing rule named,
-    while a pairing a rule does read comes back decided either way. A record
+    both "a rule accepted this" and "no rule looked". A function returning
+    `void` where one returning a value is declared is where the two come apart
+    for function types: the relation skips a `void` return (G406), so
+    `fn(string) -> void` where `fn(string) -> bool` is declared draws nothing
+    and is not thereby correct. That pairing has to come back UNDETERMINED
+    with the missing rule named, while a pairing a rule does read comes back
+    decided either way. Since 0.1.185 (G491) the parameters are read, so
+    `fn(string) -> bool` where `fn(number) -> bool` is declared is a decided
+    refusal, and two identical function types are COMPATIBLE. A record
     whose field is optional against a declaration that requires it was the
     same shape one level down until 0.1.127 gave it a rule, so it is now a
     decided refusal, and a spelling that reaches a module or a function rather
     than a type is refused rather than answered about.
     """
-    silent = assignable(CORPUS / ASSIGNABLE, "fn(string) -> bool", "fn(number) -> bool")
+    silent = assignable(CORPUS / ASSIGNABLE, "fn(string) -> void", "fn(string) -> bool")
     if "error" in silent:
         return False, f"refused: {silent['error'][:160]}"
     if silent.get("verdict") != "UNDETERMINED":
@@ -2010,6 +2014,21 @@ def case_assignable_has_no_rule_and_says_so() -> tuple[bool, str]:
         return False, f"UNDETERMINED does not name the missing rule: {because[:200]}"
     if silent.get("diagnostics") is not None or not silent.get("diagnostics_absent"):
         return False, f"an undecided pairing carries a diagnostic list: {silent}"
+
+    params = assignable(CORPUS / ASSIGNABLE, "fn(string) -> bool", "fn(number) -> bool")
+    if params.get("verdict") != "WILL_FAIL":
+        return False, f"a parameter the slot passes and the function refuses is {params.get('verdict')}: {params}"
+    if [d.get("code") for d in params.get("diagnostics") or []] != ["E0204", "E0211"]:
+        return False, f"the parameter refusal names no codes: {params}"
+    arity = assignable(CORPUS / ASSIGNABLE, "fn(string, number) -> void", "fn(string) -> void")
+    if arity.get("verdict") != "WILL_FAIL":
+        return False, f"a function taking more than the slot passes is {arity.get('verdict')}: {arity}"
+    same = assignable(CORPUS / ASSIGNABLE, "fn(string) -> string", "fn(string) -> string")
+    if same.get("verdict") != "COMPATIBLE":
+        return False, f"a function type against itself is {same.get('verdict')}: {same}"
+    fewer = assignable(CORPUS / ASSIGNABLE, "fn(string) -> void", "fn(string, number) -> void")
+    if fewer.get("verdict") != "COMPATIBLE":
+        return False, f"a function taking fewer than the slot passes is {fewer.get('verdict')}: {fewer}"
 
     # An alias for a primitive in another module is the second shape of the
     # same thing: the relation reads an imported declaration only when it is a

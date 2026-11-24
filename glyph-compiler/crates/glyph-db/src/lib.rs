@@ -1974,6 +1974,22 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
         }
     }
 
+    fn imported_const_annotated(&self, module_path: &str, const_name: &str) -> Option<bool> {
+        // Read off the one declaration through the per-declaration
+        // `decl_ast` slice, as `imported_fn_generics` reads its generics.
+        let project = self.db.project_files_input();
+        let file = project
+            .entries(self.db)
+            .iter()
+            .find(|(p, _)| p == module_path)
+            .map(|(_, f)| *f)?;
+        let ast = decl_ast(self.db, file, Ident::from(const_name));
+        match ast.decl()? {
+            Decl::Const(c) => Some(c.ty.is_some()),
+            _ => None,
+        }
+    }
+
     fn imported_const_decl(&self, module_path: &str, const_name: &str) -> Option<Ty> {
         // The const counterpart of `imported_fn_decl` (G205): the same project
         // sibling lookup, answered by the tracked `exported_const(db, file,
@@ -4124,6 +4140,53 @@ pub fn run(c: Command) -> number {
             Ty::Unknown,
             "an undeclared name"
         );
+    }
+
+    /// G512, D66. A `let` reading a sibling's unannotated `const` holds a
+    /// `string`, as `tsc` widens it, through a named import and a namespace
+    /// alike, so a later `mut` of another string is legal; an annotated
+    /// sibling `const` keeps its union, and writing outside it is E0204.
+    #[test]
+    fn a_let_over_an_imported_unannotated_const_holds_a_string() {
+        let mut db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\n\
+             pub type Mode = \"read\" | \"write\"\n\
+             pub const DIR = \"out\"\n\
+             pub const MODE: Mode = \"read\"\n",
+        );
+        let main = new_file(
+            &db,
+            "main.glyph",
+            "module main\n\
+             import lib { DIR, MODE }\n\
+             import lib as l\n\
+             pub fn f() -> number {\n\
+             \x20 let a = DIR\n\
+             \x20 mut a = \"elsewhere\"\n\
+             \x20 let b = l.DIR\n\
+             \x20 mut b = \"elsewhere\"\n\
+             \x20 let m = MODE\n\
+             \x20 mut m = \"exec\"\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        db.project_files = Some(ProjectFiles::new(
+            &db,
+            vec![("lib".to_string(), lib), ("main".to_string(), main)],
+        ));
+        let mismatches: Vec<(String, String)> = type_map(&db, main)
+            .errors()
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { expected, found, .. } => Some((expected.clone(), found.clone())),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(mismatches.len(), 1, "{mismatches:?}");
+        assert_eq!(mismatches[0].1, "\"exec\"", "{mismatches:?}");
     }
 
     #[test]

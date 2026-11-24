@@ -38,7 +38,7 @@ use crate::ty::{
 use crate::builtin_members::{MethodSig, MethodTy};
 use crate::type_map::{IdentPattern, TypeMap};
 use crate::{
-    Accepted, AlternativesKind, BuiltinReceiver, CaseBindShape, DestructureRefusal, DiagnosticDecl, MutationSite, PropsRefusal,
+    MutPlaceOrigin, Accepted, AlternativesKind, BuiltinReceiver, CaseBindShape, DestructureRefusal, DiagnosticDecl, MutationSite, PropsRefusal,
     TypeError,
 };
 
@@ -196,6 +196,17 @@ pub trait DeclTyResolver {
     ///
     /// Answered by `glyph_db::exported_const`, the sibling of `exported_fn`.
     fn imported_const_decl(&self, _module_path: &str, _const_name: &str) -> Option<Ty> {
+        None
+    }
+
+    /// Whether the `pub const` the project module at `module_path` declares
+    /// under `const_name` writes an annotation. `None` wherever
+    /// `imported_const_decl` has no declaration to read.
+    ///
+    /// `tsc` widens a literal held by an unannotated `const` at a `let` that
+    /// reads it (`let d = DIR` is a `string`) and keeps an annotated one's, so
+    /// the type an unannotated `let` records depends on this (G512).
+    fn imported_const_annotated(&self, _module_path: &str, _const_name: &str) -> Option<bool> {
         None
     }
 
@@ -1348,6 +1359,10 @@ struct Assigner<'a> {
     /// `int` to `number`, and a suggestion built from it would not say what
     /// the author wrote.
     local_type_exprs: HashMap<u32, TypeExpr>,
+    /// Each name an unannotated `let` binds, keyed the way `local_tys` is,
+    /// with where its initializer starts: the type a `mut` writing the name
+    /// is held to came from there (G501, D66), and the note says so.
+    let_initializers: HashMap<u32, u32>,
     /// The calls an enclosing `await` applies to, by span (D51). A call to an
     /// async callee is a pending value everywhere except here.
     awaited_calls: HashSet<Span>,
@@ -1506,6 +1521,7 @@ impl<'a> Assigner<'a> {
             enclosing_owner: None,
             enclosing_bounded: HashMap::new(),
             local_type_exprs: HashMap::new(),
+            let_initializers: HashMap::new(),
             awaited_calls: HashSet::new(),
             refused_lambdas: HashSet::new(),
             sql_facts,
@@ -1954,6 +1970,7 @@ impl Assigner<'_> {
                             no_common_field: r.no_common_field,
                             record_key: r.record_key,
                             unknown_value: r.unknown_value,
+                            place: None,
                             span: r.span,
                         });
                     }
@@ -2582,8 +2599,10 @@ impl Assigner<'_> {
                 // argument.
                 let ty = match &l.ty {
                     Some(te) => self.lowerer.lower(te),
-                    None => self
-                        .widen_fresh_literals(&l.value, self.tm.get(l.value.span()).clone()),
+                    None => {
+                        let ty = self.widen_fresh_literals(&l.value, self.tm.get(l.value.span()).clone());
+                        self.widen_unannotated_const(&l.value, ty)
+                    }
                 };
                 // G149: an explicit annotation that disagrees with the
                 // initializer's inferred type must be flagged here, the same
@@ -2614,6 +2633,7 @@ impl Assigner<'_> {
                             no_common_field: r.no_common_field,
                             record_key: r.record_key,
                             unknown_value: r.unknown_value,
+                            place: None,
                             span: r.span,
                         });
                     }
@@ -2621,6 +2641,9 @@ impl Assigner<'_> {
                 }
                 if l.ty.is_some() || !ty.is_unknown() {
                     self.local_tys.insert(l.span.start, ty);
+                }
+                if l.ty.is_none() {
+                    self.let_initializers.insert(l.span.start, l.value.span().start);
                 }
                 if let Some(te) = &l.ty {
                     self.local_type_exprs.insert(l.span.start, te.clone());
@@ -2676,18 +2699,24 @@ impl Assigner<'_> {
                     if let Expr::Match { arms, .. } = value {
                         self.check_arms_produce_values(arms);
                     }
-                    // `mut x = { .. }` and `mut x.f = { .. }` write a literal
-                    // where the target's type is declared, and its keys are
-                    // held to it (D57). An index target is typed `Unknown`
-                    // and judges nothing.
-                    let target_ty = self.tm.get(target.span()).clone();
-                    // Nothing else compares a value written to a `mut`
-                    // target, so a written object or array literal has its
-                    // values compared here, as `tsc` compares them (TS2322).
-                    if matches!(value, Expr::Object { .. } | Expr::Array { .. }) {
-                        self.judge_boundary_value(value, &target_ty, false);
+                    // G501, D66: the value is compared with the type of the
+                    // place it is written to, exactly as `let x: T = e`
+                    // compares its initializer: arm by arm for a `match`
+                    // (G457), with D57's literal rules. A place whose type the
+                    // checker does not hold judges nothing.
+                    match self.mut_place(target) {
+                        Some((place_ty, origin)) => self.judge_mut_value(target, value, &place_ty, origin),
+                        None => {
+                            // A name whose type is not its own (a loop
+                            // binding, an arm's payload) still has a written
+                            // literal held to what its node records (D57).
+                            let target_ty = self.tm.get(target.span()).clone();
+                            if matches!(value, Expr::Object { .. } | Expr::Array { .. }) {
+                                self.judge_boundary_value(value, &target_ty, false);
+                            }
+                            self.judge_literal_fields(value, &target_ty, false);
+                        }
                     }
-                    self.judge_literal_fields(value, &target_ty, false);
                 }
                 glyph_ast::MutKind::MethodCall { call } => {
                     let outer = self.mut_call.replace(call.span());
@@ -2773,6 +2802,87 @@ impl Assigner<'_> {
         }
     }
 
+    /// The type of the place `mut P = e` writes, and where that type came
+    /// from (G501, D66). `None` when the checker does not hold one, and the
+    /// value is then not compared.
+    ///
+    /// - A name holds its written annotation, or, with none, the type an
+    ///   unannotated `let` recorded from its initializer, already widened
+    ///   (`let x = "a"` is a `string`). Any other name (a loop binding, an
+    ///   arm's payload, a lambda parameter typed by its slot) is not judged.
+    ///   A name an `is` arm narrows is never reassigned (record 134, B1), so
+    ///   what is read here is the declared type.
+    /// - `r.f` holds the field's declared type, which the member walk
+    ///   recorded at the target.
+    /// - `v[i]` holds `E` on an `Array<E>` and `V` on a `Record<K, V>`. A
+    ///   receiver of any other type is not judged.
+    fn mut_place(&self, target: &Expr) -> Option<(Ty, MutPlaceOrigin)> {
+        match target {
+            Expr::Ident { span, .. } => {
+                let Some(ResolvedRef::Local(def)) = self.resolved.resolutions.get(*span) else {
+                    return None;
+                };
+                let ty = self.local_tys.get(&def)?.clone();
+                let origin = if self.local_type_exprs.contains_key(&def) {
+                    MutPlaceOrigin::Declared { at: def }
+                } else {
+                    MutPlaceOrigin::Initializer {
+                        at: *self.let_initializers.get(&def)?,
+                    }
+                };
+                Some((ty, origin))
+            }
+            Expr::Member { field, .. } => {
+                let ty = self.tm.get(target.span()).clone();
+                Some((ty, MutPlaceOrigin::Field { field: field.to_string() }))
+            }
+            Expr::Index { object, .. } => {
+                let obj_ty = self.read_through_bound(self.tm.get(object.span()));
+                let (ty, map) = match self.builtin_receiver_elem(&obj_ty) {
+                    Some((BuiltinReceiver::Array, elem)) => (elem, false),
+                    Some(_) => return None,
+                    None => (self.map_value_ty(&obj_ty)?, true),
+                };
+                let container = ty_display(&self.named_params(&obj_ty));
+                Some((ty, MutPlaceOrigin::Element { container, map }))
+            }
+            _ => None,
+        }
+    }
+
+    /// Compare the value a `mut` writes with its place's type, as an
+    /// annotated `let` compares its initializer, and report each refusal as
+    /// E0204 naming the place. A refusal of the whole value (or of one arm of
+    /// a `match`) carries the place, so its note says where the place's type
+    /// came from; one inside a written literal names the field or element and
+    /// is the `let`'s refusal unchanged. The D57 walk then holds a written
+    /// literal's keys to the place, as it does at a `let`.
+    fn judge_mut_value(&mut self, target: &Expr, value: &Expr, place_ty: &Ty, origin: MutPlaceOrigin) {
+        let shown = self.named_params(place_ty);
+        for r in self.declared_value_refusals(value, place_ty, false) {
+            let place = (r.expected == shown).then(|| {
+                Box::new(crate::MutPlace {
+                    place: crate::pending::expr_source(target),
+                    holds: ty_display(&shown),
+                    origin: origin.clone(),
+                })
+            });
+            let accepted = self.accepted_values(&r.expected);
+            self.errors.push(TypeError::TypeMismatch {
+                expected: ty_display(&r.expected),
+                found: r.found,
+                accepted,
+                missing_fields: r.missing_fields,
+                no_common_field: r.no_common_field,
+                record_key: r.record_key,
+                unknown_value: r.unknown_value,
+                place,
+                span: r.span,
+            });
+        }
+        self.judge_literal_fields(value, place_ty, false);
+    }
+
     /// D48: prove a destructuring `let`'s initializer has the pattern's
     /// length, and give each name the type of its element.
     ///
@@ -2847,6 +2957,7 @@ impl Assigner<'_> {
                         let arr = self.array_ty(elem);
                         self.tm.insert(*span, arr.clone());
                         self.local_tys.insert(span.start, arr);
+                        self.let_initializers.insert(span.start, value.span().start);
                     }
                 }
                 return;
@@ -2882,6 +2993,7 @@ impl Assigner<'_> {
                 if !widened.is_unknown() {
                     self.tm.insert(*span, widened.clone());
                     self.local_tys.insert(span.start, widened);
+                    self.let_initializers.insert(span.start, e.span().start);
                 }
             }
             Pattern::Array { .. } => self.bind_let_pattern(sub, e, &ty),
@@ -5491,6 +5603,7 @@ impl Assigner<'_> {
                 no_common_field: r.no_common_field,
                 record_key: r.record_key,
                 unknown_value: r.unknown_value,
+                place: None,
                 span: r.span,
             });
         }
@@ -9509,6 +9622,7 @@ impl Assigner<'_> {
                 no_common_field: r.no_common_field,
                 record_key: r.record_key,
                 unknown_value: r.unknown_value,
+                place: None,
                 span: r.span,
             }
         });
@@ -9655,6 +9769,56 @@ impl Assigner<'_> {
     /// they always do (G232).
     fn widen_fresh_literals(&self, value: &Expr, ty: Ty) -> Ty {
         widen_fresh(value, ty, self.tm)
+    }
+
+    /// An unannotated `let` reading an unannotated `const` holds a `string`
+    /// where the `const` holds string literals, as `tsc` reads the `let` the
+    /// emitter writes: `const DIR = "out"` then `let d = DIR` is a `string`,
+    /// whether the `const` is a written literal or a `match` of them, while
+    /// `const M: Mode = "read"` then `let m = M` stays a `Mode` (G512). Any
+    /// other initializer, and a `const` whose annotation cannot be read, keeps
+    /// `ty`.
+    fn widen_unannotated_const(&self, value: &Expr, ty: Ty) -> Ty {
+        if !matches!(self.canonicalize_aliases(&ty), Ty::StringLiteralUnion(_)) {
+            return ty;
+        }
+        let module_key = |path: &glyph_ast::ModulePath| {
+            path.segments.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join("/")
+        };
+        let annotated = match value {
+            Expr::Ident { span, .. } => {
+                let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(*span) else {
+                    return ty;
+                };
+                match self.resolved.symbols.table.get(id).map(|s| &s.kind) {
+                    Some(SymbolKind::Const { decl_idx }) => match self.module.items.get(*decl_idx as usize) {
+                        Some(Decl::Const(c)) => Some(c.ty.is_some()),
+                        _ => None,
+                    },
+                    Some(SymbolKind::ImportNamed { path, original }) => self
+                        .decl_ty_resolver
+                        .imported_const_annotated(&module_key(path), original.as_ref()),
+                    _ => None,
+                }
+            }
+            Expr::Member { object, field, optional: false, .. } => {
+                let Expr::Ident { span, .. } = object.as_ref() else { return ty };
+                let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(*span) else {
+                    return ty;
+                };
+                match self.resolved.symbols.table.get(id).map(|s| &s.kind) {
+                    Some(SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. }) => self
+                        .decl_ty_resolver
+                        .imported_const_annotated(&module_key(path), field.as_ref()),
+                    _ => None,
+                }
+            }
+            _ => None,
+        };
+        match annotated {
+            Some(false) => Ty::Prim(Primitive::String),
+            _ => ty,
+        }
     }
 
     /// Whether the relation will reach a string-literal union on its way into
@@ -20224,6 +20388,7 @@ component View(props: { s: Status }) -> Component {
             enclosing_owner: None,
             enclosing_bounded: HashMap::new(),
             local_type_exprs: HashMap::new(),
+            let_initializers: HashMap::new(),
             awaited_calls: HashSet::new(),
             refused_lambdas: HashSet::new(),
             sql_facts: sql_query::SqlFacts::default(),
@@ -25503,5 +25668,244 @@ fn main(p: Point, m: Meta, s: Status) -> number {
             vec![expected.clone(), expected],
             "the import spelling does not change the answer: {errs:?}"
         );
+    }
+
+    // ----- G501, D66: a value written by `mut` is compared with its place -----
+
+    /// The E0204s in `src`, as (line, expected, found), lines counted from 1.
+    fn mut_refusals(src: &str) -> Vec<(usize, String, String)> {
+        errors_of(src)
+            .into_iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { expected, found, span, .. } => {
+                    let line = src[..span.start as usize].matches('\n').count() + 1;
+                    Some((line, expected, found))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    const G501_M1: &str = r#"module m1
+
+type R = { n: number, tags: Array<string>, mode: Mode, }
+type Mode = "read" | "write"
+
+pub fn a(r: R, v: Array<string>, m: Record<string, string>, i: int) -> number {
+  let x: number = 1
+  mut x = "s"
+  let y = 1
+  mut y = "s"
+  mut r.n = "x"
+  mut r.tags[0] = 5
+  mut v[0] = 5
+  mut m["k"] = 5
+  mut r.mode = "exec"
+  let md: Mode = "read"
+  mut md = "exec"
+  return x + y
+}
+
+pub fn ok(r: R, v: Array<string>, m: Record<string, string>) -> number {
+  let x: number = 1
+  mut x = 2
+  let s = "a"
+  mut s = "b"
+  let xs = []
+  mut xs = ["a"]
+  mut r.mode = "write"
+  mut v[0] = "z"
+  mut m["k"] = "z"
+  let i: int = 1
+  mut i = i + 1
+  let u: unknown = 1
+  mut u = "s"
+  return x
+}
+"#;
+
+    /// Record 196's probe `m1`: the eight writes `tsc` refuses (TS2322) are
+    /// E0204, one each, and `ok` draws nothing.
+    #[test]
+    fn g501_mut_value_is_compared_with_its_place() {
+        let got = mut_refusals(G501_M1);
+        let want: Vec<(usize, String, String)> = vec![
+            (8, "number", "string"),
+            (10, "number", "string"),
+            (11, "number", "string"),
+            (12, "string", "number"),
+            (13, "string", "number"),
+            (14, "string", "number"),
+            (15, "Mode", "\"exec\""),
+            (17, "Mode", "\"exec\""),
+        ]
+        .into_iter()
+        .map(|(l, e, f)| (l, e.to_string(), f.to_string()))
+        .collect();
+        assert_eq!(got, want);
+    }
+
+    /// The note says where each place's type came from, with the line read
+    /// off the source, and the help is the `mut` one.
+    #[test]
+    fn g501_note_names_where_the_place_type_came_from() {
+        let errs: Vec<TypeError> = errors_of(G501_M1)
+            .into_iter()
+            .filter(|e| e.code() == "E0204")
+            .collect();
+        let notes: Vec<String> = errs
+            .iter()
+            .map(|e| e.note_in(G501_M1).map(|n| n.into_owned()).unwrap_or_default())
+            .collect();
+        assert_eq!(
+            notes,
+            vec![
+                "`x` holds a `number`: declared at line 7.",
+                "`y` holds a `number`: the type of its initializer at line 9, and a `mut` does not change a binding's type.",
+                "`r.n` holds a `number`: the type field `n` is declared with.",
+                "`r.tags[0]` holds a `string`: the element type of `Array<string>`.",
+                "`v[0]` holds a `string`: the element type of `Array<string>`.",
+                "`m[\"k\"]` holds a `string`: the value type of `Record<string, string>`.",
+                "`r.mode` holds a `Mode`: the type field `mode` is declared with.",
+                "`md` holds a `Mode`: declared at line 16.",
+            ]
+        );
+        for e in &errs {
+            assert_eq!(e.help().as_deref(), Some(crate::MUT_PLACE_HELP), "{e:?}");
+        }
+    }
+
+    /// A written literal judged against the place is reported once: the
+    /// field the D57 walk would also reach draws no second E0204.
+    #[test]
+    fn g501_written_literal_is_reported_once() {
+        let src = r#"module x
+
+type R = { n: number, }
+
+pub fn a(r: R) -> number {
+  mut r = { n: "x", }
+  return r.n
+}
+"#;
+        assert_eq!(mut_refusals(src), vec![(6, "number".to_string(), "string".to_string())]);
+    }
+
+    /// Glyph-only by the record: inside `is Array<string>` the element is a
+    /// `string`, while `Array.isArray` gives `tsc` an `any[]`.
+    #[test]
+    fn g501_index_write_in_an_is_arm_is_judged() {
+        let src = r#"module x
+
+pub fn a(u: unknown) -> number {
+  match u {
+    is Array<string> => {
+      mut u[0] = 5
+    },
+    else => {},
+  }
+  return 0
+}
+"#;
+        assert_eq!(mut_refusals(src), vec![(6, "string".to_string(), "number".to_string())]);
+    }
+
+    /// A bare variant records the union, so writing another variant is legal.
+    #[test]
+    fn g501_another_variant_is_accepted() {
+        let src = r#"module x
+
+type St = Idle | Running(number)
+
+pub fn a() -> number {
+  let st = Idle
+  mut st = Running(3)
+  return match st {
+    Idle => 0,
+    Running(n) => n,
+  }
+}
+"#;
+        assert_eq!(mut_refusals(src), vec![]);
+    }
+
+    /// A `match` written by `mut` is compared arm by arm (G457): only the arm
+    /// that disagrees is refused.
+    #[test]
+    fn g501_match_is_compared_arm_by_arm() {
+        let src = r#"module x
+
+pub fn a(b: bool) -> number {
+  let x: number = 1
+  mut x = match b {
+    true => 1,
+    false => "s",
+  }
+  return x
+}
+"#;
+        assert_eq!(mut_refusals(src), vec![(7, "number".to_string(), "string".to_string())]);
+    }
+
+    /// An undecided initializer takes any later value of its shape, a
+    /// destructured name holds its element's type, and an annotated lambda
+    /// parameter its annotation.
+    #[test]
+    fn g501_undecided_patterns_and_parameters() {
+        let src = r#"module x
+
+pub fn a(p: number) -> number {
+  let o = None
+  mut o = Some(1)
+  let [a, b] = [1, 2]
+  mut a = "s"
+  mut p = "s"
+  let f = fn(q: number) -> number {
+    mut q = "t"
+    return q
+  }
+  return p + b + f(1)
+}
+"#;
+        assert_eq!(
+            mut_refusals(src),
+            vec![
+                (7, "number".to_string(), "string".to_string()),
+                (8, "number".to_string(), "string".to_string()),
+                (10, "number".to_string(), "string".to_string()),
+            ]
+        );
+    }
+
+    /// G512, D66. `tsc` widens the literal an unannotated `const` holds at a
+    /// `let` reading it, a written string and a `match` of strings alike, and
+    /// keeps an annotated `const`'s type. The examples' `let dir =
+    /// DEFAULT_DIR` then `mut dir = value` is the shape this keeps legal.
+    #[test]
+    fn g512_let_over_an_unannotated_const_holds_a_string() {
+        let src = r#"module x
+
+type Mode = "read" | "write"
+
+const A = "x"
+const FLAG = true
+const B = match FLAG {
+  true => "read",
+  false => "write",
+}
+const C: Mode = "read"
+
+pub fn f() -> number {
+  let a = A
+  mut a = "y"
+  let b = B
+  mut b = "zz"
+  let c = C
+  mut c = "write"
+  mut c = "exec"
+  return 0
+}
+"#;
+        assert_eq!(mut_refusals(src), vec![(20, "Mode".to_string(), "\"exec\"".to_string())]);
     }
 }

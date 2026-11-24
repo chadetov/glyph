@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "ru",
-  "source_hash": "ca78870bae5132f9",
+  "source_hash": "1fb08f4f1824ead4",
   "segments": [
     {
       "id": "title",
@@ -221,6 +221,18 @@
       "tr": "Изменение обязательно, потому что вердикт это факт о правке; без названной правки каждое место вернулось бы просто ссылкой, а не последствием. Ответ называет сущность, изменение и список <code>impact</code>: одна запись на место, в каждой объявление, внутри которого оно находится, <code>relation</code>, <code>verdict</code>, <code>because</code> и код диагностики, который выдаст компилятор, если он ровно один."
     },
     {
+      "id": "h-ef9faf49",
+      "kind": "html",
+      "en": "A call inside an <code>@example</code>, or inside a <code>@doc</code> fence tagged <code>glyph @run</code>, is a site too. The build runs those tests, so a rename breaks them like any other caller. Each entry carries <code>context</code>: <code>\"example\"</code> or <code>\"doc_run\"</code> for a site in a test, null for one in the program. Renaming <code>normalize</code> below lists its own example as well as the two calls in <code>twice</code>:",
+      "tr": "Вызов внутри <code>@example</code> или внутри блока <code>@doc</code> с пометкой <code>glyph @run</code> тоже считается местом. Сборка запускает эти тесты, поэтому переименование ломает их, как и любой другой вызов. У каждой записи есть <code>context</code>: <code>\"example\"</code> или <code>\"doc_run\"</code> для места в тесте, null для места в программе. Переименование <code>normalize</code> ниже перечисляет его собственный пример вместе с двумя вызовами в <code>twice</code>:"
+    },
+    {
+      "id": "h-44ba008e",
+      "kind": "html",
+      "en": "glyph query impact --entity main::normalize --change rename, the third entry",
+      "tr": "glyph query impact --entity main::normalize --change rename, третья запись"
+    },
+    {
       "id": "h-ed0c982f",
       "kind": "html",
       "en": "On a real application",
@@ -299,6 +311,12 @@
       "tr": "Покрытие (что поиск смог и не смог прочитать) указывается для каждого поиска, а не один раз на весь ответ, и каждый узел сообщает, пришёл ли он из исходника на Glyph, из лазейки <code>extern_ts</code> или из непрозрачного <code>.d.ts</code>."
     },
     {
+      "id": "h-e3f9447c",
+      "kind": "html",
+      "en": "Calls and names inside an <code>@example</code> or a <code>@doc</code> <code>glyph @run</code> fence are listed with <code>context</code>, and <code>glyph_references</code> and <code>glyph_dependencies</code> list them the same way.",
+      "tr": "Вызовы и имена внутри <code>@example</code> или блока <code>@doc</code> <code>glyph @run</code> перечисляются с <code>context</code>, и <code>glyph_references</code> и <code>glyph_dependencies</code> перечисляют их так же."
+    },
+    {
       "id": "h-c647197d",
       "kind": "html",
       "en": "Where it stops",
@@ -339,6 +357,12 @@
       "kind": "html",
       "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
       "tr": "<code>UNDETERMINED</code> и <code>NOT_INDEXED</code> это разные утверждения: аргумент, для которого у проверки типов нет типа, или сопоставление записи с полем, которое не читает ни одно правило, это <code>UNDETERMINED</code> (посмотрел и не смог решить); функция, прочитанная как значение, а не вызванная, это <code>NOT_INDEXED</code> (там вопрос вообще нельзя было задать)."
+    },
+    {
+      "id": "h-3074b99c",
+      "kind": "html",
+      "en": "The editor's rename does not reach tests yet, so it leaves an <code>@example</code> spelling the old name (G546). A field access or a <code>match</code> inside a test is not listed; those searches name the case under <code>not_indexed</code> (G547).",
+      "tr": "Переименование в редакторе пока не доходит до тестов и оставляет в <code>@example</code> старое имя (G546). Обращение к полю или <code>match</code> внутри теста не перечисляются; эти поиски называют такой случай в <code>not_indexed</code> (G547)."
     },
     {
       "id": "h-32f66691",

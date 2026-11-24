@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "de",
-  "source_hash": "ca78870bae5132f9",
+  "source_hash": "1fb08f4f1824ead4",
   "segments": [
     {
       "id": "title",
@@ -221,6 +221,18 @@
       "tr": "Die Änderung ist Pflicht, weil ein Urteil eine Aussage über eine Änderung ist; ohne benannte Änderung käme jede Stelle als bloße Referenz statt als Folge zurück. Die Antwort nennt die Entität, die Änderung und eine <code>impact</code>-Liste: ein Eintrag pro Stelle, jeder mit der Deklaration, in der er steht, einer <code>relation</code>, einem <code>verdict</code>, einem <code>because</code> und dem Diagnosecode, den der Compiler auslöst, wenn es genau einen gibt."
     },
     {
+      "id": "h-ef9faf49",
+      "kind": "html",
+      "en": "A call inside an <code>@example</code>, or inside a <code>@doc</code> fence tagged <code>glyph @run</code>, is a site too. The build runs those tests, so a rename breaks them like any other caller. Each entry carries <code>context</code>: <code>\"example\"</code> or <code>\"doc_run\"</code> for a site in a test, null for one in the program. Renaming <code>normalize</code> below lists its own example as well as the two calls in <code>twice</code>:",
+      "tr": "Ein Aufruf in einem <code>@example</code> oder in einem mit <code>glyph @run</code> markierten <code>@doc</code>-Block ist ebenfalls eine Stelle. Der Build führt diese Tests aus, also bricht eine Umbenennung sie wie jeden anderen Aufrufer. Jeder Eintrag trägt <code>context</code>: <code>\"example\"</code> oder <code>\"doc_run\"</code> für eine Stelle in einem Test, null für eine im Programm. Die Umbenennung von <code>normalize</code> unten listet sein eigenes Beispiel und die zwei Aufrufe in <code>twice</code>:"
+    },
+    {
+      "id": "h-44ba008e",
+      "kind": "html",
+      "en": "glyph query impact --entity main::normalize --change rename, the third entry",
+      "tr": "glyph query impact --entity main::normalize --change rename, der dritte Eintrag"
+    },
+    {
       "id": "h-ed0c982f",
       "kind": "html",
       "en": "On a real application",
@@ -299,6 +311,12 @@
       "tr": "Die Abdeckung (was eine Suche lesen konnte und was nicht) wird pro Suche angegeben statt einmal für die ganze Antwort, und jeder Knoten sagt, ob er aus Glyph-Quellcode, einer <code>extern_ts</code>-Hintertür oder einer undurchsichtigen <code>.d.ts</code> stammt."
     },
     {
+      "id": "h-e3f9447c",
+      "kind": "html",
+      "en": "Calls and names inside an <code>@example</code> or a <code>@doc</code> <code>glyph @run</code> fence are listed with <code>context</code>, and <code>glyph_references</code> and <code>glyph_dependencies</code> list them the same way.",
+      "tr": "Aufrufe und Namen in einem <code>@example</code> oder einem <code>@doc</code>-<code>glyph @run</code>-Block werden mit <code>context</code> gelistet, und <code>glyph_references</code> und <code>glyph_dependencies</code> listen sie genauso."
+    },
+    {
       "id": "h-c647197d",
       "kind": "html",
       "en": "Where it stops",
@@ -339,6 +357,12 @@
       "kind": "html",
       "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
       "tr": "<code>UNDETERMINED</code> und <code>NOT_INDEXED</code> sind verschiedene Aussagen: Ein Argument, für das der Checker keinen Typ hat, oder eine Record-Zuordnung mit einem Feld, das keine Regel liest, ist <code>UNDETERMINED</code> (er hat nachgesehen und konnte nicht entscheiden); eine Funktion, die als Wert gelesen statt aufgerufen wird, ist <code>NOT_INDEXED</code> (die Frage ließ sich dort nie stellen)."
+    },
+    {
+      "id": "h-3074b99c",
+      "kind": "html",
+      "en": "The editor's rename does not reach tests yet, so it leaves an <code>@example</code> spelling the old name (G546). A field access or a <code>match</code> inside a test is not listed; those searches name the case under <code>not_indexed</code> (G547).",
+      "tr": "Die Umbenennung im Editor erreicht Tests noch nicht und lässt ein <code>@example</code> mit dem alten Namen stehen (G546). Ein Feldzugriff oder ein <code>match</code> in einem Test wird nicht gelistet; diese Suchen nennen den Fall unter <code>not_indexed</code> (G547)."
     },
     {
       "id": "h-32f66691",

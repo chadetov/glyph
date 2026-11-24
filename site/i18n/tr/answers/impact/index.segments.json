@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "tr",
-  "source_hash": "ca78870bae5132f9",
+  "source_hash": "1fb08f4f1824ead4",
   "segments": [
     {
       "id": "title",
@@ -221,6 +221,18 @@
       "tr": "Değişiklik zorunludur, çünkü bir hüküm bir düzenleme hakkında bir olgudur; hiçbir düzenleme belirtilmezse her yer bir sonuç olarak değil, çıplak bir referans olarak dönerdi. Yanıt varlığı, değişikliği ve bir <code>impact</code> listesini belirtir: her yer için bir kayıt; her birinde içinde bulunduğu tanım, bir <code>relation</code>, bir <code>verdict</code>, bir <code>because</code> ve tam olarak bir tane olduğunda derleyicinin üreteceği diagnostic kodu."
     },
     {
+      "id": "h-ef9faf49",
+      "kind": "html",
+      "en": "A call inside an <code>@example</code>, or inside a <code>@doc</code> fence tagged <code>glyph @run</code>, is a site too. The build runs those tests, so a rename breaks them like any other caller. Each entry carries <code>context</code>: <code>\"example\"</code> or <code>\"doc_run\"</code> for a site in a test, null for one in the program. Renaming <code>normalize</code> below lists its own example as well as the two calls in <code>twice</code>:",
+      "tr": "Bir <code>@example</code> içindeki ya da <code>glyph @run</code> etiketli bir <code>@doc</code> bloğu içindeki çağrı da bir konumdur. Derleme bu testleri çalıştırır, bu yüzden yeniden adlandırma onları diğer çağıranlar gibi bozar. Her kayıt <code>context</code> taşır: testteki bir konum için <code>\"example\"</code> ya da <code>\"doc_run\"</code>, programdaki için null. Aşağıda <code>normalize</code> yeniden adlandırılınca <code>twice</code> içindeki iki çağrının yanında kendi örneği de listelenir:"
+    },
+    {
+      "id": "h-44ba008e",
+      "kind": "html",
+      "en": "glyph query impact --entity main::normalize --change rename, the third entry",
+      "tr": "glyph query impact --entity main::normalize --change rename, üçüncü kayıt"
+    },
+    {
       "id": "h-ed0c982f",
       "kind": "html",
       "en": "On a real application",
@@ -299,6 +311,12 @@
       "tr": "Kapsam (bir aramanın neyi okuyup neyi okuyamadığı) tüm yanıt için bir kez değil, arama başına belirtilir ve her düğüm Glyph kaynağından mı, bir <code>extern_ts</code> kaçışından mı yoksa opak bir <code>.d.ts</code>'ten mi geldiğini taşır."
     },
     {
+      "id": "h-e3f9447c",
+      "kind": "html",
+      "en": "Calls and names inside an <code>@example</code> or a <code>@doc</code> <code>glyph @run</code> fence are listed with <code>context</code>, and <code>glyph_references</code> and <code>glyph_dependencies</code> list them the same way.",
+      "tr": "Bir <code>@example</code> ya da <code>@doc</code> <code>glyph @run</code> bloğu içindeki çağrılar ve adlar <code>context</code> ile listelenir; <code>glyph_references</code> ve <code>glyph_dependencies</code> de onları aynı şekilde listeler."
+    },
+    {
       "id": "h-c647197d",
       "kind": "html",
       "en": "Where it stops",
@@ -339,6 +357,12 @@
       "kind": "html",
       "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
       "tr": "<code>UNDETERMINED</code> ve <code>NOT_INDEXED</code> farklı iddialardır: checker'ın tipini bilmediği bir argüman ya da hiçbir kuralın okumadığı bir alanla eşleşen bir record <code>UNDETERMINED</code>'dır (baktı ve karar veremedi); çağrılmak yerine bir değer olarak okunan bir fonksiyon <code>NOT_INDEXED</code>'dır (soru orada hiç sorulamazdı)."
+    },
+    {
+      "id": "h-3074b99c",
+      "kind": "html",
+      "en": "The editor's rename does not reach tests yet, so it leaves an <code>@example</code> spelling the old name (G546). A field access or a <code>match</code> inside a test is not listed; those searches name the case under <code>not_indexed</code> (G547).",
+      "tr": "Düzenleyicideki yeniden adlandırma henüz testlere ulaşmıyor, bu yüzden bir <code>@example</code> eski adla kalıyor (G546). Bir test içindeki alan erişimi ya da <code>match</code> listelenmez; bu aramalar durumu <code>not_indexed</code> altında adlandırır (G547)."
     },
     {
       "id": "h-32f66691",

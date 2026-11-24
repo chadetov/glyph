@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "ko",
-  "source_hash": "ca78870bae5132f9",
+  "source_hash": "1fb08f4f1824ead4",
   "segments": [
     {
       "id": "title",
@@ -221,6 +221,18 @@
       "tr": "판정은 편집에 대한 사실이므로 변경은 필수입니다. 편집을 지정하지 않으면 모든 위치가 결과가 아니라 그저 참조로 돌아올 것입니다. 답에는 엔티티, 변경, 그리고 <code>impact</code> 목록이 있습니다. 위치마다 항목 하나이며, 각 항목에는 그 위치가 속한 선언, <code>relation</code>, <code>verdict</code>, <code>because</code>, 그리고 컴파일러가 내는 진단 코드가 정확히 하나일 때 그 코드가 들어 있습니다."
     },
     {
+      "id": "h-ef9faf49",
+      "kind": "html",
+      "en": "A call inside an <code>@example</code>, or inside a <code>@doc</code> fence tagged <code>glyph @run</code>, is a site too. The build runs those tests, so a rename breaks them like any other caller. Each entry carries <code>context</code>: <code>\"example\"</code> or <code>\"doc_run\"</code> for a site in a test, null for one in the program. Renaming <code>normalize</code> below lists its own example as well as the two calls in <code>twice</code>:",
+      "tr": "<code>@example</code> 안의 호출, 또는 <code>glyph @run</code> 태그가 붙은 <code>@doc</code> 코드 블록 안의 호출도 사이트입니다. 빌드가 이 테스트들을 실행하므로, 이름을 바꾸면 다른 호출자처럼 깨집니다. 각 항목에는 <code>context</code>가 있으며, 테스트 안의 사이트는 <code>\"example\"</code> 또는 <code>\"doc_run\"</code>, 프로그램 안의 사이트는 null입니다. 아래에서 <code>normalize</code>의 이름을 바꾸면 <code>twice</code>의 두 호출과 함께 자신의 예제도 나열됩니다:"
+    },
+    {
+      "id": "h-44ba008e",
+      "kind": "html",
+      "en": "glyph query impact --entity main::normalize --change rename, the third entry",
+      "tr": "glyph query impact --entity main::normalize --change rename, 세 번째 항목"
+    },
+    {
       "id": "h-ed0c982f",
       "kind": "html",
       "en": "On a real application",
@@ -299,6 +311,12 @@
       "tr": "커버리지(검색이 읽을 수 있었던 것과 없었던 것)는 답 전체에 대해 한 번이 아니라 검색마다 밝히고, 모든 노드에는 Glyph 소스, <code>extern_ts</code> 탈출구, 불투명한 <code>.d.ts</code> 중 어디서 왔는지가 표시됩니다."
     },
     {
+      "id": "h-e3f9447c",
+      "kind": "html",
+      "en": "Calls and names inside an <code>@example</code> or a <code>@doc</code> <code>glyph @run</code> fence are listed with <code>context</code>, and <code>glyph_references</code> and <code>glyph_dependencies</code> list them the same way.",
+      "tr": "<code>@example</code>이나 <code>@doc</code> <code>glyph @run</code> 블록 안의 호출과 이름은 <code>context</code>와 함께 나열되고, <code>glyph_references</code>와 <code>glyph_dependencies</code>도 같은 방식으로 나열합니다."
+    },
+    {
       "id": "h-c647197d",
       "kind": "html",
       "en": "Where it stops",
@@ -339,6 +357,12 @@
       "kind": "html",
       "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
       "tr": "<code>UNDETERMINED</code>와 <code>NOT_INDEXED</code>는 다른 주장입니다. 검사기가 타입을 갖고 있지 않은 인자나, 어떤 규칙도 읽지 않는 필드와 짝지어진 레코드는 <code>UNDETERMINED</code>(살펴봤지만 결정할 수 없음)이고, 호출하지 않고 값으로 읽은 함수는 <code>NOT_INDEXED</code>(거기서는 애초에 물을 수 없는 질문)입니다."
+    },
+    {
+      "id": "h-3074b99c",
+      "kind": "html",
+      "en": "The editor's rename does not reach tests yet, so it leaves an <code>@example</code> spelling the old name (G546). A field access or a <code>match</code> inside a test is not listed; those searches name the case under <code>not_indexed</code> (G547).",
+      "tr": "편집기의 이름 바꾸기는 아직 테스트에 닿지 않아 <code>@example</code>에 옛 이름이 남습니다 (G546). 테스트 안의 필드 접근이나 <code>match</code>는 나열되지 않으며, 해당 검색은 이 경우를 <code>not_indexed</code>에 명시합니다 (G547)."
     },
     {
       "id": "h-32f66691",

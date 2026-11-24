@@ -591,6 +591,37 @@
         </p>
       </div></details>
 
+      <p class="ak-lede">
+        <code>@example</code> 안의 호출, 또는 <code>glyph @run</code> 태그가 붙은 <code>@doc</code> 코드 블록 안의 호출도 사이트입니다. 빌드가 이 테스트들을 실행하므로, 이름을 바꾸면 다른 호출자처럼 깨집니다. 각 항목에는 <code>context</code>가 있으며, 테스트 안의 사이트는 <code>"example"</code> 또는 <code>"doc_run"</code>, 프로그램 안의 사이트는 null입니다. 아래에서 <code>normalize</code>의 이름을 바꾸면 <code>twice</code>의 두 호출과 함께 자신의 예제도 나열됩니다:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">main.glyph</span>
+<pre><span class="k">module</span> main
+
+<span class="k">@example</span> normalize(<span class="s">"  Hi "</span>) == <span class="s">"hi"</span>
+<span class="k">pub</span> <span class="k">fn</span> normalize(s: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> s.trim().toLowerCase()
+}
+
+<span class="k">@example</span> twice(<span class="s">"a"</span>) == <span class="s">"aa"</span>
+<span class="k">pub</span> <span class="k">fn</span> twice(s: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> normalize(s) + normalize(s)
+}</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph query impact --entity main::normalize --change rename, 세 번째 항목</span>
+<pre>{
+  <span class="pk">"entity"</span>: <span class="s">"main::normalize"</span>,
+  <span class="pk">"context"</span>: <span class="s">"example"</span>,
+  <span class="pk">"relation"</span>: <span class="s">"CALLS"</span>,
+  <span class="pk">"line"</span>: <span class="n">2</span>,
+  <span class="pk">"verdict"</span>: <span class="s">"WILL_FAIL"</span>,
+  <span class="pk">"diagnostic"</span>: <span class="s">"E0103"</span>
+}</pre>
+        </div>
+      </div>
+
       <h2 class="ak-h" id="on-a-real-application">실제 애플리케이션에서<a class="ak-anchor" href="#on-a-real-application" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
         이 저장소에 있는 파일 열한 개짜리 CSV 쿼리 엔진 <code>examples/apps/csvql</code>에는 현재 variant 네 개를 가진 태그 유니언 <code>Value</code>가 하나 있습니다. 다섯 번째(<code>Blob</code>)를 추가하면 어떻게 되는지 <code>glyph_impact</code>에 물으면 파일 4개에 걸쳐 match 위치 10곳을 찾습니다. 8곳은 컴파일에 실패하고, 2곳에는 새 variant를 조용히 흡수할 catch-all arm이 있습니다.
@@ -617,6 +648,7 @@
                 <p>커버리지(검색이 읽을 수 있었던 것과 없었던 것)는 답 전체에 대해 한 번이 아니라 검색마다 밝히고, 모든 노드에는 Glyph 소스, <code>extern_ts</code> 탈출구, 불투명한 <code>.d.ts</code> 중 어디서 왔는지가 표시됩니다.</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>@example</code>이나 <code>@doc</code> <code>glyph @run</code> 블록 안의 호출과 이름은 <code>context</code>와 함께 나열되고, <code>glyph_references</code>와 <code>glyph_dependencies</code>도 같은 방식으로 나열합니다.</span></span></li>
           </ul>
         </section>
 
@@ -638,6 +670,7 @@
                 <p><code>UNDETERMINED</code>와 <code>NOT_INDEXED</code>는 다른 주장입니다. 검사기가 타입을 갖고 있지 않은 인자나, 어떤 규칙도 읽지 않는 필드와 짝지어진 레코드는 <code>UNDETERMINED</code>(살펴봤지만 결정할 수 없음)이고, 호출하지 않고 값으로 읽은 함수는 <code>NOT_INDEXED</code>(거기서는 애초에 물을 수 없는 질문)입니다.</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">편집기의 이름 바꾸기는 아직 테스트에 닿지 않아 <code>@example</code>에 옛 이름이 남습니다 (G546). 테스트 안의 필드 접근이나 <code>match</code>는 나열되지 않으며, 해당 검색은 이 경우를 <code>not_indexed</code>에 명시합니다 (G547).</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">주의해서 볼 것은 <code>ABSORBS</code>입니다. 그 위치는 계속 컴파일되면서도 틀렸다고 증명되며, 통과한 빌드는 이를 결코 보여 주지 않습니다.</span></span></li>
           </ul>
         </section>

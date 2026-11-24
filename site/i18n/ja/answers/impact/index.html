@@ -1,7 +1,7 @@
 ---
 title: 変更が何を壊すかをコンパイラは教えてくれるか？ · Glyph
 description: glyph_impact は、これから変更する宣言とその編集を受け取り、ファイルに触れる前に、すべての箇所について判定と理由を返します。
-source_hash: ca78870bae5132f9
+source_hash: 1fb08f4f1824ead4
 prev: /answers/binary/ | &larr; 前へ | バイナリデータは扱えるのか、それとも何でも文字列なのか
 next: /answers/ask-the-compiler/ | 次へ &rarr; | エージェントは、コードを書く前にシンボルが何なのかをコンパイラに聞けますか？
 ---
@@ -122,6 +122,37 @@ next: /answers/ask-the-compiler/ | 次へ &rarr; | エージェントは、コ�
         </p>
       </div></details>
 
+      <p class="ak-lede">
+        <code>@example</code> の中の呼び出しや、<code>glyph @run</code> が付いた <code>@doc</code> のコードブロック内の呼び出しもサイトです。ビルドはそれらのテストを実行するので、名前の変更は他の呼び出し元と同じようにそれらを壊します。各エントリには <code>context</code> があり、テスト内のサイトなら <code>"example"</code> か <code>"doc_run"</code>、プログラム内なら null です。下の <code>normalize</code> の名前変更では、<code>twice</code> の 2 つの呼び出しに加えて自分自身の例も列挙されます:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">main.glyph</span>
+<pre>module main
+
+@example normalize("  Hi ") == "hi"
+pub fn normalize(s: string) -> string {
+  return s.trim().toLowerCase()
+}
+
+@example twice("a") == "aa"
+pub fn twice(s: string) -> string {
+  return normalize(s) + normalize(s)
+}</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph query impact --entity main::normalize --change rename、3 番目のエントリ</span>
+<pre>{
+  "entity": "main::normalize",
+  "context": "example",
+  "relation": "CALLS",
+  "line": 2,
+  "verdict": "WILL_FAIL",
+  "diagnostic": "E0103"
+}</pre>
+        </div>
+      </div>
+
       <h2 class="ak-h" id="on-a-real-application">実際のアプリケーションで<a class="ak-anchor" href="#on-a-real-application" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
         このリポジトリにある 11 ファイルの CSV クエリエンジン <code>examples/apps/csvql</code> には、タグ付きユニオン <code>Value</code> が 1 つあり、現在 4 つのバリアントを持っています。5 つ目（<code>Blob</code>）を追加すると何が起きるかを <code>glyph_impact</code> に尋ねると、4 ファイルにわたる 10 か所の match が見つかります。8 か所はコンパイルに失敗し、2 か所は新しいバリアントを黙って吸収する catch-all のアームを含んでいます。
@@ -148,6 +179,7 @@ next: /answers/ask-the-compiler/ | 次へ &rarr; | エージェントは、コ�
                 <p>カバー範囲（検索が読めたものと読めなかったもの）は、答え全体で 1 回ではなく検索ごとに示され、どのノードにも、それが Glyph のソース、<code>extern_ts</code> の抜け道、中身の見えない <code>.d.ts</code> のどれから来たかが付きます。</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>@example</code> や <code>@doc</code> の <code>glyph @run</code> ブロック内の呼び出しと名前は <code>context</code> 付きで列挙され、<code>glyph_references</code> と <code>glyph_dependencies</code> も同じように列挙します。</span></span></li>
           </ul>
         </section>
 
@@ -169,6 +201,7 @@ next: /answers/ask-the-compiler/ | 次へ &rarr; | エージェントは、コ�
                 <p><code>UNDETERMINED</code> と <code>NOT_INDEXED</code> は異なる主張です。型検査器が型を持たない引数や、どのルールも読まないフィールドとのレコードの対応は <code>UNDETERMINED</code>（調べたが決められなかった）で、呼び出されずに値として読まれる関数は <code>NOT_INDEXED</code>（そこではそもそも質問ができなかった）です。</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">エディタの名前変更はまだテストに届かないため、<code>@example</code> に古い名前が残ります (G546)。テスト内のフィールドアクセスや <code>match</code> は列挙されず、それらの検索はこのケースを <code>not_indexed</code> に挙げます (G547)。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">注意すべきは <code>ABSORBS</code> です。その箇所はコンパイルが通り続けるのに、誤りであることは証明されています。ビルドが成功しても、それは決して見えません。</span></span></li>
           </ul>
         </section>

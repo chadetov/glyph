@@ -589,6 +589,37 @@
         </p>
       </div></details>
 
+      <p class="ak-lede">
+        Ein Aufruf in einem <code>@example</code> oder in einem mit <code>glyph @run</code> markierten <code>@doc</code>-Block ist ebenfalls eine Stelle. Der Build führt diese Tests aus, also bricht eine Umbenennung sie wie jeden anderen Aufrufer. Jeder Eintrag trägt <code>context</code>: <code>"example"</code> oder <code>"doc_run"</code> für eine Stelle in einem Test, null für eine im Programm. Die Umbenennung von <code>normalize</code> unten listet sein eigenes Beispiel und die zwei Aufrufe in <code>twice</code>:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">main.glyph</span>
+<pre><span class="k">module</span> main
+
+<span class="k">@example</span> normalize(<span class="s">"  Hi "</span>) == <span class="s">"hi"</span>
+<span class="k">pub</span> <span class="k">fn</span> normalize(s: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> s.trim().toLowerCase()
+}
+
+<span class="k">@example</span> twice(<span class="s">"a"</span>) == <span class="s">"aa"</span>
+<span class="k">pub</span> <span class="k">fn</span> twice(s: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
+  <span class="k">return</span> normalize(s) + normalize(s)
+}</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph query impact --entity main::normalize --change rename, der dritte Eintrag</span>
+<pre>{
+  <span class="pk">"entity"</span>: <span class="s">"main::normalize"</span>,
+  <span class="pk">"context"</span>: <span class="s">"example"</span>,
+  <span class="pk">"relation"</span>: <span class="s">"CALLS"</span>,
+  <span class="pk">"line"</span>: <span class="n">2</span>,
+  <span class="pk">"verdict"</span>: <span class="s">"WILL_FAIL"</span>,
+  <span class="pk">"diagnostic"</span>: <span class="s">"E0103"</span>
+}</pre>
+        </div>
+      </div>
+
       <h2 class="ak-h" id="on-a-real-application">An einer echten Anwendung<a class="ak-anchor" href="#on-a-real-application" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
         <code>examples/apps/csvql</code>, eine CSV-Abfrage-Engine aus elf Dateien in diesem Repository, hat eine Tagged Union, <code>Value</code>, mit heute vier Varianten. Auf die Frage an <code>glyph_impact</code>, was eine fünfte (<code>Blob</code>) bewirkt, findet es 10 match-Stellen in 4 Dateien: 8 werden nicht mehr kompilieren, und 2 enthalten einen Catch-all-Arm, der die neue Variante still aufnehmen wird.
@@ -615,6 +646,7 @@
                 <p>Die Abdeckung (was eine Suche lesen konnte und was nicht) wird pro Suche angegeben statt einmal für die ganze Antwort, und jeder Knoten sagt, ob er aus Glyph-Quellcode, einer <code>extern_ts</code>-Hintertür oder einer undurchsichtigen <code>.d.ts</code> stammt.</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Aufrufe und Namen in einem <code>@example</code> oder einem <code>@doc</code>-<code>glyph @run</code>-Block werden mit <code>context</code> gelistet, und <code>glyph_references</code> und <code>glyph_dependencies</code> listen sie genauso.</span></span></li>
           </ul>
         </section>
 
@@ -636,6 +668,7 @@
                 <p><code>UNDETERMINED</code> und <code>NOT_INDEXED</code> sind verschiedene Aussagen: Ein Argument, für das der Checker keinen Typ hat, oder eine Record-Zuordnung mit einem Feld, das keine Regel liest, ist <code>UNDETERMINED</code> (er hat nachgesehen und konnte nicht entscheiden); eine Funktion, die als Wert gelesen statt aufgerufen wird, ist <code>NOT_INDEXED</code> (die Frage ließ sich dort nie stellen).</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Die Umbenennung im Editor erreicht Tests noch nicht und lässt ein <code>@example</code> mit dem alten Namen stehen (G546). Ein Feldzugriff oder ein <code>match</code> in einem Test wird nicht gelistet; diese Suchen nennen den Fall unter <code>not_indexed</code> (G547).</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Auf <code>ABSORBS</code> solltest du achten: Die Stelle kompiliert weiter und ist trotzdem nachweislich falsch, was dir ein grüner Build nie zeigen wird.</span></span></li>
           </ul>
         </section>

@@ -1,7 +1,7 @@
 ---
 title: Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi? · Glyph
 description: glyph_impact, değiştirmek üzere olduğunuz tanımı ve düzenlemeyi alır; dosyaya dokunmadan önce her yer için bir hüküm ve bir gerekçeyle yanıt verir.
-source_hash: ca78870bae5132f9
+source_hash: 1fb08f4f1824ead4
 prev: /answers/binary/ | &larr; Önceki | Binary veriyle çalışabilir miyim, yoksa her şey string mi?
 next: /answers/ask-the-compiler/ | Sonraki &rarr; | Ajanım kod yazmadan önce derleyiciye bir sembolün ne olduğunu sorabilir mi?
 ---
@@ -122,6 +122,37 @@ next: /answers/ask-the-compiler/ | Sonraki &rarr; | Ajanım kod yazmadan önce d
         </p>
       </div></details>
 
+      <p class="ak-lede">
+        Bir <code>@example</code> içindeki ya da <code>glyph @run</code> etiketli bir <code>@doc</code> bloğu içindeki çağrı da bir konumdur. Derleme bu testleri çalıştırır, bu yüzden yeniden adlandırma onları diğer çağıranlar gibi bozar. Her kayıt <code>context</code> taşır: testteki bir konum için <code>"example"</code> ya da <code>"doc_run"</code>, programdaki için null. Aşağıda <code>normalize</code> yeniden adlandırılınca <code>twice</code> içindeki iki çağrının yanında kendi örneği de listelenir:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">main.glyph</span>
+<pre>module main
+
+@example normalize("  Hi ") == "hi"
+pub fn normalize(s: string) -> string {
+  return s.trim().toLowerCase()
+}
+
+@example twice("a") == "aa"
+pub fn twice(s: string) -> string {
+  return normalize(s) + normalize(s)
+}</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph query impact --entity main::normalize --change rename, üçüncü kayıt</span>
+<pre>{
+  "entity": "main::normalize",
+  "context": "example",
+  "relation": "CALLS",
+  "line": 2,
+  "verdict": "WILL_FAIL",
+  "diagnostic": "E0103"
+}</pre>
+        </div>
+      </div>
+
       <h2 class="ak-h" id="on-a-real-application">Gerçek bir uygulamada<a class="ak-anchor" href="#on-a-real-application" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
         Bu depodaki on bir dosyalı bir CSV sorgu motoru olan <code>examples/apps/csvql</code>'in bugün dört variant'lı tek bir tagged union'ı var: <code>Value</code>. <code>glyph_impact</code>'e beşinci bir variant (<code>Blob</code>) eklemenin ne yapacağını sormak, 4 dosyada 10 match yeri bulur: 8'i derlemede başarısız olacak, 2'si ise yeni variant'ı sessizce kabul edecek bir catch-all arm'ı içeriyor.
@@ -148,6 +179,7 @@ next: /answers/ask-the-compiler/ | Sonraki &rarr; | Ajanım kod yazmadan önce d
                 <p>Kapsam (bir aramanın neyi okuyup neyi okuyamadığı) tüm yanıt için bir kez değil, arama başına belirtilir ve her düğüm Glyph kaynağından mı, bir <code>extern_ts</code> kaçışından mı yoksa opak bir <code>.d.ts</code>'ten mi geldiğini taşır.</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir <code>@example</code> ya da <code>@doc</code> <code>glyph @run</code> bloğu içindeki çağrılar ve adlar <code>context</code> ile listelenir; <code>glyph_references</code> ve <code>glyph_dependencies</code> de onları aynı şekilde listeler.</span></span></li>
           </ul>
         </section>
 
@@ -169,6 +201,7 @@ next: /answers/ask-the-compiler/ | Sonraki &rarr; | Ajanım kod yazmadan önce d
                 <p><code>UNDETERMINED</code> ve <code>NOT_INDEXED</code> farklı iddialardır: checker'ın tipini bilmediği bir argüman ya da hiçbir kuralın okumadığı bir alanla eşleşen bir record <code>UNDETERMINED</code>'dır (baktı ve karar veremedi); çağrılmak yerine bir değer olarak okunan bir fonksiyon <code>NOT_INDEXED</code>'dır (soru orada hiç sorulamazdı).</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Düzenleyicideki yeniden adlandırma henüz testlere ulaşmıyor, bu yüzden bir <code>@example</code> eski adla kalıyor (G546). Bir test içindeki alan erişimi ya da <code>match</code> listelenmez; bu aramalar durumu <code>not_indexed</code> altında adlandırır (G547).</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Dikkat edilmesi gereken <code>ABSORBS</code>'tur: yer derlenmeye devam eder ve yine de yanlış olduğu kanıtlanır; yeşil bir build bunu size asla göstermez.</span></span></li>
           </ul>
         </section>

@@ -1,7 +1,7 @@
 ---
 title: Bir ajanın kodumu sessizce bozmasını ne engelliyor? · Glyph
 description: TypeScript'te derlenip sonra bozulan değişiklikler, örneğin eksik bir durum, ele alınmamış bir hata ya da adı değiştirilmiş bir alan, Glyph'te ajanın düzeltmek zorunda olduğu derleme hatalarıdır.
-source_hash: b4c6f18de84ea473
+source_hash: d0316fc0c6629e95
 next: /answers/diff-stability/ | Sonraki &rarr; | Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?
 ---
       <p class="q-eyebrow">01 &middot; Temel vaat</p>
@@ -454,7 +454,10 @@ fn charge(r: PaymentResult) -&gt; number {
           <code>string</code>, <code>number</code> ya da <code>bool</code> tipli bir parametre, bildirilmiş bir union'ın ya da record'ın değerini hiç şikâyet etmeden kabul ediyordu; oysa uyuşmayan bir <code>bool</code> argümanıyla yapılan aynı çağrı zaten <code>E0211</code>'di.
         </p>
         <p>
-          Kontrol tanımı okur, bu yüzden yalnızca cevabın kesin olduğu yerde tetiklenir. İlkel bir alias, bir string-literal union (D30), bir <code>extern_ts</code> ya da <code>typeof</code> gövdesi ve bir <code>interface</code> hâlâ hiçbir şey söylemez, çünkü bunların hiçbiri bir tagged union ya da record gibi kanıtlanabilir biçimde <code>string</code> olmayan bir şey değildir; <code>void</code> de hariç tutulur. Bir argümana, bir <code>return</code>'e ve bir <code>let</code> annotation'ına aynı şekilde ulaşır, çünkü üçü de tek bir ilişkiyi paylaşır.
+          Denetim bildirimi okur, bu yüzden yalnızca cevabın kesin olduğu yerde devreye girer. <code>type Id = string</code> gibi bir ilkel takma ad, adlandırdığı <code>string</code> olarak okunur ve aynı şekilde karara bağlanır. Dize literali birleşimi (D30) literalleriyle karşılaştırılır, bir <code>interface</code> değeri ise <code>string</code> bildirilen yerde reddedilir, çünkü değeri bir nesnedir. <code>extern_ts</code> veya <code>typeof</code> gövdesi hâlâ bir şey söylemez, <code>void</code> de hariç tutulur. Bir argümana, bir <code>return</code>'e ve bir <code>let</code> açıklamasına aynı şekilde ulaşır, çünkü üçü de tek bir ilişkiyi paylaşır.
+        </p>
+        <p>
+          Öteki yön, TypeScript'teki gibi değerin üyelerinden geçer: <code>interface HasName { name: string }</code> bildirilen yerde <code>5</code> reddedilir, <code>interface HasLen { length: number }</code> bildirilen yerde ise bir dizenin <code>length</code> üyesi olduğu için <code>"abc"</code> kabul edilir. Üç eşleşme henüz karara bağlanmıyor ve <code>tsc</code>'ye bırakılıyor: tüm üyeleri isteğe bağlı olup değerle hiçbirini paylaşmayan bir arayüz (G526), bir arayüze karşı <code>Option</code>, <code>Result</code> ve <code>Record</code> (G527), ve denetleyicinin hâlâ <code>number</code> olarak okuduğu <code>bigint</code> (G500).
         </p>
       </div></details>
 
@@ -481,7 +484,7 @@ fn f() -&gt; number {
           Tip annotation'ı taşıyan modül düzeyindeki bir <code>const</code>, annotation ne derse desin <code>Ty::Unknown</code>'a dönüştürülüyordu; bu yüzden üzerindeki bir alan yazım hatası, bir fonksiyon içindeki aynı annotation'lı <code>let</code>'in zaten bildirdiği yerde görünmüyordu.
         </p>
         <p>
-          Annotation'sız bir <code>const</code> hiçbir şey iddia etmez ve bilerek <code>Unknown</code> kalır: tipini başlatıcıdan çıkarmak, farklı bir yanlış pozitif yüzeyi olan farklı bir soru. İki düzeltme de <code>glyph check --no-tsc</code>, dil sunucusu ve playground altında breaking, çünkü her biri önceki sürümün kabul ettiği bir programı yakalamaya başlıyor; tam bir <code>glyph build</code> iki durumda da <code>tsc</code> üzerinden zaten kırmızıydı.
+          0.1.166'dan beri açıklamasız bir <code>const</code>, başlatıcısının tipine sahiptir; <code>tsc</code>'nin, yayıcının yazdığı TypeScript <code>const</code>'unu okuduğu gibi okunur: <code>const MODE = "read"</code> literal tipini korur, bir nesne veya dizi içindeki literal ise genişletilir, yani <code>const ITEMS = [1, 2]</code> bir <code>Array&lt;number&gt;</code> olur ve <code>mut</code> dışındaki <code>ITEMS.push(3)</code> E0240'tır. Denetleyicinin tipleyemediği bir başlatıcı, <code>const</code>'u tipsiz bırakır. Her iki düzeltme de <code>glyph check --no-tsc</code>, dil sunucusu ve playground altında uyumluluğu bozar, çünkü her biri önceki sürümün kabul ettiği bir programı yakalamaya başlar; tam bir <code>glyph build</code> her iki durumda da <code>tsc</code> yüzünden zaten kırmızıydı.
         </p>
       </div></details>
 

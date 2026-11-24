@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"エージェントがコードを気づかれずに壊すのを、何が防ぐのか","item":"https://glyphlang.io/ja/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/verifiability/#article","headline":"エージェントがコードを気づかれずに壊すのを、何が防ぐのか","description":"TypeScript ではコンパイルが通ってから壊れる変更（ケースの抜け、処理されないエラー、フィールド名の変更）が、Glyph ではエージェントが直さなければならないコンパイルエラーになります。","url":"https://glyphlang.io/ja/answers/verifiability/","inLanguage":"ja","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"エージェントがコードを気づかれずに壊すのを、何が防ぐのか","item":"https://glyphlang.io/ja/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/verifiability/#article","headline":"エージェントがコードを気づかれずに壊すのを、何が防ぐのか","description":"TypeScript ではコンパイルが通ってから壊れる変更（ケースの抜け、処理されないエラー、フィールド名の変更）が、Glyph ではエージェントが直さなければならないコンパイルエラーになります。","url":"https://glyphlang.io/ja/answers/verifiability/","inLanguage":"ja","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -411,7 +411,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>このページは翻訳です。英語版が正式な内容です。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ja%29%3A+%2Fja%2Fanswers%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fja%2Fanswers%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">翻訳の問題を報告する</a></p>
-      <p class="i18n-stale">このページの英語版は、翻訳後に更新されています。 <a href="/answers/verifiability/" hreflang="en" data-lang="en">最新の英語版を読む</a></p>
     </div>
     <script>
       (function () {
@@ -924,7 +923,10 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           <code>string</code>、<code>number</code>、<code>bool</code> と型付けされたパラメータは、宣言されたユニオンやレコードの値を何の文句もなく受け入れていました。同じ呼び出しで <code>bool</code> の引数が合わない場合は、すでに <code>E0211</code> だったにもかかわらずです。
         </p>
         <p>
-          この検査は宣言を読むので、答えが確実な場所でだけ働きます。プリミティブの別名、文字列リテラルのユニオン（D30）、<code>extern_ts</code> や <code>typeof</code> の本体、<code>interface</code> では、今も何も言いません。どれも、タグ付きユニオンやレコードのように <code>string</code> ではないと証明できるものではないからです。<code>void</code> も対象外です。引数、<code>return</code>、<code>let</code> の型注釈のどれにも同じように働きます。3 つとも 1 つの関係を共有しているからです。
+          このチェックは宣言を読むので、答えが確実な場所でだけ発動します。<code>type Id = string</code> のようなプリミティブの別名は、それが指す <code>string</code> として読まれるので、同じように判定されます。文字列リテラルのユニオン (D30) はそのリテラルで比較され、<code>interface</code> の値は、その値がオブジェクトなので、<code>string</code> が宣言された場所では拒否されます。<code>extern_ts</code> や <code>typeof</code> の本体については引き続き何も言わず、<code>void</code> も対象外です。引数、<code>return</code>、<code>let</code> の注釈のどれにも同じように届きます。三つとも一つの関係を共有しているからです。
+        </p>
+        <p>
+          逆方向は TypeScript と同じく値のメンバーを通ります。<code>interface HasName { name: string }</code> が宣言された場所では <code>5</code> は拒否され、<code>interface HasLen { length: number }</code> が宣言された場所では、文字列には <code>length</code> があるので <code>"abc"</code> は受け入れられます。まだ判定されず <code>tsc</code> に任せている組み合わせが三つあります。メンバーがすべて省略可能で値と一つも共有しないインターフェース (G526)、インターフェースに対する <code>Option</code>、<code>Result</code>、<code>Record</code> (G527)、そしてチェッカーがまだ <code>number</code> として読む <code>bigint</code> (G500) です。
         </p>
       </div></details>
 
@@ -951,7 +953,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           型注釈の付いたモジュールレベルの <code>const</code> は、注釈の内容にかかわらず <code>Ty::Unknown</code> に変換されていました。そのため、関数の中の同じ注釈付き <code>let</code> ならすでに報告されていたフィールドのタイプミスが、ちょうどそこで見えなくなっていました。
         </p>
         <p>
-          型注釈のない <code>const</code> は何も主張せず、意図して <code>Unknown</code> のままにしています。初期化式から推論するのは別の問題で、誤検出の範囲も異なります。どちらの修正も <code>glyph check --no-tsc</code>、言語サーバー、Playground では破壊的です。どちらも前のリリースが受け入れていたプログラムを検出し始めるからです。完全な <code>glyph build</code> は、どちらの場合もすでに <code>tsc</code> によって赤になっていました。
+          0.1.166 以降、注釈のない <code>const</code> は初期化子の型を持ちます。エミッタが書く TypeScript の <code>const</code> を <code>tsc</code> が読むのと同じ読み方です。<code>const MODE = "read"</code> はリテラル型を保ち、オブジェクトや配列の中のリテラルは広げられるので、<code>const ITEMS = [1, 2]</code> は <code>Array&lt;number&gt;</code> になり、<code>mut</code> の外での <code>ITEMS.push(3)</code> は E0240 です。チェッカーが型を付けられない初期化子では、その <code>const</code> は型なしのままです。どちらの修正も <code>glyph check --no-tsc</code>、言語サーバー、プレイグラウンドでは破壊的変更です。それぞれ前のリリースが受け入れていたプログラムを捕まえ始めるからです。完全な <code>glyph build</code> はどちらの場合もすでに <code>tsc</code> によって赤でした。
         </p>
       </div></details>
 
@@ -1118,7 +1120,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           これが Glyph の 4 つの柱の 1 つ目である理由と、その保証がどこで止まるかは、<a href="/ja/pillars/verifiability/">検証可能性の柱のページ</a>にあります。
         </p>
       </div>
-      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.181 で検証しています。最終更新：<time datetime="2026-11-22">2026年11月22日</time>。</p>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.181 で検証しています。最終更新：<time datetime="2026-11-24">2026年11月24日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <div class="spacer"></div>
         <a href="/ja/answers/diff-stability/" class="nx cta">

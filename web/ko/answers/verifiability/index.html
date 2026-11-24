@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?","item":"https://glyphlang.io/ko/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/verifiability/#article","headline":"에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?","description":"TypeScript에서는 컴파일된 뒤 깨지는 변경, 예를 들어 빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드가 Glyph에서는 에이전트가 고쳐야 하는 컴파일 오류가 됩니다.","url":"https://glyphlang.io/ko/answers/verifiability/","inLanguage":"ko","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?","item":"https://glyphlang.io/ko/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/verifiability/#article","headline":"에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?","description":"TypeScript에서는 컴파일된 뒤 깨지는 변경, 예를 들어 빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드가 Glyph에서는 에이전트가 고쳐야 하는 컴파일 오류가 됩니다.","url":"https://glyphlang.io/ko/answers/verifiability/","inLanguage":"ko","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -411,7 +411,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>이 페이지는 번역본입니다. 기준은 영어판입니다. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ko%29%3A+%2Fko%2Fanswers%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fko%2Fanswers%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">번역 문제 신고하기</a></p>
-      <p class="i18n-stale">이 번역 이후 이 페이지의 영어판이 변경되었습니다. <a href="/answers/verifiability/" hreflang="en" data-lang="en">최신 영어판 읽기</a></p>
     </div>
     <script>
       (function () {
@@ -924,7 +923,10 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           <code>string</code>, <code>number</code>, <code>bool</code> 타입의 매개변수는 선언된 유니언이나 레코드 값을 아무 불평 없이 받아들였습니다. 같은 호출에 맞지 않는 <code>bool</code> 인자를 넘기면 이미 <code>E0211</code>이었는데도 말입니다.
         </p>
         <p>
-          검사는 선언을 읽으므로 답이 확실한 곳에서만 발생합니다. 원시 타입 별칭, 문자열 리터럴 유니언(D30), <code>extern_ts</code>나 <code>typeof</code> 본문, 그리고 <code>interface</code>는 모두 여전히 아무 말도 하지 않습니다. 태그 유니언이나 레코드처럼 <code>string</code>이 아니라고 증명할 수 있는 것이 아니기 때문입니다. <code>void</code>도 제외됩니다. 인자, <code>return</code>, <code>let</code> 타입 표기 모두에 똑같이 적용되는데, 셋이 같은 관계를 공유하기 때문입니다.
+          이 검사는 선언을 읽으므로 답이 확실한 곳에서만 발동합니다. <code>type Id = string</code> 같은 원시 타입 별칭은 그것이 가리키는 <code>string</code>으로 읽히므로 똑같이 판정됩니다. 문자열 리터럴 유니언(D30)은 리터럴로 비교되고, <code>interface</code> 값은 그 값이 객체이므로 <code>string</code>이 선언된 곳에서 거부됩니다. <code>extern_ts</code>나 <code>typeof</code> 본문은 여전히 아무 말도 하지 않고, <code>void</code>도 제외됩니다. 인자, <code>return</code>, <code>let</code> 주석에 똑같이 적용되는데, 셋 모두 하나의 관계를 공유하기 때문입니다.
+        </p>
+        <p>
+          반대 방향은 TypeScript처럼 값의 멤버를 거칩니다. <code>interface HasName { name: string }</code>이 선언된 곳에서 <code>5</code>는 거부되고, <code>interface HasLen { length: number }</code>이 선언된 곳에서 <code>"abc"</code>는 문자열에 <code>length</code>가 있으므로 받아들여집니다. 아직 판정하지 않고 <code>tsc</code>에 맡기는 짝이 세 가지 있습니다. 멤버가 모두 선택적이고 값과 하나도 공유하지 않는 인터페이스(G526), 인터페이스에 대한 <code>Option</code>, <code>Result</code>, <code>Record</code>(G527), 그리고 검사기가 아직 <code>number</code>로 읽는 <code>bigint</code>(G500)입니다.
         </p>
       </div></details>
 
@@ -951,7 +953,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           타입 표기가 있는 모듈 수준 <code>const</code>는 표기가 무엇이든 <code>Ty::Unknown</code>으로 변환되었으므로, 함수 안의 같은 표기를 가진 <code>let</code>에서는 이미 보고되던 필드 오타가 거기서는 보이지 않았습니다.
         </p>
         <p>
-          타입 표기가 없는 <code>const</code>는 아무것도 주장하지 않으며, 의도적으로 <code>Unknown</code>으로 남습니다. 초기값에서 타입을 추론하는 것은 오탐의 범위가 다른 별개의 문제입니다. 두 수정 모두 <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드에서 breaking입니다. 각각 이전 릴리스가 받아들이던 프로그램을 잡기 시작하기 때문입니다. 전체 <code>glyph build</code>는 두 경우 모두 이미 <code>tsc</code>를 통해 실패했습니다.
+          0.1.166부터 주석 없는 <code>const</code>는 초기화식의 타입을 가집니다. 이미터가 쓰는 TypeScript <code>const</code>를 <code>tsc</code>가 읽는 방식 그대로입니다. <code>const MODE = "read"</code>는 리터럴 타입을 유지하고, 객체나 배열 안의 리터럴은 넓혀지므로 <code>const ITEMS = [1, 2]</code>는 <code>Array&lt;number&gt;</code>이고 <code>mut</code> 밖의 <code>ITEMS.push(3)</code>은 E0240입니다. 검사기가 타입을 정할 수 없는 초기화식은 그 <code>const</code>를 타입 없이 둡니다. 두 수정 모두 <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드에서 호환성을 깨는 변경입니다. 각각 이전 릴리스가 받아들이던 프로그램을 잡기 시작하기 때문입니다. 전체 <code>glyph build</code>는 두 경우 모두 이미 <code>tsc</code> 때문에 빨간색이었습니다.
         </p>
       </div></details>
 
@@ -1118,7 +1120,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           이것이 Glyph의 네 가지 기둥 중 첫 번째인 이유와, 그 보장이 멈추는 곳은 <a href="/ko/pillars/verifiability/">검증 가능성 기둥 페이지</a>에 있습니다.
         </p>
       </div>
-      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.181으로 검사합니다. 마지막 변경: <time datetime="2026-11-22">2026년 11월 22일</time>.</p>
+      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.181으로 검사합니다. 마지막 변경: <time datetime="2026-11-24">2026년 11월 24일</time>.</p>
       <nav class="prevnext" aria-label="이전과 다음">
         <div class="spacer"></div>
         <a href="/ko/answers/diff-stability/" class="nx cta">

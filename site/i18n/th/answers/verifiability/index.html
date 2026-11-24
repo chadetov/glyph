@@ -1,7 +1,7 @@
 ---
 title: อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ? · Glyph
 description: การเปลี่ยนแปลงที่คอมไพล์ผ่านแล้วพังใน TypeScript เช่น case ที่ขาด error ที่ไม่ได้จัดการ หรือ field ที่เปลี่ยนชื่อ เป็น compile error ใน Glyph ที่เอเจนต์ต้องแก้
-source_hash: b4c6f18de84ea473
+source_hash: d0316fc0c6629e95
 next: /answers/diff-stability/ | ถัดไป &rarr; | การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?
 ---
       <p class="q-eyebrow">01 &middot; คำสัญญาหลัก</p>
@@ -454,7 +454,10 @@ fn charge(r: PaymentResult) -&gt; number {
           parameter ที่มี type เป็น <code>string</code>, <code>number</code> หรือ <code>bool</code> เคยรับค่าของ union หรือ record ที่ประกาศไว้โดยไม่บ่นเลย ทั้งที่การเรียกแบบเดียวกันที่ส่ง argument <code>bool</code> ที่ไม่ตรงเป็น <code>E0211</code> อยู่แล้ว
         </p>
         <p>
-          การตรวจอ่าน declaration มันจึงทำงานเฉพาะที่คำตอบแน่นอน alias ของ primitive, union ของ string literal (D30), body ของ <code>extern_ts</code> หรือ <code>typeof</code> และ <code>interface</code> ยังไม่บอกอะไร เพราะไม่มีตัวไหนพิสูจน์ได้ว่าไม่ใช่ <code>string</code> แบบที่ tagged union หรือ record พิสูจน์ได้ <code>void</code> ก็ถูกยกเว้นด้วย มันไปถึง argument, <code>return</code> และ annotation ของ <code>let</code> เหมือนกัน เพราะทั้งสามใช้ความสัมพันธ์เดียวกัน
+          การตรวจนี้อ่านการประกาศ จึงทำงานเฉพาะที่ที่คำตอบแน่นอน ชื่อแฝงของชนิดพื้นฐานอย่าง <code>type Id = string</code> ถูกอ่านเป็น <code>string</code> ที่มันอ้างถึง จึงตัดสินแบบเดียวกัน ยูเนียนของสตริงลิเทอรัล (D30) ถูกเทียบด้วยลิเทอรัลของมัน และค่าของ <code>interface</code> ถูกปฏิเสธในที่ที่ประกาศ <code>string</code> เพราะค่าของมันเป็นออบเจกต์ ส่วนเนื้อหาแบบ <code>extern_ts</code> หรือ <code>typeof</code> ยังไม่บอกอะไร และ <code>void</code> ก็ถูกยกเว้นเช่นกัน การตรวจนี้ครอบคลุมอาร์กิวเมนต์ <code>return</code> และคำกำกับของ <code>let</code> เหมือนกัน เพราะทั้งสามใช้ความสัมพันธ์เดียวกัน
+        </p>
+        <p>
+          อีกทิศทางหนึ่งตัดสินผ่านสมาชิกของค่า เหมือนใน TypeScript: <code>5</code> ถูกปฏิเสธในที่ที่ประกาศ <code>interface HasName { name: string }</code> และ <code>"abc"</code> ถูกยอมรับในที่ที่ประกาศ <code>interface HasLen { length: number }</code> เพราะสตริงมี <code>length</code> มีสามคู่ที่ยังไม่ตัดสินและปล่อยให้ <code>tsc</code> ทำ: อินเทอร์เฟซที่สมาชิกทุกตัวเป็นแบบไม่บังคับและไม่มีตัวใดตรงกับค่าเลย (G526), <code>Option</code>, <code>Result</code> และ <code>Record</code> เทียบกับอินเทอร์เฟซ (G527) และ <code>bigint</code> ซึ่งตัวตรวจยังอ่านเป็น <code>number</code> (G500)
         </p>
       </div></details>
 
@@ -481,7 +484,7 @@ fn f() -&gt; number {
           <code>const</code> ระดับ module ที่มี type annotation ถูกแปลงเป็น <code>Ty::Unknown</code> ไม่ว่า annotation จะบอกอะไร field ที่พิมพ์ผิดบนมันจึงมองไม่เห็น ตรงที่ <code>let</code> ที่มี annotation แบบเดียวกันภายในฟังก์ชันรายงานอยู่แล้ว
         </p>
         <p>
-          <code>const</code> ที่ไม่มี annotation ไม่ได้อ้างอะไรและตั้งใจให้เป็น <code>Unknown</code>: การอนุมานจาก initializer เป็นคำถามอีกข้อที่มีพื้นที่ของการเตือนผิดต่างออกไป การแก้ทั้งสองเป็น Breaking ภายใต้ <code>glyph check --no-tsc</code>, language server และ playground เพราะแต่ละอย่างเริ่มจับโปรแกรมที่รุ่นก่อนยอมรับ ส่วน <code>glyph build</code> เต็มแดงผ่าน <code>tsc</code> อยู่แล้วทั้งสองกรณี
+          ตั้งแต่ 0.1.166 <code>const</code> ที่ไม่มีคำกำกับจะมีชนิดของตัวกำหนดค่าเริ่มต้น โดยอ่านแบบเดียวกับที่ <code>tsc</code> อ่าน <code>const</code> ของ TypeScript ที่ตัวสร้างโค้ดเขียน: <code>const MODE = "read"</code> คงชนิดลิเทอรัลไว้ และลิเทอรัลภายในออบเจกต์หรืออาร์เรย์จะถูกขยาย ดังนั้น <code>const ITEMS = [1, 2]</code> เป็น <code>Array&lt;number&gt;</code> และ <code>ITEMS.push(3)</code> นอก <code>mut</code> เป็น E0240 ตัวกำหนดค่าเริ่มต้นที่ตัวตรวจกำหนดชนิดไม่ได้จะทำให้ <code>const</code> นั้นไม่มีชนิด การแก้ทั้งสองอย่างทำให้เข้ากันไม่ได้กับของเดิมภายใต้ <code>glyph check --no-tsc</code> เซิร์ฟเวอร์ภาษา และ playground เพราะแต่ละอย่างเริ่มจับโปรแกรมที่รีลีสก่อนหน้ายอมรับ ส่วน <code>glyph build</code> แบบเต็มก็แดงเพราะ <code>tsc</code> อยู่แล้วในทั้งสองกรณี
         </p>
       </div></details>
 

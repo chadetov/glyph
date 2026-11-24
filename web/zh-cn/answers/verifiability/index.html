@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"什么能防止智能体悄悄改坏我的代码？","item":"https://glyphlang.io/zh-cn/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#article","headline":"什么能防止智能体悄悄改坏我的代码？","description":"在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。","url":"https://glyphlang.io/zh-cn/answers/verifiability/","inLanguage":"zh-Hans","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"什么能防止智能体悄悄改坏我的代码？","item":"https://glyphlang.io/zh-cn/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#article","headline":"什么能防止智能体悄悄改坏我的代码？","description":"在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。","url":"https://glyphlang.io/zh-cn/answers/verifiability/","inLanguage":"zh-Hans","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -411,7 +411,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>本页是译文，以英文版为准。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28zh-cn%29%3A+%2Fzh-cn%2Fanswers%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fzh-cn%2Fanswers%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">报告翻译问题</a></p>
-      <p class="i18n-stale">本页翻译之后，英文版已有更新。 <a href="/answers/verifiability/" hreflang="en" data-lang="en">阅读最新的英文版</a></p>
     </div>
     <script>
       (function () {
@@ -924,7 +923,10 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           类型为 <code>string</code>、<code>number</code> 或 <code>bool</code> 的参数，以前会毫无异议地接受一个已声明的联合类型或记录的值，而同样的调用如果传入不匹配的 <code>bool</code> 参数，早就是 <code>E0211</code> 了。
         </p>
         <p>
-          这项检查读取声明，所以只在答案确定的地方触发。基本类型的别名、字符串字面量联合类型（D30）、<code>extern_ts</code> 或 <code>typeof</code> 主体，以及 <code>interface</code>，都仍然不报，因为它们都不能像标签联合或记录那样被证明不是 <code>string</code>；<code>void</code> 也被排除。它同样覆盖参数、<code>return</code> 和 <code>let</code> 标注，因为三者共用同一个关系。
+          这项检查读取声明，所以只在答案确定的地方触发。像 <code>type Id = string</code> 这样的原始类型别名会被读成它所指的 <code>string</code>，因此判定方式相同。字符串字面量联合 (D30) 按其字面量比较，而 <code>interface</code> 的值在声明了 <code>string</code> 的地方会被拒绝，因为它的值是一个对象。<code>extern_ts</code> 或 <code>typeof</code> 主体仍然不作判断，<code>void</code> 也被排除在外。它对参数、<code>return</code> 和 <code>let</code> 注解一视同仁，因为三者共用同一个关系。
+        </p>
+        <p>
+          反方向则和 TypeScript 一样，经过值的成员来判断：在声明了 <code>interface HasName { name: string }</code> 的地方，<code>5</code> 会被拒绝；在声明了 <code>interface HasLen { length: number }</code> 的地方，<code>"abc"</code> 会被接受，因为字符串有 <code>length</code>。有三种配对还没有判定，交给 <code>tsc</code>：成员全部可选且与该值没有任何共同成员的接口 (G526)，<code>Option</code>、<code>Result</code> 和 <code>Record</code> 对接口 (G527)，以及检查器仍按 <code>number</code> 读取的 <code>bigint</code> (G500)。
         </p>
       </div></details>
 
@@ -951,7 +953,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           带类型标注的模块级 <code>const</code>，无论标注写的是什么，都会降级为 <code>Ty::Unknown</code>，所以它上面的字段拼写错误不可见，而函数内部同样带标注的 <code>let</code> 早就能报告这个错误。
         </p>
         <p>
-          不带标注的 <code>const</code> 什么也不声称，有意保持为 <code>Unknown</code>：从初始化表达式推断它的类型是另一个问题，误报的范围也不同。在 <code>glyph check --no-tsc</code>、语言服务器和 playground 下，两个修复都是 Breaking，因为每个都开始拒绝上一个版本接受的程序；而完整的 <code>glyph build</code> 在两种情况下早已通过 <code>tsc</code> 报错。
+          从 0.1.166 起，没有注解的 <code>const</code> 具有其初始化表达式的类型，读法与 <code>tsc</code> 读取发射器写出的 TypeScript <code>const</code> 相同：<code>const MODE = "read"</code> 保留其字面量类型，而对象或数组中的字面量会被拓宽，所以 <code>const ITEMS = [1, 2]</code> 是 <code>Array&lt;number&gt;</code>，在 <code>mut</code> 之外的 <code>ITEMS.push(3)</code> 是 E0240。检查器无法确定类型的初始化表达式会让该 <code>const</code> 保持无类型。两项修复在 <code>glyph check --no-tsc</code>、语言服务器和 playground 下都是破坏性的，因为每一项都开始捕获上一个版本接受的程序；完整的 <code>glyph build</code> 在两种情况下早已因 <code>tsc</code> 而报红。
         </p>
       </div></details>
 
@@ -1118,7 +1120,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           为什么这是 Glyph 四大支柱中的第一个，以及它的保证止于何处，见<a href="/zh-cn/pillars/verifiability/">可验证性支柱页面</a>。
         </p>
       </div>
-      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.181 检查。最后修改：<time datetime="2026-11-22">2026年11月22日</time>。</p>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.181 检查。最后修改：<time datetime="2026-11-24">2026年11月24日</time>。</p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <div class="spacer"></div>
         <a href="/zh-cn/answers/diff-stability/" class="nx cta">

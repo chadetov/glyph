@@ -1,7 +1,7 @@
 ---
 title: ¿Qué impide que un agente rompa mi código sin que nadie lo note? · Glyph
 description: Los cambios que en TypeScript compilan y luego fallan, como un caso que falta, un error sin manejar o un campo renombrado, son en Glyph errores de compilación que el agente tiene que corregir.
-source_hash: b4c6f18de84ea473
+source_hash: d0316fc0c6629e95
 next: /answers/diff-stability/ | Siguiente &rarr; | ¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo entero?
 ---
       <p class="q-eyebrow">01 &middot; La promesa central</p>
@@ -454,7 +454,10 @@ fn charge(r: PaymentResult) -&gt; number {
           Un parámetro de tipo <code>string</code>, <code>number</code> o <code>bool</code> aceptaba antes un valor de una unión o un record declarados sin ninguna queja, aunque la llamada idéntica con un argumento <code>bool</code> que no encajaba ya era <code>E0211</code>.
         </p>
         <p>
-          La comprobación lee la declaración, así que solo salta donde la respuesta es segura. Un alias de un primitivo, una unión de literales de string (D30), un cuerpo <code>extern_ts</code> o <code>typeof</code> y una <code>interface</code> siguen sin decir nada, porque de ninguno de ellos se puede demostrar que no es un <code>string</code> como se puede con una unión etiquetada o un record; <code>void</code> también queda excluido. Llega igual a un argumento, a un <code>return</code> y a la anotación de un <code>let</code>, ya que los tres comparten una misma relación.
+          La comprobación lee la declaración, así que solo salta donde la respuesta es segura. Un alias primitivo como <code>type Id = string</code> se lee como el <code>string</code> que nombra, así que se decide igual. Una unión de literales de cadena (D30) se compara por sus literales, y un valor de un <code>interface</code> se rechaza donde se declara un <code>string</code>, porque su valor es un objeto. Un cuerpo <code>extern_ts</code> o <code>typeof</code> sigue sin decir nada, y <code>void</code> también queda excluido. Llega igual a un argumento, a un <code>return</code> y a una anotación de <code>let</code>, porque los tres comparten una relación.
+        </p>
+        <p>
+          La otra dirección pasa por los miembros del valor, como en TypeScript: <code>5</code> se rechaza donde se declara <code>interface HasName { name: string }</code>, y <code>"abc"</code> se acepta donde se declara <code>interface HasLen { length: number }</code>, porque una cadena tiene <code>length</code>. Tres emparejamientos aún no se deciden y quedan para <code>tsc</code>: una interfaz cuyos miembros son todos opcionales y no comparte ninguno con el valor (G526), <code>Option</code>, <code>Result</code> y <code>Record</code> frente a una interfaz (G527), y <code>bigint</code>, que el checker todavía lee como <code>number</code> (G500).
         </p>
       </div></details>
 
@@ -481,7 +484,7 @@ fn f() -&gt; number {
           Un <code>const</code> de nivel de módulo con una anotación de tipo se traducía a <code>Ty::Unknown</code> dijera lo que dijera la anotación, así que una errata en un campo era invisible justo donde el <code>let</code> anotado idéntico dentro de una función ya la informaba.
         </p>
         <p>
-          Un <code>const</code> sin anotar no afirma nada y se queda en <code>Unknown</code> a propósito: inferirlo a partir del inicializador es otra cuestión, con otro margen de falsos positivos. Los dos arreglos son breaking con <code>glyph check --no-tsc</code>, el servidor de lenguaje y el playground, ya que cada uno empieza a detectar un programa que la versión anterior aceptaba; un <code>glyph build</code> completo ya estaba en rojo a través de <code>tsc</code> en los dos casos.
+          Desde 0.1.166 una <code>const</code> sin anotar tiene el tipo de su inicializador, leído como <code>tsc</code> lee la <code>const</code> de TypeScript que escribe el emisor: <code>const MODE = "read"</code> conserva su tipo literal, y un literal dentro de un objeto o un array se ensancha, así que <code>const ITEMS = [1, 2]</code> es un <code>Array&lt;number&gt;</code> y <code>ITEMS.push(3)</code> fuera de <code>mut</code> es E0240. Un inicializador que el checker no puede tipar deja la <code>const</code> sin tipo. Ambos arreglos rompen compatibilidad en <code>glyph check --no-tsc</code>, el servidor de lenguaje y el playground, porque cada uno empieza a detectar un programa que la versión anterior aceptaba; un <code>glyph build</code> completo ya estaba en rojo por <code>tsc</code> en ambos casos.
         </p>
       </div></details>
 

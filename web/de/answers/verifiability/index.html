@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?","item":"https://glyphlang.io/de/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/verifiability/#article","headline":"Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?","description":"Änderungen, die in TypeScript kompilieren und dann kaputtgehen, wie ein fehlender Fall, ein unbehandelter Fehler oder ein umbenanntes Feld, sind in Glyph Compile-Fehler, die der Agent beheben muss.","url":"https://glyphlang.io/de/answers/verifiability/","inLanguage":"de","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?","item":"https://glyphlang.io/de/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/verifiability/#article","headline":"Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?","description":"Änderungen, die in TypeScript kompilieren und dann kaputtgehen, wie ein fehlender Fall, ein unbehandelter Fehler oder ein umbenanntes Feld, sind in Glyph Compile-Fehler, die der Agent beheben muss.","url":"https://glyphlang.io/de/answers/verifiability/","inLanguage":"de","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Diese Seite ist eine Übersetzung. Maßgeblich ist die englische Version. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28de%29%3A+%2Fde%2Fanswers%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fde%2Fanswers%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">Ein Problem mit der Übersetzung melden</a></p>
-      <p class="i18n-stale">Die englische Version dieser Seite hat sich seit dieser Übersetzung geändert. <a href="/answers/verifiability/" hreflang="en" data-lang="en">Aktuelle englische Version lesen</a></p>
     </div>
     <script>
       (function () {
@@ -922,7 +921,10 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Ein Parameter vom Typ <code>string</code>, <code>number</code> oder <code>bool</code> akzeptierte früher einen Wert einer deklarierten Union oder eines Records ganz ohne Beschwerde, obwohl derselbe Aufruf mit einem unpassenden <code>bool</code>-Argument schon <code>E0211</code> war.
         </p>
         <p>
-          Die Prüfung liest die Deklaration, also schlägt sie nur an, wo die Antwort sicher ist. Ein primitiver Alias, eine Union aus String-Literalen (D30), ein <code>extern_ts</code>- oder <code>typeof</code>-Rumpf und ein <code>interface</code> sagen weiterhin nichts, weil keins davon nachweislich kein <code>string</code> ist, so wie es eine Tagged Union oder ein Record ist; <code>void</code> ist ebenfalls ausgenommen. Sie erreicht ein Argument, ein <code>return</code> und eine <code>let</code>-Annotation gleichermaßen, da alle drei eine Relation teilen.
+          Die Prüfung liest die Deklaration, also schlägt sie nur an, wo die Antwort sicher ist. Ein primitiver Alias wie <code>type Id = string</code> wird als der <code>string</code> gelesen, den er benennt, und wird darum genauso entschieden. Eine Union aus String-Literalen (D30) wird über ihre Literale verglichen, und ein Wert eines <code>interface</code> wird abgelehnt, wo ein <code>string</code> deklariert ist, weil sein Wert ein Objekt ist. Ein <code>extern_ts</code>- oder <code>typeof</code>-Rumpf sagt weiterhin nichts, und <code>void</code> ist ebenfalls ausgenommen. Sie erreicht ein Argument, ein <code>return</code> und eine <code>let</code>-Annotation gleichermaßen, da alle drei eine Relation teilen.
+        </p>
+        <p>
+          Die andere Richtung läuft über die Member des Werts, wie in TypeScript: <code>5</code> wird abgelehnt, wo <code>interface HasName { name: string }</code> deklariert ist, und <code>"abc"</code> wird akzeptiert, wo <code>interface HasLen { length: number }</code> deklariert ist, weil ein String eine <code>length</code> hat. Drei Paarungen sind noch nicht entschieden und bleiben <code>tsc</code> überlassen: ein Interface, dessen Member alle optional sind und keinen mit dem Wert teilen (G526), <code>Option</code>, <code>Result</code> und <code>Record</code> gegen ein Interface (G527), und <code>bigint</code>, das der Checker noch als <code>number</code> liest (G500).
         </p>
       </div></details>
 
@@ -949,7 +951,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Eine <code>const</code> auf Modulebene mit Typannotation wurde zu <code>Ty::Unknown</code> übersetzt, egal was die Annotation sagte, also war ein Tippfehler in einem Feld darauf genau dort unsichtbar, wo dasselbe annotierte <code>let</code> innerhalb einer Funktion ihn schon meldete.
         </p>
         <p>
-          Eine nicht annotierte <code>const</code> behauptet nichts und bleibt absichtlich <code>Unknown</code>: Den Typ aus dem Initialisierer abzuleiten ist eine andere Frage mit einer anderen Angriffsfläche für Fehlalarme. Beide Fixes sind Breaking unter <code>glyph check --no-tsc</code>, dem Language Server und dem Playground, da jeder anfängt, ein Programm zu finden, das das vorherige Release akzeptiert hat; ein vollständiger <code>glyph build</code> war in beiden Fällen über <code>tsc</code> schon rot.
+          Seit 0.1.166 hat eine nicht annotierte <code>const</code> den Typ ihres Initialisierers, so gelesen, wie <code>tsc</code> die TypeScript-<code>const</code> liest, die der Emitter schreibt: <code>const MODE = "read"</code> behält seinen Literaltyp, und ein Literal in einem Objekt oder Array wird erweitert, also ist <code>const ITEMS = [1, 2]</code> ein <code>Array&lt;number&gt;</code>, und <code>ITEMS.push(3)</code> außerhalb von <code>mut</code> ist E0240. Ein Initialisierer, den der Checker nicht typisieren kann, lässt die <code>const</code> untypisiert. Beide Fixes sind Breaking unter <code>glyph check --no-tsc</code>, dem Language Server und dem Playground, da jeder anfängt, ein Programm zu finden, das das vorherige Release akzeptiert hat; ein vollständiger <code>glyph build</code> war in beiden Fällen über <code>tsc</code> schon rot.
         </p>
       </div></details>
 
@@ -1116,7 +1118,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Warum das die erste der vier Säulen von Glyph ist und wo ihre Garantie aufhört, steht auf der <a href="/de/pillars/verifiability/">Seite zur Säule Überprüfbarkeit</a>.
         </p>
       </div>
-      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.181 geprüft. Zuletzt geändert: <time datetime="2026-11-22">22. Nov. 2026</time>.</p>
+      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.181 geprüft. Zuletzt geändert: <time datetime="2026-11-24">24. Nov. 2026</time>.</p>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <div class="spacer"></div>
         <a href="/de/answers/diff-stability/" class="nx cta">

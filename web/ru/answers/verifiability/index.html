@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Что мешает агенту незаметно сломать мой код?","item":"https://glyphlang.io/ru/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/verifiability/#article","headline":"Что мешает агенту незаметно сломать мой код?","description":"Изменения, которые в TypeScript компилируются и потом ломаются (пропущенный случай, необработанная ошибка, переименованное поле), в Glyph становятся ошибками компиляции, которые агент обязан исправить.","url":"https://glyphlang.io/ru/answers/verifiability/","inLanguage":"ru","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Что мешает агенту незаметно сломать мой код?","item":"https://glyphlang.io/ru/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/verifiability/#article","headline":"Что мешает агенту незаметно сломать мой код?","description":"Изменения, которые в TypeScript компилируются и потом ломаются (пропущенный случай, необработанная ошибка, переименованное поле), в Glyph становятся ошибками компиляции, которые агент обязан исправить.","url":"https://glyphlang.io/ru/answers/verifiability/","inLanguage":"ru","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Эта страница является переводом. Основной считается английская версия. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ru%29%3A+%2Fru%2Fanswers%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fru%2Fanswers%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">Сообщить о проблеме с переводом</a></p>
-      <p class="i18n-stale">Английская версия этой страницы изменилась после перевода. <a href="/answers/verifiability/" hreflang="en" data-lang="en">Читать актуальную английскую версию</a></p>
     </div>
     <script>
       (function () {
@@ -922,7 +921,10 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Параметр с типом <code>string</code>, <code>number</code> или <code>bool</code> раньше без единой жалобы принимал значение объявленного union или записи, хотя тот же вызов с неподходящим аргументом <code>bool</code> уже давал <code>E0211</code>.
         </p>
         <p>
-          Проверка читает объявление, поэтому срабатывает только там, где ответ точно известен. Примитивный алиас, union строковых литералов (D30), тело <code>extern_ts</code> или <code>typeof</code> и <code>interface</code> по-прежнему ничего не дают, потому что ни про один из них нельзя доказать, что это не <code>string</code>, как про размеченное объединение или запись; <code>void</code> тоже исключён. Проверка одинаково работает для аргумента, для <code>return</code> и для аннотации <code>let</code>, поскольку все три используют одно отношение.
+          Проверка читает объявление, поэтому срабатывает только там, где ответ точен. Примитивный алиас вроде <code>type Id = string</code> читается как <code>string</code>, который он называет, и решается так же. Объединение строковых литералов (D30) сравнивается по своим литералам, а значение <code>interface</code> отклоняется там, где объявлен <code>string</code>, потому что его значение объект. Тело <code>extern_ts</code> или <code>typeof</code> по-прежнему ничего не сообщает, и <code>void</code> тоже исключён. Проверка одинаково доходит до аргумента, <code>return</code> и аннотации <code>let</code>, потому что все три используют одно отношение.
+        </p>
+        <p>
+          Обратное направление идёт через члены значения, как в TypeScript: <code>5</code> отклоняется там, где объявлен <code>interface HasName { name: string }</code>, а <code>"abc"</code> принимается там, где объявлен <code>interface HasLen { length: number }</code>, потому что у строки есть <code>length</code>. Три пары пока не решаются и остаются <code>tsc</code>: интерфейс, все члены которого необязательны и ни один не совпадает со значением (G526), <code>Option</code>, <code>Result</code> и <code>Record</code> против интерфейса (G527), и <code>bigint</code>, который проверка всё ещё читает как <code>number</code> (G500).
         </p>
       </div></details>
 
@@ -949,7 +951,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           <code>const</code> уровня модуля с аннотацией типа превращался в <code>Ty::Unknown</code>, что бы ни говорила аннотация, поэтому опечатка в его поле была не видна ровно там, где такой же аннотированный <code>let</code> внутри функции уже давал ошибку.
         </p>
         <p>
-          <code>const</code> без аннотации ничего не утверждает и намеренно остаётся <code>Unknown</code>: вывод его типа из инициализатора это другой вопрос с другим набором ложных срабатываний. Оба исправления ломающие для <code>glyph check --no-tsc</code>, языкового сервера и песочницы, поскольку каждое начинает ловить программу, которую принимал предыдущий выпуск; полный <code>glyph build</code> в обоих случаях и так был красным из-за <code>tsc</code>.
+          Начиная с 0.1.166 неаннотированная <code>const</code> имеет тип своего инициализатора, прочитанный так, как <code>tsc</code> читает TypeScript-<code>const</code>, который пишет эмиттер: <code>const MODE = "read"</code> сохраняет литеральный тип, а литерал внутри объекта или массива расширяется, поэтому <code>const ITEMS = [1, 2]</code> это <code>Array&lt;number&gt;</code>, а <code>ITEMS.push(3)</code> вне <code>mut</code> это E0240. Инициализатор, которому проверка не может дать тип, оставляет <code>const</code> без типа. Оба исправления ломающие для <code>glyph check --no-tsc</code>, языкового сервера и playground, поскольку каждое начинает ловить программу, которую принимал предыдущий релиз; полный <code>glyph build</code> в обоих случаях уже был красным из-за <code>tsc</code>.
         </p>
       </div></details>
 
@@ -1116,7 +1118,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Почему это первый из четырёх принципов Glyph и где заканчивается его гарантия, рассказано на <a href="/ru/pillars/verifiability/">странице принципа проверяемости</a>.
         </p>
       </div>
-      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.181 при каждой сборке. Последнее изменение: <time datetime="2026-11-22">22 ноя 2026</time>.</p>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.181 при каждой сборке. Последнее изменение: <time datetime="2026-11-24">24 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <div class="spacer"></div>
         <a href="/ru/answers/diff-stability/" class="nx cta">

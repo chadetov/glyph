@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "de",
-  "source_hash": "b4c6f18de84ea473",
+  "source_hash": "d0316fc0c6629e95",
   "segments": [
     {
       "id": "title",
@@ -815,10 +815,16 @@
       "tr": "Ein Parameter vom Typ <code>string</code>, <code>number</code> oder <code>bool</code> akzeptierte früher einen Wert einer deklarierten Union oder eines Records ganz ohne Beschwerde, obwohl derselbe Aufruf mit einem unpassenden <code>bool</code>-Argument schon <code>E0211</code> war."
     },
     {
-      "id": "h-da7fe218",
+      "id": "h-27fcd0d0",
       "kind": "html",
-      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an <code>interface</code> all still say nothing, because none of those is provably not a <code>string</code> the way a tagged union or record is; <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
-      "tr": "Die Prüfung liest die Deklaration, also schlägt sie nur an, wo die Antwort sicher ist. Ein primitiver Alias, eine Union aus String-Literalen (D30), ein <code>extern_ts</code>- oder <code>typeof</code>-Rumpf und ein <code>interface</code> sagen weiterhin nichts, weil keins davon nachweislich kein <code>string</code> ist, so wie es eine Tagged Union oder ein Record ist; <code>void</code> ist ebenfalls ausgenommen. Sie erreicht ein Argument, ein <code>return</code> und eine <code>let</code>-Annotation gleichermaßen, da alle drei eine Relation teilen."
+      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias such as <code>type Id = string</code> is read as the <code>string</code> it names, so it is decided the same way. A string-literal union (D30) is compared by its literals, and an <code>interface</code> value is refused where a <code>string</code> is declared, because its value is an object. An <code>extern_ts</code> or <code>typeof</code> body still says nothing, and <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
+      "tr": "Die Prüfung liest die Deklaration, also schlägt sie nur an, wo die Antwort sicher ist. Ein primitiver Alias wie <code>type Id = string</code> wird als der <code>string</code> gelesen, den er benennt, und wird darum genauso entschieden. Eine Union aus String-Literalen (D30) wird über ihre Literale verglichen, und ein Wert eines <code>interface</code> wird abgelehnt, wo ein <code>string</code> deklariert ist, weil sein Wert ein Objekt ist. Ein <code>extern_ts</code>- oder <code>typeof</code>-Rumpf sagt weiterhin nichts, und <code>void</code> ist ebenfalls ausgenommen. Sie erreicht ein Argument, ein <code>return</code> und eine <code>let</code>-Annotation gleichermaßen, da alle drei eine Relation teilen."
+    },
+    {
+      "id": "h-1a3fe46b",
+      "kind": "html",
+      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. Three pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), and <code>bigint</code>, which the checker still reads as a <code>number</code> (G500).",
+      "tr": "Die andere Richtung läuft über die Member des Werts, wie in TypeScript: <code>5</code> wird abgelehnt, wo <code>interface HasName { name: string }</code> deklariert ist, und <code>\"abc\"</code> wird akzeptiert, wo <code>interface HasLen { length: number }</code> deklariert ist, weil ein String eine <code>length</code> hat. Drei Paarungen sind noch nicht entschieden und bleiben <code>tsc</code> überlassen: ein Interface, dessen Member alle optional sind und keinen mit dem Wert teilen (G526), <code>Option</code>, <code>Result</code> und <code>Record</code> gegen ein Interface (G527), und <code>bigint</code>, das der Checker noch als <code>number</code> liest (G500)."
     },
     {
       "id": "h-77fa2d03",
@@ -851,10 +857,10 @@
       "tr": "Eine <code>const</code> auf Modulebene mit Typannotation wurde zu <code>Ty::Unknown</code> übersetzt, egal was die Annotation sagte, also war ein Tippfehler in einem Feld darauf genau dort unsichtbar, wo dasselbe annotierte <code>let</code> innerhalb einer Funktion ihn schon meldete."
     },
     {
-      "id": "h-4319dca8",
+      "id": "h-909e48dc",
       "kind": "html",
-      "en": "An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
-      "tr": "Eine nicht annotierte <code>const</code> behauptet nichts und bleibt absichtlich <code>Unknown</code>: Den Typ aus dem Initialisierer abzuleiten ist eine andere Frage mit einer anderen Angriffsfläche für Fehlalarme. Beide Fixes sind Breaking unter <code>glyph check --no-tsc</code>, dem Language Server und dem Playground, da jeder anfängt, ein Programm zu finden, das das vorherige Release akzeptiert hat; ein vollständiger <code>glyph build</code> war in beiden Fällen über <code>tsc</code> schon rot."
+      "en": "Since 0.1.166 an unannotated <code>const</code> has its initializer's type, read the way <code>tsc</code> reads the TypeScript <code>const</code> the emitter writes: <code>const MODE = \"read\"</code> keeps its literal type, and a literal inside an object or an array widens, so <code>const ITEMS = [1, 2]</code> is an <code>Array&lt;number&gt;</code> and <code>ITEMS.push(3)</code> outside <code>mut</code> is E0240. An initializer the checker cannot type leaves the <code>const</code> untyped. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
+      "tr": "Seit 0.1.166 hat eine nicht annotierte <code>const</code> den Typ ihres Initialisierers, so gelesen, wie <code>tsc</code> die TypeScript-<code>const</code> liest, die der Emitter schreibt: <code>const MODE = \"read\"</code> behält seinen Literaltyp, und ein Literal in einem Objekt oder Array wird erweitert, also ist <code>const ITEMS = [1, 2]</code> ein <code>Array&lt;number&gt;</code>, und <code>ITEMS.push(3)</code> außerhalb von <code>mut</code> ist E0240. Ein Initialisierer, den der Checker nicht typisieren kann, lässt die <code>const</code> untypisiert. Beide Fixes sind Breaking unter <code>glyph check --no-tsc</code>, dem Language Server und dem Playground, da jeder anfängt, ein Programm zu finden, das das vorherige Release akzeptiert hat; ein vollständiger <code>glyph build</code> war in beiden Fällen über <code>tsc</code> schon rot."
     },
     {
       "id": "h-ec63b0ad",

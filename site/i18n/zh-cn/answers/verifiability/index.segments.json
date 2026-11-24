@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "zh-cn",
-  "source_hash": "b4c6f18de84ea473",
+  "source_hash": "d0316fc0c6629e95",
   "segments": [
     {
       "id": "title",
@@ -815,10 +815,16 @@
       "tr": "类型为 <code>string</code>、<code>number</code> 或 <code>bool</code> 的参数，以前会毫无异议地接受一个已声明的联合类型或记录的值，而同样的调用如果传入不匹配的 <code>bool</code> 参数，早就是 <code>E0211</code> 了。"
     },
     {
-      "id": "h-da7fe218",
+      "id": "h-27fcd0d0",
       "kind": "html",
-      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an <code>interface</code> all still say nothing, because none of those is provably not a <code>string</code> the way a tagged union or record is; <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
-      "tr": "这项检查读取声明，所以只在答案确定的地方触发。基本类型的别名、字符串字面量联合类型（D30）、<code>extern_ts</code> 或 <code>typeof</code> 主体，以及 <code>interface</code>，都仍然不报，因为它们都不能像标签联合或记录那样被证明不是 <code>string</code>；<code>void</code> 也被排除。它同样覆盖参数、<code>return</code> 和 <code>let</code> 标注，因为三者共用同一个关系。"
+      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias such as <code>type Id = string</code> is read as the <code>string</code> it names, so it is decided the same way. A string-literal union (D30) is compared by its literals, and an <code>interface</code> value is refused where a <code>string</code> is declared, because its value is an object. An <code>extern_ts</code> or <code>typeof</code> body still says nothing, and <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
+      "tr": "这项检查读取声明，所以只在答案确定的地方触发。像 <code>type Id = string</code> 这样的原始类型别名会被读成它所指的 <code>string</code>，因此判定方式相同。字符串字面量联合 (D30) 按其字面量比较，而 <code>interface</code> 的值在声明了 <code>string</code> 的地方会被拒绝，因为它的值是一个对象。<code>extern_ts</code> 或 <code>typeof</code> 主体仍然不作判断，<code>void</code> 也被排除在外。它对参数、<code>return</code> 和 <code>let</code> 注解一视同仁，因为三者共用同一个关系。"
+    },
+    {
+      "id": "h-1a3fe46b",
+      "kind": "html",
+      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. Three pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), and <code>bigint</code>, which the checker still reads as a <code>number</code> (G500).",
+      "tr": "反方向则和 TypeScript 一样，经过值的成员来判断：在声明了 <code>interface HasName { name: string }</code> 的地方，<code>5</code> 会被拒绝；在声明了 <code>interface HasLen { length: number }</code> 的地方，<code>\"abc\"</code> 会被接受，因为字符串有 <code>length</code>。有三种配对还没有判定，交给 <code>tsc</code>：成员全部可选且与该值没有任何共同成员的接口 (G526)，<code>Option</code>、<code>Result</code> 和 <code>Record</code> 对接口 (G527)，以及检查器仍按 <code>number</code> 读取的 <code>bigint</code> (G500)。"
     },
     {
       "id": "h-77fa2d03",
@@ -851,10 +857,10 @@
       "tr": "带类型标注的模块级 <code>const</code>，无论标注写的是什么，都会降级为 <code>Ty::Unknown</code>，所以它上面的字段拼写错误不可见，而函数内部同样带标注的 <code>let</code> 早就能报告这个错误。"
     },
     {
-      "id": "h-4319dca8",
+      "id": "h-909e48dc",
       "kind": "html",
-      "en": "An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
-      "tr": "不带标注的 <code>const</code> 什么也不声称，有意保持为 <code>Unknown</code>：从初始化表达式推断它的类型是另一个问题，误报的范围也不同。在 <code>glyph check --no-tsc</code>、语言服务器和 playground 下，两个修复都是 Breaking，因为每个都开始拒绝上一个版本接受的程序；而完整的 <code>glyph build</code> 在两种情况下早已通过 <code>tsc</code> 报错。"
+      "en": "Since 0.1.166 an unannotated <code>const</code> has its initializer's type, read the way <code>tsc</code> reads the TypeScript <code>const</code> the emitter writes: <code>const MODE = \"read\"</code> keeps its literal type, and a literal inside an object or an array widens, so <code>const ITEMS = [1, 2]</code> is an <code>Array&lt;number&gt;</code> and <code>ITEMS.push(3)</code> outside <code>mut</code> is E0240. An initializer the checker cannot type leaves the <code>const</code> untyped. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
+      "tr": "从 0.1.166 起，没有注解的 <code>const</code> 具有其初始化表达式的类型，读法与 <code>tsc</code> 读取发射器写出的 TypeScript <code>const</code> 相同：<code>const MODE = \"read\"</code> 保留其字面量类型，而对象或数组中的字面量会被拓宽，所以 <code>const ITEMS = [1, 2]</code> 是 <code>Array&lt;number&gt;</code>，在 <code>mut</code> 之外的 <code>ITEMS.push(3)</code> 是 E0240。检查器无法确定类型的初始化表达式会让该 <code>const</code> 保持无类型。两项修复在 <code>glyph check --no-tsc</code>、语言服务器和 playground 下都是破坏性的，因为每一项都开始捕获上一个版本接受的程序；完整的 <code>glyph build</code> 在两种情况下早已因 <code>tsc</code> 而报红。"
     },
     {
       "id": "h-ec63b0ad",

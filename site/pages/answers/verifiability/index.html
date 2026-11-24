@@ -662,11 +662,22 @@ fn charge(r: PaymentResult) -&gt; number {
           The check reads the declaration, so it only fires where the answer is certain. A
           primitive alias such as <code>type Id = string</code> is read as the
           <code>string</code> it names, so it is decided the same way. A string-literal union
-          (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an
-          <code>interface</code> still say nothing, because none of those is provably not a
-          <code>string</code> the way a tagged union or record is; <code>void</code> is excluded
-          too. It reaches an argument, a <code>return</code>, and a
+          (D30) is compared by its literals, and an <code>interface</code> value is refused
+          where a <code>string</code> is declared, because its value is an object. An
+          <code>extern_ts</code> or <code>typeof</code> body still says nothing, and
+          <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a
           <code>let</code> annotation alike, since all three share one relation.
+        </p>
+        <p>
+          The other direction goes through the value's members, as in TypeScript:
+          <code>5</code> is refused where <code>interface HasName { name: string }</code> is
+          declared, and <code>"abc"</code> is accepted where
+          <code>interface HasLen { length: number }</code> is, because a string has a
+          <code>length</code>. Three pairings are not decided yet and are left to
+          <code>tsc</code>: an interface whose members are all optional and share none with the
+          value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against
+          an interface (G527), and <code>bigint</code>, which the checker still reads as a
+          <code>number</code> (G500).
         </p>
       </div></details>
 

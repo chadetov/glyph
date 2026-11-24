@@ -398,8 +398,49 @@ pub fn assign_types_with_relations(
     // waited for depends on where it stands and, for a `let`, on whether its
     // name is read anywhere later in the body.
     errors.extend(crate::pending::check_pending(module, resolved, &tm));
-    errors.extend(crate::concurrency::check_await_straddle(module));
+    errors.extend(crate::concurrency::check_await_straddle(module, resolved));
     (tm, errors, coverage, field_uses)
+}
+
+/// The `(module key, export name)` a call's callee names in the standard
+/// library, under either import spelling: `json.parse` through `import
+/// std/json` (or an alias of it) and `parse` through `import std/json {
+/// parse }`. `None` for anything else, a project sibling's function
+/// included. Decided by resolution, so a local that shadows the namespace is
+/// not mistaken for it.
+pub(crate) fn stdlib_callee(resolved: &ResolvedModule, callee: &Expr) -> Option<(String, String)> {
+    let (span, field) = match callee {
+        Expr::Member {
+            object,
+            field,
+            optional: false,
+            ..
+        } => match object.as_ref() {
+            Expr::Ident { span, .. } => (*span, Some(field.to_string())),
+            _ => return None,
+        },
+        Expr::Ident { span, .. } => (*span, None),
+        _ => return None,
+    };
+    let ResolvedRef::Module(id) = resolved.resolutions.get(span)? else {
+        return None;
+    };
+    let sym = resolved.symbols.table.get(id)?;
+    let (path, name) = match (&sym.kind, field) {
+        (
+            SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. },
+            Some(field),
+        ) => (path, field),
+        (SymbolKind::ImportNamed { path, original }, None) => (path, original.to_string()),
+        _ => return None,
+    };
+    let key = path
+        .segments
+        .iter()
+        .map(|s| s.as_ref())
+        .collect::<Vec<_>>()
+        .join("/");
+    key.starts_with("std/").then_some((key, name))
 }
 
 /// What the checker's assignability relation says about one pairing, three
@@ -5090,44 +5131,10 @@ impl Assigner<'_> {
     // reads a program. These five wrappers keep the receiver spelling the rest
     // of this file uses.
 
-    /// The `(module key, export name)` a call's callee names in the standard
-    /// library, under either import spelling: `json.parse` through `import
-    /// std/json` (or an alias of it) and `parse` through `import std/json {
-    /// parse }`. `None` for anything else, a project sibling's function
-    /// included, so a stdlib table is consulted only for a stdlib callee.
+    /// The free [`stdlib_callee`] on this module's resolution, so a stdlib
+    /// table is consulted only for a stdlib callee.
     fn stdlib_callee(&self, callee: &Expr) -> Option<(String, String)> {
-        let (span, field) = match callee {
-            Expr::Member {
-                object,
-                field,
-                optional: false,
-                ..
-            } => match object.as_ref() {
-                Expr::Ident { span, .. } => (*span, Some(field.to_string())),
-                _ => return None,
-            },
-            Expr::Ident { span, .. } => (*span, None),
-            _ => return None,
-        };
-        let ResolvedRef::Module(id) = self.resolved.resolutions.get(span)? else {
-            return None;
-        };
-        let sym = self.resolved.symbols.table.get(id)?;
-        let (path, name) = match (&sym.kind, field) {
-            (
-                SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. },
-                Some(field),
-            ) => (path, field),
-            (SymbolKind::ImportNamed { path, original }, None) => (path, original.to_string()),
-            _ => return None,
-        };
-        let key = path
-            .segments
-            .iter()
-            .map(|s| s.as_ref())
-            .collect::<Vec<_>>()
-            .join("/");
-        key.starts_with("std/").then_some((key, name))
+        stdlib_callee(self.resolved, callee)
     }
 
     /// The type of `e`, a name or a member read, once its position is

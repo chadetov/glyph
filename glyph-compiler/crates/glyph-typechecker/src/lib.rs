@@ -632,10 +632,12 @@ pub enum TypeError {
     ///
     /// `read_at` points at the read, `span` at the write, because the fix is
     /// almost always to move the read after the `await` rather than to remove
-    /// the write.
-    #[error("`{place}` is read before an `await` and written after it, so a concurrent write in between is lost")]
+    /// the write. `via` is empty, or ` (read through `array.get(c, 0)`)` when
+    /// the read was spelled as a stdlib lookup rather than as the place.
+    #[error("`{place}` is read before an `await` and written after it, so a concurrent write in between is lost{via}")]
     MutAcrossAwait {
         place: String,
+        via: String,
         read_at: Span,
         span: Span,
     },

@@ -13,8 +13,8 @@ compiler stopped doing.
 
 There are 54 cases. By pillar, 46 are evidence for verifiability, 3 for
 greppability and 5 for abstraction. None is evidence for diff stability, and the
-check prints that zero rather than leaving it off. By kind, 35 are refused, 3
-warned, 10 checked at the boundary, 2 stopped at run time, and 4 are gaps Glyph
+check prints that zero rather than leaving it off. By kind, 36 are refused, 3
+warned, 10 checked at the boundary, 2 stopped at run time, and 3 are gaps Glyph
 does not catch yet. The check prints these counts on every run.
 
 A case that stops being demonstrable gets deleted, not softened. Six have been.
@@ -237,7 +237,6 @@ the day its gap closes:
 | G381 | `gap-g381-member-read-on-unknown` | a field read on `unknown`, refused only by the `tsc` pass (`TS18046`) | lint `no-unsafe-member-access` |
 | G382 | `gap-g382-string-plus-number` | `input + 1` on a string returned as a number, refused only by the `tsc` pass (`TS2322`) | lint `restrict-plus-operands` |
 | G386 | `gap-g386-or-on-a-number` | `requested \|\| 3`, turning a real `0` into `3` | nothing |
-| G390 | `gap-g390-index-update-across-await` | a lost update on `c[0]` across `await` | lint `require-atomic-updates` |
 
 `null-in-optional-field` was the G391 gap case until 0.1.152 closed it. It is
 a `boundary` case now and off the page: `json.parse<Opts>` of
@@ -282,6 +281,13 @@ a `refused` case now, with `E0243`, and off the page: `mut scores.sort()` on an
 numbers as text, with the help to pass
 `fn(a: number, b: number) -> number { return a - b }`, where the TypeScript
 prints `100,25,9`.
+
+`element-update-across-await` was the G390 gap case until 0.1.180 closed it.
+It is a `refused` case now, with `E0225`, and off the page: `let first = c[0]`,
+then `await fee()`, then `mut c[0] = first - f` on an array parameter is
+refused because a concurrent write to `c[0]` in between is lost, with the help
+to move the read after the `await`, where the TypeScript prints `balance 90`
+after two charges of 10.
 
 `default-that-never-applies` is a `refused` case off the page, added with
 G429 in 0.1.162: `array.find(...) ?? 3000` is refused with `E0236`, because an

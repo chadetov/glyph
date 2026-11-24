@@ -1,0 +1,6 @@
+code = "E0225"
+pillar = "verifiability"
+title = "A lost update across await on an array element"
+kind = "refused"
+ts_output = "balance 90"
+fullconfig = "lint:require-atomic-updates"

@@ -7823,6 +7823,57 @@ tree covers it, so the documentation now claims the socket phase rather than the
 whole attempt. G128, below, is the sibling finding: `std/http` ships the
 permissive default this release argues against.
 
+## An outside review's top ten (2026-11-24)
+
+An outside review ranked ten things that would most help adoption, weighted toward
+React developers. Each is recorded here with where it stands, so none lives only
+in a conversation.
+
+1. **Publish the VS Code extension, and get highlighting on GitHub.** The
+   extension is on the Visual Studio Marketplace as `chadetov.glyph-vscode`
+   (publisher chosen so it cannot be confused with the unrelated
+   `GlyphLang.glyphlang`) and on Open VSX for Cursor, Windsurf and VSCodium, and
+   `glyph init` recommends it through `.vscode/extensions.json`. GitHub
+   highlighting goes through Linguist under the name GlyphTS (see the Linguist
+   item under Parked); it is gated on public usage, which a coding competition is
+   planned to meet.
+2. **Glyph's checker types hook results** (G257). Scheduled in the next batch.
+3. **A Vite plugin with React Fast Refresh.** Scheduled in the next batch, on top
+   of G444.
+4. **A real-sized React reference app.** A router, data fetching, a form library,
+   a component library, refs and tests, with a TSX version beside it. The example
+   apps prove Glyph on the backend; the React side needs the same proof. Not
+   scheduled yet; it depends on items 2, 3, 5 and 6, and is the dogfood round that
+   finds what they missed.
+5. **The remaining React pattern gaps.** Refs (`useRef` and `ref` attributes),
+   `children` written inside the props object rather than only between the tags
+   (G253 fixed the error message, not the pattern), and the effect whose callback
+   must be written `fn() -> void` or React reads its return value as a cleanup,
+   which should be a lint or handled by the compiler. Publish a "React: not yet"
+   list in the style of `/catches/#not-yet`. Not scheduled yet; each pattern gets
+   a gap number when it is reproduced.
+6. **A component testing story.** `@example`, `@doc @run` and property tests cover
+   logic. Components need Vitest and React Testing Library running on `.glyph`
+   sources, with coverage reported on `.glyph` lines through the source maps. Not
+   scheduled yet.
+7. **The source-map chain checked end to end in CI.** The maps exist (shipped,
+   above). Prove them through Vite dev, a production build and an error tracker,
+   and fix the stack traces `glyph run` prints. Not scheduled yet.
+8. **A 1.0 scope and date, and a slower release channel.** `docs/stability.md` has
+   the policy but no date and no frozen list of what is still changing. With 180
+   releases out, a monthly or quarterly channel would let teams adopt without
+   following every version. The date and the channel are the owner's decision;
+   this records the request.
+9. **`glyph import ts`.** `docs/guide/migration.md` describes adopting one module
+   at a time by hand. A converter that translates a TypeScript module and reports
+   what it could not translate would make the first module cheap. Not scheduled
+   yet.
+10. **Who is behind it, and who uses it.** `MAINTAINERS.md` and `GOVERNANCE.md`
+    exist (0.1.18) but the site does not show them: name the maintainers and what
+    happens if the main contributor steps away on the site, add case studies once
+    there are users to write about, and link the gaps log from the homepage. Not
+    scheduled yet.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

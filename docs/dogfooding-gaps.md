@@ -10769,6 +10769,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.176 (the release build): `<Show />` and `<Show label="x" other="y" />` against `component Show<T: HasLabel>(p: T)` are `no diagnostics` under `--no-tsc`, and TS2769 twice with `tsc`; `id(5)` and `id<string>("s")` against `fn id<T: Named>(x: T) -> T` report nothing about the bound under `check --no-tsc` (only E0107 unused-variable warnings, exit 0), and are TS2345 and TS2344 under full `check`.*
 
+  *Reproduced against 0.1.182 (the release build): `<Show />` and `<Show label="x" other="y" />` against `component Show<T: HasLabel>(p: T)` are `no diagnostics` under `--no-tsc`, and TS2769 twice with `tsc`; `id(5)` and `id<string>("s")` against `fn id<T: Named>(x: T) -> T` report nothing about the bound under `check --no-tsc` (only E0107 unused-variable warnings, exit 0), and are TS2345 and TS2344 under full `check`.*
+
 - **G265. JSX is untyped in the checker, so a JSX value passes where a string is
   declared.** `fn s() -> string { return <p>hi</p> }` passes Glyph and is
   TS2322 under `tsc`; `component A() -> string` over JSX is silent the same
@@ -12663,6 +12665,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.176 (the release build): unchanged, `let x = f<a, "\q">(1)` in a function body is ``[E0003] Error: parse: unexpected token: Comma`` at the comma (main:8:14) under both `check --no-tsc` and full `check`.*
 
+  *Reproduced against 0.1.182 (the release build): unchanged, `let x = f<a, "\q">(1)` in a function body is ``[E0003] Error: parse: unexpected token: Comma`` at the comma (main:8:14) under both `check --no-tsc` and full `check`.*
+
 - **G330. [FIXED] A non-ASCII character in code crashes `glyph check`.**
   `let s = 1 é` exits 101 with a panic in the diagnostic renderer ("end byte
   index 13 is not a char boundary"). The lexer turned the first byte of a
@@ -12726,6 +12730,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.170 (the release build): unchanged, `<p title="&amp;">x</p>` is `no diagnostics` under `check --no-tsc` (exit 0), and the emitted TypeScript holds `{ title: "&amp;" }`.*
 
   *Reproduced against 0.1.176 (the release build): unchanged, `<p title="&amp;">x</p>` is `no diagnostics` under `check --no-tsc` (exit 0), and the emitted TypeScript holds `{ title: "&amp;" }`.*
+
+  *Reproduced against 0.1.182 (the release build): unchanged, `<p title="&amp;">x</p>` is `no diagnostics` under `check --no-tsc` (exit 0), and the emitted TypeScript holds `{ title: "&amp;" }`.*
 
 - **G333. A `<` in JSX text is E0002 "expected JSX element or attribute name".**
   `<p>a < b</p>` reads the `<` as the start of an element. The four E0012
@@ -13235,6 +13241,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.176 (the release build): unchanged, `json.parse<m.Box<int>>` through `import model as m` is ``[E0304] ... `json.parse<m.Box<int>>` has no runtime check to run for it`` under `check --no-tsc` and `run`, while `json.parse<Box<int>>` imported by name is `no diagnostics` and runs to `Ok`.*
 
+  *Reproduced against 0.1.182 (the release build): unchanged, `json.parse<m.Box<int>>` through `import model as m` is ``[E0304] ... `json.parse<m.Box<int>>` has no runtime check to run for it`` under `check --no-tsc` and `run`, while `json.parse<Box<int>>` imported by name is `no diagnostics` and runs to `Ok`.*
+
 - **G355. `Page.is<U>(v)` passes Glyph's checker and fails `tsc`.** A type
   argument on a generic descriptor's `is` is accepted by the checker, and the
   emitted call is refused by `tsc` with TS2554 (wrong number of arguments).
@@ -13265,6 +13273,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.170 (the release build): unchanged, `Page.is<U>(v)` and `p<U>(v)` through `let p = Page.parse` are `no diagnostics` under `--no-tsc` and ``TS2554: Expected 2 arguments, but got 1`` under full `check`; record 105's `a12e-union-is-gen` still throws `TypeError: check is not a function` in `every_at` under `run --no-tsc`.*
 
   *Reproduced against 0.1.176 (the release build): unchanged, `Page.is<U>(v)` and `p<U>(v)` through `let p = Page.parse` are `no diagnostics` under `--no-tsc` and ``TS2554: Expected 2 arguments, but got 1`` under full `check`; record 105's `a12e-union-is-gen` still throws `TypeError: check is not a function` in `every_at` under `run --no-tsc`.*
+
+  *Reproduced against 0.1.182 (the release build): unchanged, `Page.is<U>(v)` and `p<U>(v)` through `let p = Page.parse` are `no diagnostics` under `--no-tsc` and ``TS2554: Expected 2 arguments, but got 1`` under full `check`; record 105's `a12e-union-is-gen` still throws `TypeError: check is not a function` in `every_at` under `run --no-tsc`.*
 
 - **G351. [FIXED] An expression followed by `{` on the same line is split into a
   value and an unreachable block.** `return h() { k: 2 }` parses as `return
@@ -13342,6 +13352,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.170 (the release build) by record 104's LSP client: unchanged, `add-one-arm` answers `ok: false` with `verification_failed` on E0200, and `add-both` answers `ok: true`.*
 
   *Reproduced against 0.1.176 (the release build) by record 104's LSP client: unchanged, `add-one-arm` answers `ok: false` with `verification_failed` on E0200, and `add-both` answers `ok: true`.*
+
+  *Reproduced against 0.1.182 (the release build) by record 104's LSP client: unchanged, `add-one-arm` answers `ok: false` with `verification_failed` on E0200, and `add-both` answers `ok: true`.*
 
 - **G358. `glyph fmt` does not sort imports, though the manifesto said it
   did.** Two `import` lines in the wrong order are left as they are, and
@@ -14733,6 +14745,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.176 (the release build): unchanged, `record.set(r, "gold", "oops")` on a `Record<Tier, int>` passes `check --no-tsc` with no diagnostics and is `[TS2345] Error: tsc: Argument of type 'string' is not assignable to parameter of type 'number'` under full `check`.*
 
+  *Reproduced against 0.1.182 (the release build): unchanged, `record.set(r, "gold", "oops")` on a `Record<Tier, int>` passes `check --no-tsc` with no diagnostics and is `[TS2345] Error: tsc: Argument of type 'string' is not assignable to parameter of type 'number'` under full `check`.*
+
 - **G403. E0217 skips the final statement of a block.** `fn tail(s: string)
   -> void { parse(s) }`, where `parse` returns a `Result`, drops it with no
   diagnostic: the warning is raised only for a non-final statement, on the
@@ -14755,6 +14769,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.176 (the release build): unchanged, record 129's `e.glyph` (`fn tail(s: string) -> void { parse(s) }`) is `1 module(s) checked, no diagnostics` with exit 0 under both `check --no-tsc` and full `check`.*
 
+  *Reproduced against 0.1.182 (the release build): unchanged, record 129's `e.glyph` (`fn tail(s: string) -> void { parse(s) }`) is `1 module(s) checked, no diagnostics` with exit 0 under both `check --no-tsc` and full `check`.*
+
 - **G404. A dropped promise from an npm package or a host builtin is silent.**
   `import dns/promises { lookup }` then a bare `lookup("localhost")` gets no
   diagnostic from Glyph's checker and none from `tsc`, and `let n: number =
@@ -14775,6 +14791,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.170 (the release build): unchanged, record 128's `c.glyph` draws nothing on the bare `lookup("localhost")` from either checker; `check --no-tsc` reports only E0107 on the unused `n`, and full `check` refuses the annotated `let` with TS2322 (`Promise<{ address: string; family: number; }>` not assignable to `number`).*
 
   *Reproduced against 0.1.176 (the release build): unchanged, record 128's `c.glyph` draws nothing on the bare `lookup("localhost")` from either checker; `check --no-tsc` reports only E0107 on the unused `n` (D65 does not fire on the annotated `let`), and full `check` refuses the annotated `let` with TS2322 (`Promise<{ address: string; family: number; }>` not assignable to `number`).*
+
+  *Reproduced against 0.1.182 (the release build): unchanged, record 128's `c.glyph` draws nothing on the bare `lookup("localhost")` from either checker; `check --no-tsc` reports only E0107 on the unused `n` (D65 does not fire on the annotated `let`), and full `check` refuses the annotated `let` with TS2322 (`Promise<{ address: string; family: number; }>` not assignable to `number`).*
 
 - **G405. The prelude `Issue`'s fields are untyped to Glyph's checker.** A
   value read from an `Issue` (the issue type `json.parse` and `T.parse`
@@ -14806,6 +14824,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.176 (the release build): unchanged, `let p: number = i.path` and `let m: number = i.message` pass `check --no-tsc` with no diagnostics (D65 does not fire; full `check` is two TS2322), `return string.from(i.path)` passes full `check` with no E0237, and hover on `path` and `message` answers `null` while `i` answers `Issue`.*
 
+  *Reproduced against 0.1.182 (the release build): unchanged, `let p: number = i.path` and `let m: number = i.message` pass `check --no-tsc` with no diagnostics (D65 does not fire; full `check` is two TS2322), `return string.from(i.path)` passes full `check` with no E0237, and hover on `path` and `message` answers `null` while `i` answers `Issue`.*
+
 - **G406. An unannotated sync lambda is typed as returning `void` whatever
   its tail is.** `let f = fn() { 5 }` then `let n: number = f()` is
   ``E0204: type mismatch: expected `number`, found `void` ``, while the
@@ -14829,6 +14849,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.170 (the release build): unchanged, `let f = fn() { 5 }` then `let n: number = f()` is E0204 `expected number, found void` at main:5:19 under both `check --no-tsc` and full `check`, exit 1.*
 
   *Reproduced against 0.1.176 (the release build): unchanged, `let f = fn() { 5 }` then `let n: number = f()` is E0204 `expected number, found void` at main:5:19 under both `check --no-tsc` and full `check`, exit 1.*
+
+  *Reproduced against 0.1.182 (the release build): unchanged, `let f = fn() { 5 }` then `let n: number = f()` is E0204 `expected number, found void` at main:5:19 under both `check --no-tsc` and full `check`, exit 1.*
 
 - **G407. [FIXED] An async lambda with no return type escapes G99's async-callback
   refusal.** `array.map(xs, async fn(x: number) { await save(x) })` passes
@@ -14915,6 +14937,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.176 (the release build): unchanged, `regex.matches("a.c", "abc")` passes full `check` with no diagnostics and `tsc --strict`, and `run` prints `matches true`.*
 
+  *Reproduced against 0.1.182 (the release build): unchanged, `regex.matches("a.c", "abc")` passes full `check` with no diagnostics and `tsc --strict`, and `run` prints `matches true`.*
+
 - **G410. `http.html` sends its body unescaped.** `http.html(200, "<p>Hello,
   ${name}</p>")` with `name` from a request is an XSS: the body goes out as
   `text/html` exactly as built. A constant rule is wrong here, because an
@@ -14936,6 +14960,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.170 (the release build): unchanged, `http.html(200, "<p>Hello, ${name}</p>")` with `name = "<script>alert(1)</script>"` passes full `check` (only E0107 on the unused binding) and `run` prints the body `<p>Hello, <script>alert(1)</script></p>` as `text/html`.*
 
   *Reproduced against 0.1.176 (the release build): unchanged, `http.html(200, "<p>Hello, ${name}</p>")` with `name = "<script>alert(1)</script>"` passes full `check` (only E0107 on the unused binding) and `run` prints the body `<p>Hello, <script>alert(1)</script></p>` as `text/html`.*
+
+  *Reproduced against 0.1.182 (the release build): unchanged, `http.html(200, "<p>Hello, ${name}</p>")` with `name = "<script>alert(1)</script>"` passes full `check` (only E0107 on the unused binding) and `run` prints the body `<p>Hello, <script>alert(1)</script></p>` as `text/html`.*
 
 - **G411. E0239 gives prose, not a rewrite, for a quoted literal holding more
   than a value.** `db.query("SELECT * FROM users WHERE name LIKE '%${name}%'", [])`
@@ -15213,6 +15239,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.170 (the release build): unchanged, with the 0.1.164 probe hover on `for`, `i` and `x` at the arm's `for` line is `string`, hover on the iterand `v` and on the use in `let n: number = i` is `unknown`; the same loop outside a `match` hovers `i` as `unknown`.*
 
   *Reproduced against 0.1.176 (the release build), changed in 0.1.169 to 0.1.175 but still wrong: hover on `for`, `i` and `x` at the arm's `for` line, and on every other column of the arm's `let n` and `let s` lines, answers `string`; the iterand `v` now hovers as `Array<unknown>` (G415's narrowing) and the use of `i` in `let n: number = i` answers `null`. The same loop outside a `match` hovers `i` as `unknown`. The published 0.1.175 answers the same.*
+
+  *Reproduced against 0.1.182 (the release build): unchanged from 0.1.176, hover on `for`, `i` and `x` at the arm's `for` line, and on the other sampled columns of the arm's `let n` and `let s` lines, answers `string`; the iterand `v` hovers as `Array<unknown>` and the use of `i` in `let n: number = i` answers `null`. The same loop outside a `match` hovers `i` as `unknown`. The published 0.1.180 answers the same.*
 
 - **G421. A function-kind mismatch at a `let`, `const`, `return` or field says
   only ``expected `function`, found `async function` ``.** 0.1.159 refuses
@@ -16173,6 +16201,8 @@ and is the owner's to confirm.
   nothing for `c0`, `c1` and `c2`.*
 
   *Reproduced against 0.1.176 (the release build) with record 184's probe b3: `check --no-tsc` reports nothing for `c0`, `c1` and `c2` (full `check` is TS2322, TS2322, TS2339), nor for `c.cmp(5)` where `Cmp<string>` is declared (full `check` is TS2345).*
+
+  *Reproduced against 0.1.182 (the release build) with record 184's probe b3: `check --no-tsc` reports nothing for `c0`, `c1` and `c2` (full `check` is TS2322, TS2322, TS2339), nor for `c.cmp(5)` where `Cmp<string>` is declared (full `check` is TS2345).*
 
 - **G480. `process.exit` is typed as no type at all, not as `never`.** The
   `std/process` row in `stdlib.rs` gives `exit` the return `Ty::Unknown`,

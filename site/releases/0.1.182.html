@@ -1,0 +1,17 @@
+---
+version: 0.1.182
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: A primitive and an interface are compared
+---
+            <p>Glyph compared a record against an interface, but not a primitive. <code>f(5)</code> with <code>f(h: HasName)</code> and <code>fn n(s: string) -&gt; HasName { return s }</code> both passed <code>check --no-tsc</code>, and <code>glyph query assignable</code> answered UNDETERMINED for them. Only <code>tsc</code> refused them.</p>
+
+            <p>A <code>string</code>, <code>number</code>, <code>int</code>, <code>bool</code>, string-literal union, refined primitive or array where an interface is declared is now compared through its apparent members, the way TypeScript does it. <code>5</code> has no <code>name</code>, so it does not satisfy <code>HasName</code>. <code>"abc"</code> has a <code>length</code>, so it does satisfy <code>interface HasLen { length: number }</code>. The other direction is simpler: an interface's value is an object, so it is refused where a <code>string</code>, a <code>number</code> or an array is declared. A bounded <code>T: HasName</code> returned where a <code>string</code> is declared is refused the same way.</p>
+
+            <p>The message ends with the reason, for example <code>`number` has no member `name`, which `HasName` requires</code>. <code>glyph query assignable</code> and <code>glyph_impact</code> now give the relation's answer for these pairings instead of UNDETERMINED.</p>
+
+            <p>Still left to <code>tsc</code>: a primitive against an interface whose members are all optional and shared with nothing (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), an interface where <code>Nullable&lt;string&gt;</code> is declared (G528), and member reads on a <code>bool</code> (G507). A <code>bigint</code> is still typed as a <code>number</code> in this release; 0.1.183 fixes that.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>fn n1(s: string) -&gt; HasName { return s }</code> exits 0 under 0.1.181's <code>check --no-tsc</code> and 1 under 0.1.182. Every new refusal is one <code>tsc</code> makes. Across the 375 programs the corpus script measures, the only change is a new test fixture that refuses on purpose.</p>

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-475 entries, 336 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-119 are open. G144, the D28 boundary cast that never reached the returns a
+477 entries, 338 are fixed, 10 are partly fixed, 11 are decided or resolved, and
+118 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16064,7 +16064,7 @@ and is the owner's to confirm.
   reproductions are E0204, and so is `is Array<string> => v` returned
   where `number` is declared.
 
-- **G471. A write into a container is not compared with its element or
+- **G471. [HALF FIXED] A write into a container is not compared with its element or
   value type under `--no-tsc`.** On a declared `v: Array<string>`, `mut
   v.push(5)` and `mut v[0] = 5` pass, and so does `mut m["k"] = 5` on `m:
   Record<string, string>`; full `check` reports TS2345 and TS2322 for the
@@ -16079,6 +16079,11 @@ and is the owner's to confirm.
   *Reproduced against 0.1.175 (the dev-0.1.175 build) with record 183's
   `a2`: `check --no-tsc` exits 0, and full `check` exits 1 with TS2345,
   TS2322 and TS2322.*
+
+  The index half is fixed in 0.1.179 with G501: `mut v[0] = 5` and `mut
+  m["k"] = 5` are E0204, and so is `mut u[0] = 5` inside an `is
+  Array<string>` arm, which `tsc` accepts. The method half (`mut
+  v.push(5)`) is 0.1.181's, with G505. The key a write uses is G511.
 
 - **G472. A write through a second, wider name after an `is` check breaks
   the narrowing.** `let r: Record<string, unknown> = { name: "x", }`, `let
@@ -16164,7 +16169,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.178 (the release build) with record 187's t3 and t2's annotated `bigint` comparator (t2's `[1n, 2n]` with `mut xs.sort()` now draws E0243, whose help writes the `number` comparator): `check --no-tsc` exits 0 on the three programs; full `check` reports TS2322 for each; `let x = 1n` returned under `-> string` is E0204 "found `number`".*
 
 
-- **G501. A value written by `mut` is not compared with its place.** With
+- **G501. [FIXED] A value written by `mut` is not compared with its place.** With
   `let x: number = 1`, `mut x = "s"` passes `check --no-tsc`, and so do
   `let y = 1` then `mut y = "s"`, `mut r.n = "x"` on a `number` field,
   `mut r.tags[0] = 5`, `mut v[0] = 5` on an `Array<string>`,
@@ -16178,6 +16183,15 @@ and is the owner's to confirm.
   *Reproduced against 0.1.178 (the published release) by record 196's probe
   `m1.glyph`: function `a` exits 0 under `check --no-tsc`, and full `check`
   reports eight TS2322.*
+
+  Fixed in 0.1.179 (record 196, section 1; D5, D66): the value `mut P = e`
+  writes is compared with P's type as `let x: T = e` compares its
+  initializer, so the eight writes are E0204, a `match` is compared arm by
+  arm, and a written literal is reported once. The note says where the
+  place's type came from (`` `x` holds a `number`: declared at line 7 ``).
+  Closes G471's index half. A name whose type comes from neither an
+  annotation nor a `let` initializer (a `for` binding, an arm's payload, a
+  lambda parameter typed by its slot) is not judged.
 
 - **G502. A primitive or an array where an interface is declared passes.**
   `f(5)` with `f(h: HasName)` and `fn n1(s: string) -> HasName { return s }`
@@ -16240,3 +16254,27 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.178 (the published release) by record 196's probe
   `boolm.glyph`: `b.nope` exits 0 under `check --no-tsc`.*
+
+- **G511. The key an index write uses is not held to the map's key type.**
+  On `m: Record<Mode, number>` with `type Mode = "read" | "write"`, `mut
+  m["exec"] = 2` passes `check --no-tsc`; `tsc` refuses it (TS7053). Record
+  196 assumed E0204's key rule already covered a written key; it covers a
+  `Record` value against a `Record` type, not the index of a write. The
+  read `m["exec"]` is E0224 ("may not be there"), which is the wrong
+  sentence for a write. Which code and message the write takes is open.
+  Filed by the 0.1.179 builder.
+
+  *Reproduced against 0.1.179 (the dev-0.1.179 build): `check --no-tsc`
+  exits 0, and full `check` reports TS7053.*
+
+- **G512. [FIXED] A `let` over an unannotated `const` holds the `const`'s
+  literal type.** With `const DIR = "out"`, `let d = DIR` held `"out"`,
+  where `tsc` widens the `let` the emitter writes to `string` (TypeScript
+  widens a literal an unannotated `const` holds at a mutable binding, and
+  keeps an annotated one's). Nothing compared a later `mut d = ...` before
+  G501, so it was invisible; with G501 it refused `mut dir = value_at(...)`
+  in five example apps, which `tsc` accepts. Fixed in 0.1.179 (D66): the
+  `let` holds a `string` when it reads an unannotated `const` holding string
+  literals, a written string or a `match` of them, in this module or a
+  sibling through a named import or a namespace. Filed by the 0.1.179
+  builder.

@@ -1123,7 +1123,7 @@ pub(crate) fn path_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Op
 /// `contains` and `index_of` did not even know their receiver was an array:
 /// `array.len("not an array")` passed `glyph check --no-tsc` while `tsc`
 /// rejected it. Every receiver is an `Array<T>` now, and `concat`'s second
-/// argument is an array of its own.
+/// argument is an array of the same `T`.
 ///
 /// What is still `unknown` is the *searched-for* or *appended* value in
 /// `push`, `contains` and `index_of`, and it is not because the TypeScript is
@@ -1248,20 +1248,16 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         // `push` appends one element, so its second parameter is the element
         // type and stays `unknown` for the same reason `contains`'s does.
         "push" => (vec![of(xs.clone()), unknown()], xs),
-        // `concat` appends a whole array, which is a thing the table can say
-        // without a second `T`: a second *array*, of its own element type.
-        // `array.concat(xs, y)` over a non-array is refused, and the pair is
-        // never compared to each other, so nothing `tsc` accepts is lost.
-        "concat" => {
-            let other = || Ty::Param {
-                name: Ident::from("U"),
-                owner: ParamOwner::std_callable(module_key, field),
-            };
-            (
-                vec![of(xs.clone()), of(array_ty(prelude, other())?)],
-                xs,
-            )
-        }
+        // `concat` joins two arrays of one element type, as the runtime's
+        // `concat<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>)` does (G307,
+        // D92). `T` binds from the first argument and the second is compared
+        // against it, so `array.concat([1, 2], ["a"])` is E0211 where `tsc`
+        // says TS2322. Two candidates `tsc` would join are not refused: a
+        // `string` replaces a literal union bound first
+        // (`collect_type_param_bindings`), and an `int` is already a `number`
+        // to this checker, so `array.concat(ints, nums)` is an
+        // `Array<number>` in either order.
+        "concat" => (vec![of(xs.clone()), of(xs.clone())], xs),
         "filter" => (vec![of(xs.clone()), of(pred())], xs),
         "sort" => (
             vec![

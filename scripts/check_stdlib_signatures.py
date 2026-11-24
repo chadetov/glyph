@@ -86,9 +86,6 @@ DECLARED_TO_RUNTIME = "declared -> runtime"
 # is a row in docs/dogfooding-gaps.md. Fixing the row or the runtime makes the
 # entry pass, and the check then fails until the entry is removed here.
 KNOWN: dict[tuple[str, str, str], str] = {
-    # The row lets the two arrays differ in element type and returns the
-    # first one's; the runtime takes one `T` for both.
-    ("std/array", "concat", RUNTIME_TO_DECLARED): "G307",
     # A trailing optional parameter, which a Glyph function type cannot spell,
     # renders as required.
     ("std/string", "index_of", DECLARED_TO_RUNTIME): "G308",

@@ -5,17 +5,19 @@ knows the project is run predictably rather than by whim.
 
 ## Model
 
-Glyph currently uses a **BDFL-style model with a small maintainer group**. The
-project lead has final say on language design and direction; day-to-day review,
-triage, and merges are shared across the maintainers listed in
-[`MAINTAINERS.md`](MAINTAINERS.md). This is honest about the project's stage: it
-is early and small, and a lightweight model fits that. The intent is to broaden
-toward a steering-council model as the contributor base grows (see Succession).
+Glyph currently uses a **BDFL-style model with one maintainer**, the project
+lead listed in [`MAINTAINERS.md`](MAINTAINERS.md), who has final say on language
+design and direction and also does the review, triage, and merges. The project
+is early and small, and a lightweight model fits that. The intent is to add
+maintainers and broaden toward a steering-council model as the contributor base
+grows (see Succession).
 
 ## How decisions are made
 
 - **Small changes** (bug fixes, docs, diagnostics, examples, tooling) are decided
-  by normal pull-request review: one maintainer approval and green CI.
+  by normal pull-request review and green CI. With one maintainer, an approving
+  review is not required on the lead's own pull requests; the required CI checks
+  are.
 - **Language or semantics changes** go through the RFC process
   ([`docs/rfcs/`](../docs/rfcs/README.md)): a written proposal, public
   discussion, and a maintainer decision recorded on the RFC. The four pillars,
@@ -43,10 +45,14 @@ released syntax decision is expensive, so "not yet" is cheaper than "oops."
 Continuity is a first-class concern, not an afterthought:
 
 - The repository, the `glyphlang.io` domain, and the npm org are project assets,
-  not personal ones; access is held by more than one maintainer so the project
-  survives any single person stepping away.
-- If the project lead becomes unavailable, the remaining maintainers select a new
-  lead by majority vote.
+  not personal ones. Today a single maintainer holds access to all three, so the
+  bus factor is one. Adding a second maintainer with access is the first step of
+  the succession plan.
+- Once there is more than one maintainer, if the project lead becomes
+  unavailable, the remaining maintainers select a new lead by majority vote.
+- Until then, continuity rests on the output: the emitted TypeScript is ordinary
+  code that keeps compiling with `tsc`, and published npm versions are never
+  removed.
 - Both licenses are permissive ([MIT](../LICENSE-MIT) or
   [Apache-2.0](../LICENSE-APACHE)), so the community can always fork and continue
   regardless of who holds the assets, the ultimate continuity guarantee.

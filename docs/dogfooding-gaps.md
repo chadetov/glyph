@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-508 entries, 356 are fixed, 9 are partly fixed, 13 are decided or resolved, and
-130 are open. G144, the D28 boundary cast that never reached the returns a
+508 entries, 357 are fixed, 9 are partly fixed, 13 are decided or resolved, and
+129 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16607,14 +16607,15 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.189 (the release build): `let n: string = process.exit(1)` passes `check --no-tsc` with only unused-import and unused-variable warnings, and the `std/process` row in `stdlib.rs` still gives `exit` the return `Ty::Unknown`.*
 
-  Fixed in 0.1.193 (decision record 208, R12; record 211, section 3). The `std/process` row
-  types `exit` as `never`, and the stale comment is gone. A `match` arm that
-  exits contributes nothing to the arm join (D47), so in record 208's probe
-  `g480.glyph` the match is a `number` and `let s: string = x` on line 10 is
-  E0204, the refusal `tsc` makes there (TS2322). `let n: string =
-  process.exit(1)` stays accepted, as it is under `tsc`. The corpus run over
-  375 units changed no diagnostic: its three calls to `process.exit` are
-  statements, not match arms.
+  Fixed in 0.1.193 (decision record 208, R12; record 211, section 3). The
+  `std/process` row types `exit` as `never`, and the stale comment is gone. A
+  `match` arm that exits contributes nothing to the arm join (D47), so in
+  record 208's probe `g480.glyph` the match is a `number` and `let s: string =
+  x` on line 10 is E0204, the refusal `tsc` makes there (TS2322). `let n:
+  string = process.exit(1)` stays accepted, as it is under `tsc`, and so are
+  the five accepting probes of record 211, section 3. The corpus run over 376
+  units against the published 0.1.191 changed no diagnostic: its three calls
+  to `process.exit` are statements, not match arms.
 
 - **G470. [FIXED] A `match` used as a value is not compared arm by arm with the
   type declared where it stands.** `return match f { true => s, false => 0, }`

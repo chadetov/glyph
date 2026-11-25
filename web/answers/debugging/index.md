@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/debugging/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/debugging/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-28 · Operations
+29 · Operations
 
 # When it breaks in production at 3am, what does on-call see?
 
@@ -91,4 +91,4 @@ Making it exit non-zero would fail trees that run fine today, so it's an open de
 - A decision on whether a sibling module's error should make `glyph run` exit non-zero.
 - Richer editor debugging via the LSP.
 
-Code examples on this page are checked against Glyph 0.1.186 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.186 on every build. Last changed 25 Nov 2026.

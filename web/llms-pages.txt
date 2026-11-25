@@ -14,6 +14,7 @@
 
 - [Can an AI write a language it has barely seen?](https://glyphlang.io/answers/ai-authoring/index.md): Glyph reads like TypeScript but is not a subset of it. Most of what a model knows about TypeScript carries over, and the compiler names the places it does not.
 - [Can my agent ask the compiler about a symbol first?](https://glyphlang.io/answers/ask-the-compiler/index.md): glyph_symbol answers in one call: a union's variants, a record's fields, a function's signature, and whether a match over it must be exhaustive.
+- [Can I stop an agent importing the raw library?](https://glyphlang.io/answers/banned-imports/index.md): Ban an import path in package.json and name the module to use instead. An import of it is a compile error whose help points at your wrapper, and extern_ts is covered too.
 - [Can I handle binary data, or is everything a string?](https://glyphlang.io/answers/binary/index.md): std/bytes gives Glyph an immutable byte sequence, with hex, base64 and base32 codecs that refuse malformed input, plus file I/O and HMACs over bytes.
 - [Can I generate a typed client from my API spec?](https://glyphlang.io/answers/codegen/index.md): Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph.
 - [What does on-call see when it breaks at 3am?](https://glyphlang.io/answers/debugging/index.md): Glyph compiles to readable TypeScript with a v3 source map back to each .glyph file, so stack traces and tsc errors point at the Glyph you wrote.

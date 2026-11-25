@@ -8,6 +8,13 @@
   <updated>2026-11-26T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.191</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.191" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.191</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>E0225 fires only when a stale value reaches the write</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.190 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.190" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.190</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.162</id>
     <updated>2026-11-22T00:00:00Z</updated>
     <summary>A ?? on an Option is refused, and glyph fix stops writing inside ${}</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.161 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.161" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.161</id>
-    <updated>2026-11-22T00:00:00Z</updated>
-    <summary>A method that returns undefined when nothing is there is refused, and the Option form is named</summary>
   </entry>
 </feed>

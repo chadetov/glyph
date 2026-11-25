@@ -477,14 +477,14 @@ dependencies = [
 
 [[package]]
 name = "glyph-ast"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "glyph-lexer",
 ]
 
 [[package]]
 name = "glyph-cli"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "ariadne",
  "clap",
@@ -507,7 +507,7 @@ dependencies = [
 
 [[package]]
 name = "glyph-db"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "glyph-ast",
  "glyph-formatter",
@@ -520,7 +520,7 @@ dependencies = [
 
 [[package]]
 name = "glyph-emit"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "glyph-ast",
  "glyph-formatter",
@@ -533,7 +533,7 @@ dependencies = [
 
 [[package]]
 name = "glyph-formatter"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "glyph-ast",
  "glyph-emit",
@@ -546,7 +546,7 @@ dependencies = [
 
 [[package]]
 name = "glyph-lexer"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "insta",
  "proptest",
@@ -555,7 +555,7 @@ dependencies = [
 
 [[package]]
 name = "glyph-lsp"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "glyph-ast",
  "glyph-db",
@@ -573,7 +573,7 @@ dependencies = [
 
 [[package]]
 name = "glyph-parser"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "ariadne",
  "glyph-ast",
@@ -585,7 +585,7 @@ dependencies = [
 
 [[package]]
 name = "glyph-resolver"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "glyph-ast",
  "glyph-lexer",
@@ -596,7 +596,7 @@ dependencies = [
 
 [[package]]
 name = "glyph-runtime"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "glyph-ast",
  "glyph-typechecker",
@@ -606,7 +606,7 @@ dependencies = [
 
 [[package]]
 name = "glyph-typechecker"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "ariadne",
  "glyph-ast",
@@ -619,7 +619,7 @@ dependencies = [
 
 [[package]]
 name = "glyph-wasm"
-version = "0.1.190"
+version = "0.1.191"
 dependencies = [
  "console_error_panic_hook",
  "glyph-ast",

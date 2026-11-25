@@ -12738,6 +12738,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.183 (the release build): unchanged, `return <p>abc` then the function's `}` is ``[E0012] Error: parse: `}` cannot appear in JSX text`` with the `{"}"}` help.*
 
+  *Reproduced against 0.1.189 (the release build): unchanged, `return <p>abc` then the function's `}` is ``[E0012] Error: parse: `}` cannot appear in JSX text`` with the `{"}"}` help.*
+
 - **G332. An entity in a JSX attribute string is emitted as written.**
   `<p title="&amp;">x</p>` compiles and emits the five characters `&amp;`,
   where TSX decodes it to `&`. Record 93 refused entities in JSX text for this
@@ -12797,6 +12799,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.183 (the release build): unchanged, `<p>a < b</p>` is ``[E0002] Error: parse: expected JSX element or attribute name, found LAngle`` with the general help, not `{"<"}`.*
 
+  *Reproduced against 0.1.189 (the release build): unchanged, `<p>a < b</p>` is ``[E0002] Error: parse: expected JSX element or attribute name, found LAngle`` with the general help, not `{"<"}`.*
+
 - **G334. An invisible character outside a string is named raw, and a BOM is
   refused.** `unexpected character` prints a no-break space, U+200B, a lone
   combining mark or a byte-order mark between backticks as it is, so the
@@ -12828,6 +12832,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.177 (the release build): unchanged, a BOM at offset 0, a no-break space and U+200B are each ``[E0001] Error: parse: lex error: unexpected character`` with the raw character between the backticks and no `U+XXXX`.*
 
   *Reproduced against 0.1.183 (the release build): unchanged, a BOM at offset 0, a no-break space and U+200B are each ``[E0001] Error: parse: lex error: unexpected character`` with the raw character between the backticks and no `U+XXXX`.*
+
+  *Reproduced against 0.1.189 (the release build): unchanged, a BOM at offset 0, a no-break space and U+200B are each ``[E0001] Error: parse: lex error: unexpected character`` with the raw character between the backticks and no `U+XXXX`.*
 
 - **G335. [FIXED] `glyph fmt` writes a statement starting with `(` after one that
   absorbs it as a call.** In a block, `let a = 1` followed by `load()?` and an
@@ -13479,6 +13485,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.183 (the release build): unchanged, with `import orders { OrderStatus, Pending, Paid, Cancelled }` `glyph fix` prints "removed 2 unused import(s)", rewrites the import to `{ OrderStatus, Pending }`, and then declines the E0200 listing `Paid` and `Cancelled` (the 0.1.177 probe file held the post-fix import; the pre-fix copy was used).*
 
+  *Reproduced against 0.1.189 (the release build): unchanged, with `import orders { OrderStatus, Pending, Paid, Cancelled }` `glyph fix` prints "removed 2 unused import(s)", rewrites the import to `{ OrderStatus, Pending }`, and then declines the E0200 listing `Paid` and `Cancelled` (the pre-fix copy was used).*
+
 - **G360. `glyph fix`'s decline names a catch-all that comes before the head
   as the arm a rename would take from.** With `other => 2` before `Loadd(n)
   => n`, the decline says "its arm `other` handles `Loaded` now, so renaming
@@ -13537,6 +13545,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.183 (the release build): unchanged, `glyph fix` on the lowercase-variant probe applies the E0220 rename of `Loadd` to `Loaded` and still declines the E0200 listing `Loaded`, and `check` on the fixed file reports no diagnostics (the 0.1.177 probe file held the post-fix head; the pre-fix copy was used).*
 
+  *Reproduced against 0.1.189 (the release build): unchanged, `glyph fix` on the lowercase-variant probe applies the E0220 rename of `Loadd` to `Loaded` and still declines the E0200 listing `Loaded`, and `check` on the fixed file reports no diagnostics (the pre-fix copy was used).*
+
 - **G356. A namespaced `is m.T` or `is m.G<X>` pattern has no lowering.** With
   `import w`, `match v { is w.P => … }` is E0300 ("an `is` check on an
   unsupported type"), while `w.P.is(v)` compiles and `import w { P }` with
@@ -13572,6 +13582,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.177 (the release build): unchanged, record 107's a, b and d are ``[E0300] Error: emit: TS emission for an `is` check on an unsupported type is not implemented yet``, while the `w.P.is(v)` control checks clean and runs.*
 
   *Reproduced against 0.1.183 (the release build): unchanged, record 107's a, b and d are ``[E0300] Error: emit: TS emission for an `is` check on an unsupported type is not implemented yet``, while the `w.P.is(v)` control checks clean and runs.*
+
+  *Reproduced against 0.1.189 (the release build): unchanged, record 107's a, b and d are ``[E0300] Error: emit: TS emission for an `is` check on an unsupported type is not implemented yet``, while the `w.P.is(v)` control checks clean and runs.*
 
 - **G357. [FIXED] `is Record<K, V>` and `is Array<X>` narrow on the container's shape
   alone.** `match v { is Record<string, int> => … }` takes the arm for `{ a:
@@ -13915,6 +13927,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.183 (the release build): unchanged, the missing, empty, extra, write, `bool`-key, record-key, nullable-key and `json.parse` key probes exit 0 under `check --no-tsc` and are TS2741, TS2739, TS2353, TS7053 and TS2344 with `tsc`.*
 
+  *Reproduced against 0.1.189 (the release build): unchanged, the missing, empty, extra, write, `bool`-key, record-key, nullable-key and `json.parse` key probes exit 0 under `check --no-tsc` and are TS2741, TS2739, TS2353, TS7053 and TS2344 with `tsc`.*
+
 - **G373. [FIXED] A `Record<string, V>` stands where a `Record<K, V>` with a narrower
   key is declared.** `fn f(r: Record<string, int>) -> Record<Tier, int> {
   return r }`, a `record.set` or `record.remove` result, and record 113's t5
@@ -13988,6 +14002,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.177 (the release build) by record 113's probe v3: `json.parse<Idx<Tier>>` with `type Idx<K: string> = { m: Record<K, int>, }` is still ``[E0304] Error: emit: cannot validate `Idx<Tier>`: `Idx`'s field `m` has type `Record<K, int>`, and a key type given by a type parameter is not checked at run time``, and so is `Idx.parse<Tier>(json.parse(s))` checked alone; `json.parse<Idx<string>>` passes `check --no-tsc` and runs.*
 
   *Reproduced against 0.1.183 (the release build) by record 113's probe v3: `json.parse<Idx<Tier>>` with `type Idx<K: string> = { m: Record<K, int>, }` is still ``[E0304] Error: emit: cannot validate `Idx<Tier>`: `Idx`'s field `m` has type `Record<K, int>`, and a key type given by a type parameter is not checked at run time``, and so is `Idx.parse<Tier>(json.parse(s))` checked alone; `json.parse<Idx<string>>` passes `check --no-tsc` and runs.*
+
+  *Reproduced against 0.1.189 (the release build) by record 113's probe v3: `json.parse<Idx<Tier>>` with `type Idx<K: string> = { m: Record<K, int>, }` is still ``[E0304] Error: emit: cannot validate `Idx<Tier>`: `Idx`'s field `m` has type `Record<K, int>`, and a key type given by a type parameter is not checked at run time``, and so is `Idx.parse<Tier>(json.parse(s))` checked alone; `json.parse<Idx<string>>` passes `check --no-tsc` and runs.*
 
 - **G375. A `Record` check reports the whole map, not the entry.** A bad
   value, a stray key and a missing member all report ``field `m` must be
@@ -15125,6 +15141,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.183 (the release build): unchanged, `db.query("SELECT * FROM users WHERE name LIKE '%${name}%'", [])` and `db.query("SELECT * FROM users WHERE name = '${first} ${last}'", [])` are each E0239 under `check --no-tsc` with the general help ``Build the query from constants and pass values in the array; a structure that must vary goes through `taint.sanitize` and `sqlite.from_trusted`.`` and no rewrite.*
 
+  *Reproduced against 0.1.189 (the release build): unchanged, `db.query("SELECT * FROM users WHERE name LIKE '%${name}%'", [])` and `db.query("SELECT * FROM users WHERE name = '${first} ${last}'", [])` are each E0239 under `check --no-tsc` with the general help ``Build the query from constants and pass values in the array; a structure that must vary goes through `taint.sanitize` and `sqlite.from_trusted`.`` and no rewrite.*
+
 - **G412. [FIXED] The formatter and the emitter erase a written `unknown` on a
   lambda parameter.** The parser recorded an omitted lambda annotation as a
   written `unknown` path, so the two were one node and three stages read it
@@ -15441,6 +15459,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.183 (the release build): `let s: string = pick(5, async fn(n) { await save(1) })` with `fn pick<T>(x: T, f: fn(T) -> void) -> T` gives E0211 and no E0204 under `check --no-tsc`; the same call with a sync callback gives E0204 ``expected `string`, found `number` ``.*
 
+  *Reproduced against 0.1.189 (the release build): `let s: string = pick(5, async fn(n) { await save(1) })` with `fn pick<T>(x: T, f: fn(T) -> void) -> T` gives E0211 and no E0204 under `check --no-tsc`; the same call with a sync callback gives E0204 ``expected `string`, found `number` ``.*
+
 - **G423. [FIXED] Glyph's checker does not type the stdlib `Set`, `Store` and `Deque`,
   so their writes are outside D5's audit.** `let a: number = set.create<string>()`
   and `let b: number = store.create(0)` pass `check --no-tsc` with no
@@ -15521,6 +15541,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.183 (the release build) with record 151's probe `y01`: `check --no-tsc` exits 0 with only an unused-import warning; full `check` reports TS2355.*
 
+  *Reproduced against 0.1.189 (the release build) with record 151's probe `y01`: `check --no-tsc` exits 0 with only an unused-import warning; full `check` reports TS2355.*
+
 - **G425. A method read by index is detached, and the call throws.**
   `xs["push"](1)` passes `check` and `tsc --strict`, then throws
   `TypeError: Cannot convert undefined or null to object` at run time: the
@@ -15541,6 +15563,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.177 (the release build) with record 151's probe `p07_index_callee`: `xs["push"](1)` gets no diagnostics under `check --no-tsc` beyond an unused-import warning, full `check` reports `tsc --strict passed.`, and `glyph run` throws `TypeError: Cannot convert undefined or null to object`.*
 
   *Reproduced against 0.1.183 (the release build) with record 151's probe `p07_index_callee`: `xs["push"](1)` gets no diagnostics under `check --no-tsc` beyond an unused-import warning, full `check` reports `tsc --strict passed.`, and `glyph run` throws `TypeError: Cannot convert undefined or null to object`.*
+
+  *Reproduced against 0.1.189 (the release build) with record 151's probe `p07_index_callee`: `xs["push"](1)` gets no diagnostics under `check --no-tsc` beyond an unused-import warning, full `check` reports `tsc --strict passed.`, and `glyph run` throws `TypeError: Cannot convert undefined or null to object`.*
 
 - **G426. The value-position help for an optional mutating call drops the
   `?.`.** `let n = s.opt?.pop()` on `type S = { opt?: Array<number>, }` is
@@ -16449,6 +16473,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.183 (the release build): `let n: string = process.exit(1)` passes `check --no-tsc` with only unused-import and unused-variable warnings, and the `std/process` row in `stdlib.rs` still gives `exit` the return `Ty::Unknown`.*
 
+  *Reproduced against 0.1.189 (the release build): `let n: string = process.exit(1)` passes `check --no-tsc` with only unused-import and unused-variable warnings, and the `std/process` row in `stdlib.rs` still gives `exit` the return `Ty::Unknown`.*
+
 - **G470. [FIXED] A `match` used as a value is not compared arm by arm with the
   type declared where it stands.** `return match f { true => s, false => 0, }`
   with `s: string` under `-> number`, and `let r: number = match v { is
@@ -17116,6 +17142,8 @@ and is the owner's to confirm.
   react@18 and @types/react 18.3.31: `let input = useRef(null)` is E0103;
   `<input ref={useRef(0)} />` is `no diagnostics` and `tsc --strict passed`.*
 
+  *Reproduced against 0.1.189 (the release build), in a project with react@18 and @types/react 18.3.32: `let input = useRef(null)` is E0103; `<input ref={useRef(0)} />` is `no diagnostics` and `tsc --strict passed`.*
+
 - **G631. Children written between the tags do not fill a required
   `children` field.** `component Card(props: { title: string, children:
   ReactNode })` with `<Card title="x">hello</Card>` is E0211 "missing field
@@ -17135,6 +17163,8 @@ and is the owner's to confirm.
   this entry `[DUPLICATE of G603]`, folds its reproduction into G603, and
   points the "React: not yet" row at G603.
 
+  *Reproduced against 0.1.189 (the release build): `<Card title="x">hello</Card>` with a required `children: ReactNode` is E0211 under `check --no-tsc` and full `check`; both workarounds (`children?: ReactNode`, `children={"hello"}`) pass full `check`.*
+
 - **G632. A hook call inside a `match` arm or a loop is not refused.** React
   matches hook calls by their order, so a hook that runs on some renders and
   not others breaks the component at run time. `let [n, set_n] =
@@ -17152,6 +17182,8 @@ and is the owner's to confirm.
   the canonical number. Whichever of the two branches merges second marks
   this entry `[DUPLICATE of G596]`, folds its reproduction into G596, and
   points the "React: not yet" row at G596.
+
+  *Reproduced against 0.1.189 (the release build): a component returning a `match` whose `true` arm calls `useState` is `no diagnostics` and `tsc --strict passed`; a `useState` call inside a `for` loop passes full `check` too, with only an E0107 unused-variable warning.*
 
 - **G633. An effect lambda that returns its last expression passes Glyph's
   checker.** `useEffect(fn() { storage.set("k", "v") }, [])` passes `check
@@ -17173,6 +17205,8 @@ and is the owner's to confirm.
   this entry `[DUPLICATE of G594]`, folds its reproduction into G594, and
   points the "React: not yet" row at G594.
 
+  *Reproduced against 0.1.189 (the release build): `check --no-tsc` exits clean; full `check` reports TS2345 (`'() => Result<void, storage.StorageError>' is not assignable to parameter of type 'EffectCallback'`); the `-> void` spelling passes full `check`.*
+
 - **G634. A component cannot take a `ref`, and `forwardRef` is checked by
   `tsc` only.** `<Field label="x" ref={r} />` on a `component Field(props: {
   label: string })` is E0210 (`type { label: string } has no field ref`),
@@ -17187,6 +17221,8 @@ and is the owner's to confirm.
   component with `label={5}` is `no diagnostics` under `--no-tsc` and
   TS2769 under full `check`.*
 
+  *Reproduced against 0.1.189 (the release build), with react@18 and @types/react 18.3.32: the `ref` attribute is E0210; the `forwardRef` component with `label={5}` is `no diagnostics` under `--no-tsc` and TS2769 under full `check`.*
+
 - **G635. Context values are not typed by Glyph's checker.** `const Theme =
   createContext("light")`, `<Theme.Provider value="dark">` and
   `useContext(Theme)` compile and run through `tsc`, but `let n: number =
@@ -17198,6 +17234,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.183 (the published release): the program above is
   `no diagnostics` under `--no-tsc`, TS2322 under full `check`, and hover on
   the context value answers `null`.*
+
+  *Reproduced against 0.1.189 (the release build): the program above is `no diagnostics` under `--no-tsc`, TS2322 under full `check`, and hover on the context value (`Theme` in `useContext(Theme)`, and the `const Theme` declaration) answers `null`.*
 
 - **G636. The hooks G257's plan leaves out stay unchecked by Glyph.**
   Decision record 208 specifies G257's fix as a table of seven hooks:
@@ -17212,6 +17250,8 @@ and is the owner's to confirm.
   useId()` is `no diagnostics` under `--no-tsc` and TS2322 under full
   `check`.*
 
+  *Reproduced against 0.1.189 (the release build): `let n: number = useId()` is `no diagnostics` under `--no-tsc` and TS2322 under full `check`.*
+
 - **G637. The planned hook types are for `@types/react` 18 only.** Decision
   record 208 gates G257's table on the project's installed `@types/react`
   having major version 18; on 19, or with no types, every hook stays
@@ -17224,6 +17264,8 @@ and is the owner's to confirm.
   @types/react 19.3.0: `examples/apps/todo`'s `app.glyph` and `main.glyph`
   pass full `check`; the `set_count("x")` counter is `no diagnostics` under
   `--no-tsc` and TS2345 under full `check`.*
+
+  *Reproduced against 0.1.189 (the release build), with react@19 and @types/react 19.3.3: `examples/apps/todo`'s `app.glyph` and `main.glyph` pass full `check`; the `set_count("x")` counter is `no diagnostics` under `--no-tsc` and TS2345 under full `check`.*
 
 - **G638. An edit to an emitted module reloads the page under Vite, even
   when it is the only file that changed.** With `@vitejs/plugin-react` 4 and
@@ -17245,6 +17287,8 @@ and is the owner's to confirm.
   the canonical number. Whichever of the two branches merges second marks
   this entry `[DUPLICATE of G609]`, folds its reproduction into G609, and
   points the "React: not yet" row at G609.
+
+  *Reproduced against 0.1.189 (the release build), driven in Playwright with Chromium, with @vitejs/plugin-react 4.3.4 and Vite 5.4.21: under `glyph build . --out gen --watch`, editing the add label in `app.glyph` gave two page loads and a counter at 0; editing the same string in `gen/app.ts` directly, with no watch running, did the same, and Vite logged `page reload gen/app.ts`.*
 
 - **G639. [DECIDED - not planned] Class components.** Glyph has no classes,
   so `class Old extends Component { }` is E0003 at `class`. Decision record

@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>November 2026 releases · Glyph</title>
-    <meta name="description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.188, 61 releases, 53 breaking. Each one with its ship date and its notes." />
+    <meta name="description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.189, 62 releases, 53 breaking. Each one with its ship date and its notes." />
     <link rel="canonical" href="https://glyphlang.io/versions/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/versions/" />
     <meta property="og:title" content="November 2026 releases" />
-    <meta property="og:description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.188, 61 releases, 53 breaking. Each one with its ship date and its notes." />
+    <meta property="og:description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.189, 62 releases, 53 breaking. Each one with its ship date and its notes." />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -44,7 +44,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.188</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.189</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -406,7 +406,7 @@
       </div>
 
       <nav class="month-nav" aria-label="Releases by month">
-        <a href="/versions/2026-11/" class="active" aria-current="page"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 61 releases · 53 breaking</span></a>
+        <a href="/versions/2026-11/" class="active" aria-current="page"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 62 releases · 53 breaking</span></a>
         <a href="/versions/2026-10/"><span class="mn-month">Oct 2026</span> <span class="mn-count">· 3 releases · 3 breaking</span></a>
         <a href="/versions/2026-09/"><span class="mn-month">Sep 2026</span> <span class="mn-count">· 25 releases · 10 breaking</span></a>
         <a href="/versions/2026-08/"><span class="mn-month">Aug 2026</span> <span class="mn-count">· 66 releases · 1 breaking</span></a>
@@ -415,15 +415,35 @@
       </nav>
       <div class="month-head">
         <h2 class="month-title">November 2026</h2>
-        <p class="month-sum">61 releases, 53 breaking, 0.1.128 to 0.1.188</p>
+        <p class="month-sum">62 releases, 53 breaking, 0.1.128 to 0.1.189</p>
         <label class="breaking-only" hidden><input type="checkbox" /> Breaking only</label>
       </div>
 
       <div class="releases">
+        <article class="release" id="0.1.189" data-hl="fm">
+          <div class="rel-head">
+            <h3 class="rel-ver">0.1.189</h3>
+            <span class="rel-tag latest">Latest</span>
+            <time class="rel-date" datetime="2026-11-25">25 Nov 2026</time>
+            <a class="rel-link" href="/versions/2026-11/#0.1.189" data-url="https://glyphlang.io/versions/2026-11/#0.1.189" aria-label="Link to 0.1.189">Link</a>
+          </div>
+          <details class="rel-details" open>
+            <summary><span class="rel-headline">A type written with extern_ts or typeof is left to tsc</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <p>Glyph refused some programs that TypeScript accepts. With <code>type Raw = extern_ts("\"read\"")</code> and <code>type Mode = "read" | "write"</code>, returning a <code>Raw</code> where a <code>Mode</code> is declared was E0204. So was an <code>extern_ts("any")</code> where a record or a tagged union is declared. The refusal came from the rule that compares two declared types by name: it read <code>Raw</code> and <code>Mode</code> as two different declarations. But Glyph cannot see what an <code>extern_ts</code> or <code>typeof</code> body stands for, so it has no grounds to say they differ.</p>
+
+            <p>Now any pairing with a name whose body is <code>extern_ts</code> or <code>typeof</code>, on either side, is left undecided, and <code>tsc</code> decides it on the full check. That holds at a <code>return</code>, an annotated <code>let</code>, an argument, and inside <code>Array&lt;...&gt;</code>. <code>glyph query assignable</code> and the <code>glyph_assignable</code> tool answer UNDETERMINED for these pairings, with a reason, where they answered WILL_FAIL.</p>
+
+            <p>A real <code>unknown</code> is not affected. <code>type U = unknown</code> where <code>Mode</code> or a record is declared is still E0204, and so is a <code>string</code> where <code>Mode</code> is declared.</p>
+
+            <h4>Breaking</h4>
+            <p>No. This release only removes refusals. The probe program exits 1 under 0.1.188's <code>check --no-tsc</code> and 0 under 0.1.189. Across the 376 programs the corpus script measures, the only difference is this release's own test fixture, where two E0204s are gone.</p>
+          </div>
+          </details>
+        </article>
         <article class="release" id="0.1.188" data-hl="fm" data-breaking>
           <div class="rel-head">
             <h3 class="rel-ver">0.1.188</h3>
-            <span class="rel-tag latest">Latest</span>
             <span class="rel-tag breaking">Breaking</span>
             <time class="rel-date" datetime="2026-11-25">25 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.188" data-url="https://glyphlang.io/versions/2026-11/#0.1.188" aria-label="Link to 0.1.188">Link</a>
@@ -484,7 +504,7 @@
             <time class="rel-date" datetime="2026-11-25">25 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.186" data-url="https://glyphlang.io/versions/2026-11/#0.1.186" aria-label="Link to 0.1.186">Link</a>
           </div>
-          <details class="rel-details" open>
+          <details class="rel-details">
             <summary><span class="rel-headline">Calls inside an @example are call sites</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
             <p><code>glyph_impact</code>, <code>glyph_references</code> and <code>glyph_dependencies</code> did not see a name used inside an <code>@example</code> or a <code>@doc</code> fence tagged <code>glyph @run</code>. Renaming a function listed every caller in the program and missed the example that calls it, and that example then failed with E0103 the next time the tests ran. A function whose only caller was another module's <code>@example</code> looked unused.</p>
@@ -2116,7 +2136,7 @@
     <script>
       (function () {
         // An anchor for a release that lives on another month's page goes there.
-        var where = {"0.1.188":"2026-11","0.1.187":"2026-11","0.1.186":"2026-11","0.1.185":"2026-11","0.1.184":"2026-11","0.1.183":"2026-11","0.1.182":"2026-11","0.1.181":"2026-11","0.1.180":"2026-11","0.1.179":"2026-11","0.1.178":"2026-11","0.1.177":"2026-11","0.1.176":"2026-11","0.1.175":"2026-11","0.1.174":"2026-11","0.1.173":"2026-11","0.1.172":"2026-11","0.1.171":"2026-11","0.1.170":"2026-11","0.1.169":"2026-11","0.1.168":"2026-11","0.1.167":"2026-11","0.1.166":"2026-11","0.1.165":"2026-11","0.1.164":"2026-11","0.1.163":"2026-11","0.1.162":"2026-11","0.1.161":"2026-11","0.1.160":"2026-11","0.1.159":"2026-11","0.1.158":"2026-11","0.1.157":"2026-11","0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
+        var where = {"0.1.189":"2026-11","0.1.188":"2026-11","0.1.187":"2026-11","0.1.186":"2026-11","0.1.185":"2026-11","0.1.184":"2026-11","0.1.183":"2026-11","0.1.182":"2026-11","0.1.181":"2026-11","0.1.180":"2026-11","0.1.179":"2026-11","0.1.178":"2026-11","0.1.177":"2026-11","0.1.176":"2026-11","0.1.175":"2026-11","0.1.174":"2026-11","0.1.173":"2026-11","0.1.172":"2026-11","0.1.171":"2026-11","0.1.170":"2026-11","0.1.169":"2026-11","0.1.168":"2026-11","0.1.167":"2026-11","0.1.166":"2026-11","0.1.165":"2026-11","0.1.164":"2026-11","0.1.163":"2026-11","0.1.162":"2026-11","0.1.161":"2026-11","0.1.160":"2026-11","0.1.159":"2026-11","0.1.158":"2026-11","0.1.157":"2026-11","0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
         var id = decodeURIComponent(location.hash.slice(1));
         if (id && !document.getElementById(id) && where[id]) {
           location.replace("/versions/" + where[id] + "/" + location.search + "#" + id);

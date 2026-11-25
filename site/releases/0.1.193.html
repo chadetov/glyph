@@ -1,0 +1,21 @@
+---
+version: 0.1.193
+month: 2026-11
+date: 2026-11-26
+tags: breaking
+headline: process.exit returns never
+---
+            <p>Glyph typed <code>process.exit(code)</code> as returning an untyped value. A <code>match</code> with one arm that exits and one that produces a <code>number</code> took that untyped value as its result. So <code>let s: string = x</code> afterwards passed <code>check --no-tsc</code>, and only <code>tsc</code> caught it.</p>
+
+            <p><code>process.exit</code> now returns <code>never</code>, the type of a call that does not come back. A <code>match</code> whose other arms give a <code>number</code> is a <code>number</code>, so the line above is E0204. A <code>never</code> fits anywhere a value is expected, the same way <code>tsc</code> reads it:</p>
+            <ul>
+              <li>a function declared <code>-&gt; number</code> whose body ends in <code>process.exit(1)</code> is not refused for a missing return;</li>
+              <li><code>n ?? process.exit(1)</code> is a <code>string</code> when <code>n</code> is a <code>Nullable&lt;string&gt;</code>;</li>
+              <li><code>[1, process.exit(1)]</code> is an <code>Array&lt;number&gt;</code>;</li>
+              <li>a lambda that exits fits where <code>fn() -&gt; void</code> is declared, and <code>"${process.exit(1)}"</code> is accepted.</li>
+            </ul>
+
+            <p>The <code>std/process</code> module now has no untyped row left.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. The probe program exits 0 under 0.1.192's <code>check --no-tsc</code> and 1 under 0.1.193; full <code>check</code> already refused it through <code>tsc</code>. Across the 376 programs the corpus script measures, the output is identical to the previous release. All three <code>process.exit</code> calls in it are statements.</p>

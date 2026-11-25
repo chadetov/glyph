@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/language/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/language/, generated from the same source as the page. Last changed 2026-11-25. -->
 
 15 · Language completeness
 
@@ -29,7 +29,7 @@ Glyph answers those four, and it does it without reopening the annotation-heavy 
 
 ## Interfaces constrain generics
 
-An `interface` is structural, like a TypeScript one: it's a set of member signatures a generic can require. No `implements`, no nominal ceremony. Any value with the members qualifies, and `tsc` enforces it.
+An `interface` is structural, like a TypeScript one: it's a set of member signatures a generic can require. No `implements`, no nominal ceremony. Any value with the members qualifies, and `tsc` enforces it. A generic interface is read through its arguments: under `interface Cmp<X>`, a `Cmp<number>` has `cmp(o: number)`, so `c.cmp("a")` on one is refused before `tsc` runs, and inside `fn f<T: Cmp<T>>` the call `a.cmp(b)` takes a `T`.
 
 interfaces constrain generics
 
@@ -384,7 +384,7 @@ fn balance<K, V>(t: Tree<K, V>) -> Tree<K, V> {
 Modules and types
 
 - `pub` visibility enforced on both ways of naming a sibling’s type (the named import and the `lib.Secret` annotation)
-- Structural `interface` bounds
+- Structural `interface` bounds, a generic one read through its arguments
 - `async fn(A) -> T` as a written type
 - A union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one’s field
 
@@ -505,4 +505,4 @@ Patterns
 
   Binding a field, or matching a tag with no payload in one, works in every case.
 
-Code examples on this page are checked against Glyph 0.1.187 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.187 on every build. Last changed 25 Nov 2026.

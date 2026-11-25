@@ -72,7 +72,12 @@ head: |
         An <code>interface</code> is structural, like a TypeScript one: it's a
           set of member signatures a generic can require. No <code>implements</code>,
           no nominal ceremony. Any value with the members qualifies, and
-          <code>tsc</code> enforces it.
+          <code>tsc</code> enforces it. A generic interface is read through its
+          arguments: under <code>interface Cmp&lt;X&gt;</code>, a
+          <code>Cmp&lt;number&gt;</code> has <code>cmp(o: number)</code>, so
+          <code>c.cmp("a")</code> on one is refused before <code>tsc</code> runs, and
+          inside <code>fn f&lt;T: Cmp&lt;T&gt;&gt;</code> the call
+          <code>a.cmp(b)</code> takes a <code>T</code>.
       </p>
       <div class="code">
         <span class="cap">interfaces constrain generics</span>
@@ -615,7 +620,7 @@ fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
           <p class="ak-st-group">Modules and types</p>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation)</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Structural <code>interface</code> bounds</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Structural <code>interface</code> bounds, a generic one read through its arguments</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>async fn(A) -&gt; T</code> as a written type</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one&rsquo;s field</span></span></li>
           </ul>

@@ -1,0 +1,17 @@
+---
+version: 0.1.186
+month: 2026-11
+date: 2026-11-25
+headline: Calls inside an @example are call sites
+---
+            <p><code>glyph_impact</code>, <code>glyph_references</code> and <code>glyph_dependencies</code> did not see a name used inside an <code>@example</code> or a <code>@doc</code> fence tagged <code>glyph @run</code>. Renaming a function listed every caller in the program and missed the example that calls it, and that example then failed with E0103 the next time the tests ran. A function whose only caller was another module's <code>@example</code> looked unused.</p>
+
+            <p>Those names are now <code>CALLS</code> and <code>REFERENCES</code> sites. Every entry of the two relations carries a <code>context</code> field: <code>example</code>, <code>doc_run</code>, or null for a site in the program. A site in a test names the declaration the annotation sits above. The index builds the same file the example gate builds and resolves it with the same front end, so a site it lists is one the gate would compile. A rename now lists the example with the E0103 it would raise, and <code>change_signature_type</code> decides the example's argument against the new parameter type.</p>
+
+            <p>Two classes are still missed, and both answers say so under <code>not_indexed</code>. A field access or a <code>match</code> inside a test is in neither <code>FIELD_ACCESS</code> nor <code>MATCH_SITES</code> (G547). The language server's references and rename read each file on its own, so an editor rename still leaves a test spelling the old name (G546). Both are scheduled.</p>
+
+            <h3>Also in this release</h3>
+            <p>Two exact-or-absent cases still expected UNDETERMINED for an imported second name of a primitive, a pairing the checker has decided since G315. They now expect WILL_FAIL, and <code>scripts/check_exact_or_absent.py</code> runs in CI, so a case that drifts from the checker fails the build (G548).</p>
+
+            <h3>Breaking</h3>
+            <p>No. No exit code changes: the program record 196 uses to probe this exits 0 under <code>check --no-tsc</code> and full <code>check</code> with 0.1.185 and with 0.1.186. Across the 376 programs the corpus script measures, the output is identical to 0.1.185. What changes is the answers of the three tools, which gain entries and the <code>context</code> field.</p>

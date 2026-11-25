@@ -1,0 +1,14 @@
+---
+version: 0.1.189
+month: 2026-11
+date: 2026-11-25
+headline: A type written with extern_ts or typeof is left to tsc
+---
+            <p>Glyph refused some programs that TypeScript accepts. With <code>type Raw = extern_ts("\"read\"")</code> and <code>type Mode = "read" | "write"</code>, returning a <code>Raw</code> where a <code>Mode</code> is declared was E0204. So was an <code>extern_ts("any")</code> where a record or a tagged union is declared. The refusal came from the rule that compares two declared types by name: it read <code>Raw</code> and <code>Mode</code> as two different declarations. But Glyph cannot see what an <code>extern_ts</code> or <code>typeof</code> body stands for, so it has no grounds to say they differ.</p>
+
+            <p>Now any pairing with a name whose body is <code>extern_ts</code> or <code>typeof</code>, on either side, is left undecided, and <code>tsc</code> decides it on the full check. That holds at a <code>return</code>, an annotated <code>let</code>, an argument, and inside <code>Array&lt;...&gt;</code>. <code>glyph query assignable</code> and the <code>glyph_assignable</code> tool answer UNDETERMINED for these pairings, with a reason, where they answered WILL_FAIL.</p>
+
+            <p>A real <code>unknown</code> is not affected. <code>type U = unknown</code> where <code>Mode</code> or a record is declared is still E0204, and so is a <code>string</code> where <code>Mode</code> is declared.</p>
+
+            <h3>Breaking</h3>
+            <p>No. This release only removes refusals. The probe program exits 1 under 0.1.188's <code>check --no-tsc</code> and 0 under 0.1.189. Across the 376 programs the corpus script measures, the only difference is this release's own test fixture, where two E0204s are gone.</p>

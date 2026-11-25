@@ -115,4 +115,4 @@ Verifying an attacker-supplied value against a secret uses `crypto.timing_safe_e
 - The codecs are written in TypeScript rather than delegating to node's `Buffer`, which is what lets them run in a Web Worker, and they are between 1x and 35x slower than the platform's on a megabyte.
 - Encoding a key or a token costs nothing you can measure either way; the performance guide has the table if you are moving tens of megabytes.
 
-Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 25 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.189 on every build. Last changed 25 Nov 2026.

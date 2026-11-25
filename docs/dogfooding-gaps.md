@@ -16928,6 +16928,10 @@ and is the owner's to confirm.
   `check --no-tsc`, printing "invalid ./package.json: trailing comma ... not a
   Glyph project root".*
 
+  *Reproduced against 0.1.186 (the 0.1.187 branch build on 0.1.186, before
+  the version bump): the same manifest and `src/main.glyph` exit 0 under
+  `check --no-tsc` with the same warning.*
+
 - **G552. No query lists a project's banned imports.** An agent learns the
   bans by reading `package.json` or by meeting E0115 after it has written the
   import. A `glyph query` verb and an MCP tool answering "which import paths
@@ -16937,4 +16941,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.178 (the 0.1.187 branch build, before the version
   bump): `glyph query --help` lists eleven verbs and none reads
+  `glyph.banned_imports`.*
+
+  *Reproduced against 0.1.186 (the 0.1.187 branch build on 0.1.186, before
+  the version bump): no verb `glyph query --help` lists reads
   `glyph.banned_imports`.*

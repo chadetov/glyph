@@ -99,4 +99,4 @@ A `use` that names no module, a `use` that is itself banned, and an `allow_in` e
 - A `package.json` that doesn't parse isn't a project marker, so its bans don't apply. Making that an error is filed.
 - No query lists a project's bans yet; an agent reads `package.json` or meets them as `E0115`. A query verb is filed.
 
-Code examples on this page are checked against Glyph 0.1.186 on every build. Last changed 25 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.187 on every build. Last changed 25 Nov 2026.

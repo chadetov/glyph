@@ -1,0 +1,28 @@
+---
+version: 0.1.187
+month: 2026-11
+date: 2026-11-25
+tags: breaking
+headline: A project can ban an import path and name its own wrapper
+---
+            <p>A team that wraps a library, say its own HTTP client with retries and auth over <code>axios</code>, had no way to stop an agent from importing the raw library next to the wrapper. The import compiled, and the only defence was a code review that noticed it.</p>
+
+            <p><code>package.json</code> can now say so under the <code>glyph</code> key:</p>
+
+            <pre><code>"glyph": {
+  "src": "src",
+  "banned_imports": {
+    "axios":  { "use": "http/client", "reason": "requests go through the retry and auth wrapper" },
+    "std/fs": { "use": "storage", "allow_in": ["storage", "migrations/"] }
+  }
+}</code></pre>
+
+            <p>An import of <code>axios</code>, or of any path under it, outside <code>http/client</code> is E0115 at the import path, and so is <code>std/fs</code> outside <code>storage</code> and <code>migrations/</code>. The help names the module to import instead and the <code>glyph query exports --module</code> command that lists what it offers. It never suggests adding the importing file to <code>allow_in</code>. The same specifier quoted inside an <code>extern_ts</code> body is E0115 as well, so the escape hatch does not reopen the door. <code>check</code>, <code>build</code>, the language server and the MCP <code>glyph_diagnostics</code> tool all report it, and each re-reads the manifest after an edit without a restart.</p>
+
+            <h3>The <code>glyph</code> key is now checked</h3>
+            <p>The <code>glyph</code> key used to accept anything. It is now a closed schema with four keys: <code>src</code>, <code>banned_imports</code>, and <code>glyph publish</code>'s <code>imports</code> and <code>audit</code>. An unknown key or field, a <code>src</code> that is not a string, a <code>use</code> that names no project module, <code>std/</code> module or declared dependency, a <code>use</code> that is itself banned, and an <code>allow_in</code> entry that names nothing are E0116. The error is reported in <code>package.json</code> at the key, with its JSON path.</p>
+
+            <p>Two edges are filed. A <code>package.json</code> that does not parse loses its bans along with the rest of the key (G551), and no query verb lists a project's bans yet (G552).</p>
+
+            <h3>Breaking</h3>
+            <p>Yes, for a project that writes a key under <code>glyph</code> that Glyph does not read. <code>"glyph": {"src": "src", "bogus": 1}</code> exits 0 under 0.1.186's <code>check --no-tsc</code> and full <code>check</code>, and 1 under 0.1.187 with E0116. No tracked or outside <code>package.json</code> we test against writes one. Across the 376 programs the corpus script measures, the output is identical to 0.1.186.</p>

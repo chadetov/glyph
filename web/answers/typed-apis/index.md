@@ -503,4 +503,4 @@ Boundaries
 
   On dates, the strictness is the whole feature and it stops at the parse: `parse_iso` hands back epoch milliseconds, so a timestamp and a duration are both `number` and nothing stops you adding one to the other. A distinct date type is a later decision, not a small one.
 
-Code examples on this page are checked against Glyph 0.1.186 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.187 on every build. Last changed 21 Nov 2026.

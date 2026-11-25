@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/impact/, generated from the same source as the page. Last changed 2026-11-24. -->
+<!-- Markdown copy of https://glyphlang.io/answers/impact/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-21 · Before you edit
+22 · Before you edit
 
 # Can the compiler tell me what a change will break before I make it?
 
@@ -181,4 +181,4 @@ glyph query impact --entity main::normalize --change rename, the third entry
 - The editor's rename does not reach tests yet, so it leaves an `@example` spelling the old name (G546). A field access or a `match` inside a test is not listed; those searches name the case under `not_indexed` (G547).
 - `ABSORBS` is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.
 
-Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 24 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 25 Nov 2026.

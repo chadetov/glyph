@@ -1,6 +1,6 @@
 <!-- Markdown copy of https://glyphlang.io/answers/parse-errors/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-28 · Parse failures
+29 · Parse failures
 
 # When a parse fails, do I find out why?
 

@@ -1,6 +1,6 @@
 <!-- Markdown copy of https://glyphlang.io/answers/banned-imports/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-25 · Guarded libraries
+26 · Guarded libraries
 
 # Can I stop an agent importing the raw library when we have a wrapper for it?
 

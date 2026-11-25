@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/repair-protocol/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/repair-protocol/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-23 · Fixing a red build
+24 · Fixing a red build
 
 # When the build fails, does the compiler tell my agent how to fix it?
 
@@ -175,4 +175,4 @@ A code the corpus does not cover comes back with `counter_example: null` and a s
 - `glyph fix` writes three rules and nothing else, and it writes no arm for a non-exhaustive `match`: those are left for you or your agent, with the cases and their patterns in the diagnostic.
 - Everything it declines, it declines out loud.
 
-Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 25 Nov 2026.

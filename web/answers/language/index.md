@@ -1,6 +1,6 @@
 <!-- Markdown copy of https://glyphlang.io/answers/language/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-15 · Language completeness
+16 · Language completeness
 
 # Is this a real language, or a toy with gaps?
 

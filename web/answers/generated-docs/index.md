@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/generated-docs/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/generated-docs/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-24 · Docs that can't drift
+25 · Docs that can't drift
 
 # Is the documentation my agent reads generated, or written by hand and out of date?
 
@@ -211,4 +211,4 @@ The same prose is served at [llms.txt](https://glyphlang.io/llms.txt) for an age
 - Of the 175 that do have one, 46 still carry a `?` where a parameter type belongs.
 - And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.
 
-Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 25 Nov 2026.

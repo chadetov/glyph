@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/react-not-yet/, generated from the same source as the page. Last changed 2026-11-24. -->
+<!-- Markdown copy of https://glyphlang.io/answers/react-not-yet/, generated from the same source as the page. Last changed 2026-11-25. -->
 
 14 · React: not yet
 
@@ -80,4 +80,4 @@ A row leaves this page in the same pull request that closes its gap, so the page
 - Written children filling a required `children` (G631), and a Vite plugin with Fast Refresh (G638).
 - Not planned: class components (G639), and server components before 1.0 (G640).
 
-Code examples on this page are checked against Glyph 0.1.183 on every build. Last changed 24 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 25 Nov 2026.

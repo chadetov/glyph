@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/react/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/react/, generated from the same source as the page. Last changed 2026-11-25. -->
 
 13 · Frontend
 
@@ -188,10 +188,11 @@ index.html, next to the two modules
 
 ### On the way
 
+- Every React pattern Glyph does not handle yet, with its gap number and what to write meanwhile, is listed in [What doesn't Glyph do for React yet?](https://glyphlang.io/answers/react-not-yet/)
 - Glyph's checker does not type a hook's result, so `set_count("x")` on a number state is a `tsc` error in the build rather than a Glyph one in the editor.
 - `std/dom` stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners.
 - An effect has to be written `fn() -> void { ... }`, because a lambda returns its last expression and React would call it as a cleanup.
 - A props type written inline still shows as `record` in these messages; a named one shows its name.
 - Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in [the deployment guide](https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md).
 
-Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 25 Nov 2026.

@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/state/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/state/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-14 · Shared state
+15 · Shared state
 
 # How do I share mutable state between functions?
 
@@ -71,4 +71,4 @@ One sharp edge, shared with TypeScript: an empty collection can't infer its elem
 
 - Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.
 
-Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 25 Nov 2026.

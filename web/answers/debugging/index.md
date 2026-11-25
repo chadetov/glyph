@@ -1,6 +1,6 @@
 <!-- Markdown copy of https://glyphlang.io/answers/debugging/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-29 · Operations
+30 · Operations
 
 # When it breaks in production at 3am, what does on-call see?
 

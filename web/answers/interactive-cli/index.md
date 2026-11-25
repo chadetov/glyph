@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/interactive-cli/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/interactive-cli/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-18 · Programs you type into
+19 · Programs you type into
 
 # Can I write a program someone types into?
 
@@ -109,4 +109,4 @@ let body = io.read_to_string()
 
   A program that wants to redraw a screen has no cursor control: `std/io` has no cursor or screen functions and no other stdlib module adds them, so a full-screen terminal UI still means writing the escape codes yourself.
 
-Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 25 Nov 2026.

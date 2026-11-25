@@ -354,7 +354,9 @@ impl ResolveError {
                             "Glyph's boolean type is `bool`, not `boolean`."
                         }
                         "String" => "Glyph's string type is `string` (lowercase).",
-                        "Number" => "Glyph's number type is `number` (lowercase). To turn a `bigint` into one, `import std/bigint` and call `bigint.to_number(b)`, which returns a `Result`.",
+                        // Record 210: `Number` covers parsing text and constants as well as
+                        // the bigint conversion, so each tool is named for its own case.
+                        "Number" => "Glyph's number type is `number` (lowercase), and there is no `Number` value. To parse text into a `number`, call `number.parse(s)`, which returns a `Result`. To turn a `bigint` into a `number`, `import std/bigint` and call `bigint.to_number(b)`.",
                         // G571: the conversion lives in `std/bigint` and returns a
                         // `Result`, because `BigInt(1.5)` throws.
                         "BigInt" => {
@@ -492,6 +494,11 @@ mod tests {
         assert!(!help.contains("fix the spelling"), "{help}");
         let help = unresolved("Number").help().unwrap();
         assert!(help.contains("bigint.to_number"), "{help}");
+        // Record 210: the bigint sentence is stated for its own case only, and
+        // text has its own conversion, so `Number(s)` is not sent to bigint.
+        assert!(help.contains("To turn a `bigint` into a `number`"), "{help}");
+        assert!(help.contains("number.parse(s)"), "{help}");
+        assert!(!help.contains("into one,"), "{help}");
     }
 
     /// G254: a host global names the std module that wraps it, rather than

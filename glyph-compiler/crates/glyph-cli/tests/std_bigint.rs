@@ -204,3 +204,77 @@ fn e0258_names_the_conversions_and_the_explained_fix_builds() {
         assert_eq!(code, Some(0), "the explained fix should build:\n{stdout}\n{stderr}");
     }
 }
+
+/// The first E0258 diagnostic `src` produces, as its help text.
+fn e0258_help(prefix: &str, src: &str) -> String {
+    let dir = project(prefix, src);
+    let (code, stdout, _) = glyph(&dir, &["check", "--no-test", "--no-tsc", "--json", "src"]);
+    assert_eq!(code, Some(1), "{stdout}");
+    let v: Value = serde_json::from_str(&stdout).expect("json");
+    v["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["code"] == "E0258")
+        .unwrap_or_else(|| panic!("no E0258:\n{stdout}"))["help"]
+        .as_str()
+        .unwrap_or("")
+        .to_string()
+}
+
+/// Record 210: E0258's help states the range `to_number` accepts, and it is
+/// the range the runtime enforces. The help names `Number.MAX_SAFE_INTEGER`
+/// and its negation; the runtime compares against exactly those two; and the
+/// value one past either end is `Err` when run (`2^53` itself is, so a help
+/// saying "within 2^53" was wrong at the one value that matters).
+#[test]
+fn e0258_help_names_the_bound_to_number_enforces() {
+    let help = e0258_help(
+        "e0258_bound",
+        "module main\n\npub fn total(id: bigint, n: number) -> bigint {\n  return id + n\n}\n",
+    );
+    assert!(
+        help.contains("from `-Number.MAX_SAFE_INTEGER` to `Number.MAX_SAFE_INTEGER`"),
+        "{help}"
+    );
+    assert!(!help.contains("2^53"), "{help}");
+
+    let runtime = include_str!("../../../runtime/std/bigint.ts");
+    assert!(runtime.contains("const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);"), "{runtime}");
+    assert!(runtime.contains("if (b > MAX_SAFE || b < -MAX_SAFE) {"), "{runtime}");
+
+    // The numbers the boundary examples in `BOUNDARIES` use are that bound.
+    let max_safe: u64 = (1 << 53) - 1;
+    assert!(BOUNDARIES.contains(&format!("@example to({max_safe}n) == \"Ok({max_safe})\"")));
+    assert!(BOUNDARIES.contains(&format!("@example to(-{max_safe}n) == \"Ok(-{max_safe})\"")));
+    let past = max_safe + 1;
+    assert!(BOUNDARIES.contains(&format!("@example to({past}n) == \"Err\"")));
+    assert!(BOUNDARIES.contains(&format!("@example to(-{past}n) == \"Err\"")));
+}
+
+/// Record 210: a fractional literal beside a `bigint` gets a help that says no
+/// `bigint` holds a fraction, rather than naming `from_number`, which is `Err`
+/// on that literal. A whole literal still gets the `123n` spelling, and a
+/// literal like `2.0` holds a whole number, so it keeps the conversion help.
+#[test]
+fn e0258_on_a_fractional_literal_says_no_bigint_holds_a_fraction() {
+    let help = e0258_help(
+        "e0258_frac",
+        "module main\n\npub fn f(x: bigint) -> bigint {\n  return x + 1.5\n}\n",
+    );
+    assert!(help.contains("No `bigint` holds a fraction"), "{help}");
+    assert!(help.contains("`1.5`"), "{help}");
+    assert!(!help.contains("from_number"), "{help}");
+
+    let help = e0258_help(
+        "e0258_whole",
+        "module main\n\npub fn f(x: bigint) -> bigint {\n  return x + 3\n}\n",
+    );
+    assert!(help.contains("`3n`"), "{help}");
+
+    let help = e0258_help(
+        "e0258_whole_float",
+        "module main\n\npub fn f(x: bigint) -> bigint {\n  return x + 2.0\n}\n",
+    );
+    assert!(help.contains("bigint.from_number(n)"), "{help}");
+}

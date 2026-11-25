@@ -8,6 +8,13 @@
   <updated>2026-11-25T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.188 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.188" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.188</id>
+    <updated>2026-11-25T00:00:00Z</updated>
+    <summary>A generic interface's members are checked</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.187 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.187" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.187</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.159</id>
     <updated>2026-11-21T00:00:00Z</updated>
     <summary>An async callback passed where nothing will wait for it is an error</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.158 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.158" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.158</id>
-    <updated>2026-11-21T00:00:00Z</updated>
-    <summary>A lambda parameter without an annotation takes its type from where the lambda is passed</summary>
   </entry>
 </feed>

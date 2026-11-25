@@ -1,0 +1,17 @@
+---
+version: 0.1.188
+month: 2026-11
+date: 2026-11-25
+tags: breaking
+headline: A generic interface's members are checked
+---
+            <p>Glyph checked a value of a plain interface against the interface's members, but not a value of a generic one. Under <code>interface Cmp&lt;X&gt; { fn cmp(o: X) -&gt; number  v: X }</code>, a <code>c: Cmp&lt;string&gt;</code> let <code>c.cmp("a")</code> through where a <code>string</code> was declared, <code>c.v</code> where a <code>number</code> was, <code>c.nope</code>, and <code>c.cmp(5)</code>. <code>check --no-tsc</code> said nothing and only <code>tsc</code> caught them. An F-bound such as <code>T: Cmp&lt;T&gt;</code>, accepted since 0.1.173, therefore guaranteed nothing about what <code>a.cmp(b)</code> takes or returns.</p>
+
+            <p>Now an application like <code>Cmp&lt;number&gt;</code> has the interface's members with <code>X</code> replaced, computed in one place. A member read, a method call, and a value passed where the application is declared are all checked against that member set, the same way a non-generic interface is. The four reads above are E0204, E0210 (it suggests <code>cmp</code> for <code>cpm</code>) and E0211, each one a refusal <code>tsc</code> also makes. Inside <code>fn f&lt;T: Cmp&lt;T&gt;&gt;</code>, <code>a.cmp(b)</code> takes a <code>T</code> and returns a <code>number</code>.</p>
+
+            <p>Variance comes from the substitution, so <code>Box&lt;Mode&gt;</code> passes where <code>Box&lt;string&gt;</code> is declared. One case is Glyph's own rule: <code>Sink&lt;Mode&gt;</code> where <code>Sink&lt;string&gt;</code> is declared, under <code>interface Sink&lt;X&gt; { fn put(x: X) -&gt; void }</code>, is E0204, because Glyph compares method parameters the safe way round (D40) where <code>tsc</code> lets method parameters vary both ways. That message names the two interface types but not the two <code>put</code> signatures yet (G539).</p>
+
+            <p><code>glyph query assignable</code> answers WILL_FAIL for a record that lacks an application's members, where it answered UNDETERMINED, and <code>glyph_impact</code>'s <code>change_signature_type</code> runs the same check for an application of a local interface.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. The probe program for this change exits 0 under 0.1.186's <code>check --no-tsc</code> and 1 under 0.1.188. Every refusal it adds is one <code>tsc</code> makes, apart from the <code>Sink</code> case above. Across the 376 programs the corpus script measures, one diagnostic was added, in the test fixture written for this change.</p>

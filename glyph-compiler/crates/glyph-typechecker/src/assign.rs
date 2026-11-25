@@ -8618,7 +8618,12 @@ impl Assigner<'_> {
                     Expr::Number { raw, .. } if raw.bytes().all(|b| b.is_ascii_digit() || b == b'_') => format!(
                         "Write the literal as a `bigint`, `{raw}n`, so both operands are `bigint`s."
                     ),
-                    _ => "Give both operands the same type. `import std/bigint`, then `bigint.from_number(n)` turns a whole `number` into a `bigint` and `bigint.to_number(b)` turns a `bigint` within 2^53 into a `number`; each returns a `Result`.".to_string(),
+                    // A literal with a fractional part: `from_number` is `Err` on it,
+                    // so naming it would send the reader to a conversion that fails.
+                    Expr::Number { raw, .. } if raw.replace('_', "").parse::<f64>().is_ok_and(|v| v.fract() != 0.0) => format!(
+                        "No `bigint` holds a fraction, so `{raw}` has no `bigint` form. Do this arithmetic on `number`s, converting the `bigint` with `bigint.to_number(b)` from `import std/bigint`, which returns a `Result`."
+                    ),
+                    _ => BIGINT_NUMBER_MIX_HELP.to_string(),
                 };
                 self.errors.push(TypeError::BigIntOperator {
                     message: format!(
@@ -13067,6 +13072,12 @@ impl ImportedUnionOrRecord {
 fn is_concrete_scalar(p: Primitive) -> bool {
     matches!(p, Primitive::String | Primitive::Number | Primitive::BigInt | Primitive::Bool)
 }
+
+/// E0258's help for a `bigint` beside a `number` that is not a literal. The
+/// range is the one `runtime/std/bigint.ts`'s `to_number` enforces: `Err`
+/// above `Number.MAX_SAFE_INTEGER` or below its negation. `std_bigint.rs`
+/// holds the two together.
+const BIGINT_NUMBER_MIX_HELP: &str = "Give both operands the same type. `import std/bigint`, then `bigint.from_number(n)` turns a whole `number` into a `bigint` and `bigint.to_number(b)` turns a `bigint` from `-Number.MAX_SAFE_INTEGER` to `Number.MAX_SAFE_INTEGER` into a `number`; each returns a `Result`.";
 
 /// E0228's clause for a type whose shape the checker cannot see into: an
 /// `extern_ts` or `typeof` body, an unresolved name, a prelude type with no

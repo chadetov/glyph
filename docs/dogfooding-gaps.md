@@ -17360,8 +17360,8 @@ and is the owner's to confirm.
   Fixed in the G536 release: an interface value, plain or applied, is
   refused where `Option`, `Result` or `Array` is declared, whatever the
   arguments, as one arm of the rule G536 added. `Array` is in the arm
-  rather than left to 0.1.182, because on this base `HasV` where
-  `Array<number>` is declared was still silent, and the rule should not
-  wait on a rebase to hold for both spellings. `glyph query assignable`
+  because the branch base, older than 0.1.182, still left `HasV` silent
+  there; on 0.1.189 G460's rule already refuses both spellings, so the arm
+  changes no verdict for `Array` and keeps the class whole. `glyph query assignable`
   answers WILL_FAIL for all six pairings, held by the G536 exact-or-absent
   case.

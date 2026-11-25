@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-495 entries, 351 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-124 are open. G144, the D28 boundary cast that never reached the returns a
+496 entries, 351 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+125 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -17037,3 +17037,19 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.186 (the 0.1.188 branch build on 0.1.186): still
   UNDETERMINED.*
+
+- **G539. A refusal against an interface does not name the member that
+  failed.** With `interface Sink<X> { fn put(x: X) -> void }` and `type
+  Mode = "a" | "b"`, `Sink<Mode>` returned where `Sink<string>` is declared
+  is E0204 with ``expected `Sink<string>`, found `Sink<Mode>` `` and nothing
+  more; the same holds for a plain `interface SinkS { fn put(x: string) ->
+  void }` against an interface or a record whose `put` takes `"a" | "b"`.
+  Since 0.1.185 a refusal between two function types prints both
+  signatures and the parameter at fault (G434), so a refusal that comes
+  from one function member says less than the bare function would. Name
+  the member, and for a function member give both signatures. Record 207
+  asked the post-rebase check of 0.1.188 to confirm the signatures are
+  printed; they are not, on either spelling. Filed by the 0.1.188 builder.
+
+  *Reproduced against 0.1.186 (the 0.1.188 branch build on 0.1.186, which
+  prints 0.1.186): both programs are E0204 with no member named.*

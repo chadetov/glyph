@@ -1776,6 +1776,52 @@ pub fn main() -> void {
 }
 ```
 
+## The `glyph` key in package.json
+
+A `package.json` with a top-level `"glyph"` key marks a project root. Import
+paths resolve from its source directory, and the nearest marker above a file
+wins. The key holds:
+
+| key | what it does |
+|---|---|
+| `src` | The source directory, relative to package.json. Without it, `src/` when it exists, else the package directory |
+| `banned_imports` | Import paths this project's code may not use, each with the import to write instead |
+| `imports`, `audit` | `glyph publish`'s review-currency policy for third-party imports |
+
+Anything else in the key is E0116, at the key, naming its JSON path. A typo
+such as `banned_import` would otherwise switch the policy off without a word.
+
+```json
+"glyph": {
+  "src": "src",
+  "banned_imports": {
+    "axios":  { "use": "http/client", "reason": "requests go through the retry and auth wrapper" },
+    "std/fs": { "use": "storage", "allow_in": ["storage", "migrations/"] }
+  }
+}
+```
+
+A ban's key is an import path as written after `import`: an npm package
+(scoped included), a `std/` module, or a project module. It bans that path and
+every path under it, so `axios` bans `axios/lib/core` and not `axios-retry`.
+A Node builtin is keyed by its bare name (`fs`), as Glyph imports it.
+`use` is required and names the replacement, which may always import the banned
+path. `reason` is one line, quoted in the error. `allow_in` lists other modules
+that may import it; an entry ending in `/` covers a directory.
+
+An import of a banned path is E0115, and its help names the replacement:
+
+```
+[E0115] Error: import: `axios` is banned in this project: requests go through the retry and auth wrapper
+  Help: import `http/client` instead; `glyph query exports --module http/client` lists what it offers.
+```
+
+Write the import the help names. Do not route around the ban: the same
+specifier quoted inside an `extern_ts` body (`extern_ts("require('axios')")`)
+is E0115 too. When the package is also not installed, E0115 is the only error
+reported. A ban is not inherited by a nested project with its own marker, and
+a package.json that does not parse is not a marker, so its bans do not apply.
+
 ## The execution model
 
 `glyph run` (and a built `main`) does, in effect:
@@ -2135,6 +2181,8 @@ written. The full catalogue:
 | E0112 | A module with no `pub` declaration, no `main`, and no `import` anywhere in the project naming it: nothing in it is reachable (warning) | Mark what callers need `pub`, or delete the module |
 | E0113 | A `module` line starting with `std` or `extern`: both prefixes are the compiler's own (D15), so nothing can import this file | Rename the module so its first segment is neither `std` nor `extern` |
 | E0114 | A circular bound: type parameters bounding each other back to the start (`<T: U, U: T>`, `<T: T>`) | Bound one of them by a type that is not another parameter of the list, or drop the bound |
+| E0115 | A banned import: the project's `package.json` bans this path in `glyph.banned_imports` (D74), and this module is neither the replacement `use` names nor one `allow_in` lists. A key bans its own path and every path under it (`axios` bans `axios/lib/core`, not `axios-retry`). The same specifier quoted inside an `extern_ts` body is this error too. When the package is also not installed, this is reported instead of E0104 | Import the module the help names instead |
+| E0116 | A malformed `glyph` key in `package.json`, reported at the key or value with its JSON path: an unknown key or ban field (the key is a closed schema, so a typo cannot switch a setting off), a non-string `src`, a ban key that is not an import path, a `use` that names no module (or is itself banned), or an `allow_in` entry that names no module or directory under the source root | Fix the key or value the message names |
 | E0200 | Non-exhaustive `match` on a tagged union (yours, a prelude `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a string-literal union (`"free" \| "pro"`, D30) missing a literal. Either kind counts whether it is declared in this module or imported from a sibling. A union that takes type parameters counts the same as its bare form, whether the matching module declares it or imports it, and whether the argument is an open type parameter or a concrete instantiation (`tree.Tree<string>`). What the imported path still does not do is look inside a variant's payload, so `B(X)` over an imported union whose payload is itself a union is not counted (`docs/dogfooding-gaps.md` G143) | Add an arm for each missing variant |
 | E0201 | `?` used outside a `Result`-returning function | Return `Result`, or handle with `match` |
 | E0202 | `?` applied to a non-`Result` operand | Drop the `?`, or return a `Result` |

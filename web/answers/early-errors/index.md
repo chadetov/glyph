@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/early-errors/, generated from the same source as the page. Last changed 2026-11-24. -->
+<!-- Markdown copy of https://glyphlang.io/answers/early-errors/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-26 · Caught earlier
+27 · Caught earlier
 
 # Why does Glyph catch what tsc catches, but earlier?
 
@@ -529,4 +529,4 @@ Every code
 
   Separately, the read-site pin that keeps a `bool` or string-literal-union binding matchable follows a type alias only inside the module being emitted, so `pub type Ready = bool` in one module and `let r: catalog.Ready = false` in another still reaches `tsc` as `TS2678`. String-literal unions are covered across modules in all three import spellings, and since 0.1.123 the diagnostic names the declaration (expected `Mode`) under every spelling instead of printing its literal set under one of them.
 
-Code examples on this page are checked against Glyph 0.1.186 on every build. Last changed 24 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.186 on every build. Last changed 25 Nov 2026.

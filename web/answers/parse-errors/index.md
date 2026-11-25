@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/parse-errors/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/parse-errors/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-27 · Parse failures
+28 · Parse failures
 
 # When a parse fails, do I find out why?
 
@@ -117,4 +117,4 @@ fn status_for(issues: Array<Issue>) -> number {
 
   A module that declares its own type called `Issue` used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is `E0110` at the line that names the type, so you find out where the problem is instead of reading a `tsc` error about generated code.
 
-Code examples on this page are checked against Glyph 0.1.186 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.186 on every build. Last changed 25 Nov 2026.

@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/tooling/, generated from the same source as the page. Last changed 2026-11-24. -->
+<!-- Markdown copy of https://glyphlang.io/answers/tooling/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-25 · Day-to-day
+26 · Day-to-day
 
 # What's the editor, debugging, and error experience?
 
@@ -116,4 +116,4 @@ These keep a module honest: a dead import is exactly the kind of greppability no
 - Caching the cross-file index instead of rebuilding it per request (a speed win on large trees).
 - Remapping `glyph run`'s own crash stack, since `tsx` does not chain the emitted map through its transform, so that stack still names the emitted `.ts` rather than your `.glyph`.
 
-Code examples on this page are checked against Glyph 0.1.186 on every build. Last changed 24 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.186 on every build. Last changed 25 Nov 2026.

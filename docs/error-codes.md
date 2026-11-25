@@ -66,6 +66,8 @@ below.
 | `E0112` | A module with no `pub` declaration, no `main`, and no `import` anywhere in the project naming it: nothing in it is reachable (warning) |
 | `E0113` | A `module` line starting with `std` or `extern`: both prefixes are the compiler's own (D15), so nothing can import this file |
 | `E0114` | A circular bound: type parameters bounding each other back to the start (`<T: U, U: T>`, `<T: T>`) |
+| `E0115` | A banned import: the project's `package.json` bans this path in `glyph.banned_imports` (D74), and this module is neither the replacement `use` names nor one `allow_in` lists. A key bans its own path and every path under it (`axios` bans `axios/lib/core`, not `axios-retry`). The same specifier quoted inside an `extern_ts` body is this error too. When the package is also not installed, this is reported instead of E0104 |
+| `E0116` | A malformed `glyph` key in `package.json`, reported at the key or value with its JSON path: an unknown key or ban field (the key is a closed schema, so a typo cannot switch a setting off), a non-string `src`, a ban key that is not an import path, a `use` that names no module (or is itself banned), or an `allow_in` entry that names no module or directory under the source root |
 
 `E0106`–`E0108` are the lint tier: warnings, not errors. They surface in the
 build output but never fail the build or block emission. They run when parse,

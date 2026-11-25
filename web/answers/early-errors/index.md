@@ -1,6 +1,6 @@
 <!-- Markdown copy of https://glyphlang.io/answers/early-errors/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-27 · Caught earlier
+28 · Caught earlier
 
 # Why does Glyph catch what tsc catches, but earlier?
 

@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/finance/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/finance/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-16 · Money & safety
+17 · Money & safety
 
 # Can I trust it with money, and with input I don't control?
 
@@ -118,4 +118,4 @@ Hand a sink the tainted value directly and Glyph's checker refuses it (E0211) be
 
   Taint is discipline you opt into by typing a sink `Trusted`, not automatic flow analysis: the compiler enforces the boundary you declare, it does not infer taint across the whole program for you.
 
-Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 25 Nov 2026.

@@ -1,6 +1,6 @@
-<!-- Markdown copy of https://glyphlang.io/answers/web-serving/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/web-serving/, generated from the same source as the page. Last changed 2026-11-25. -->
 
-17 · Serving the web
+18 · Serving the web
 
 # Can I serve a web page, or only a JSON API?
 
@@ -88,4 +88,4 @@ A handler returns `Result<Response, string>`, so a 404 is an ordinary `Ok` and a
 - Also missing on the client side: a timeout, a redirect policy, `head`, and the final URL a redirect landed on.
 - There is no static-file server and no template engine, and there is no plan for either.
 
-Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.188 on every build. Last changed 25 Nov 2026.

@@ -1,0 +1,14 @@
+---
+version: 0.1.191
+month: 2026-11
+date: 2026-11-26
+headline: E0225 fires only when a stale value reaches the write
+---
+            <p>E0225 catches a lost update in async code: a value is read from a place, the function waits on an <code>await</code>, and then the place is written with something computed from the old value. Anything that changed the place during the wait is overwritten. The rule fired whenever a place was read before an <code>await</code> and written after it, even when the written value did not come from that earlier read. <code>let now = c[0]</code> after the <code>await</code>, then <code>mut c[0] = now + f</code>, was refused, and so was <code>mut a.balance = a.balance + f</code> written entirely after the wait. Both read the place again after the <code>await</code>, so no update can be lost.</p>
+
+            <p>Now E0225 fires only when the written value mentions something read from the place before the <code>await</code>, directly or through <code>let</code> bindings computed from it. <code>let first = c[0]</code>, <code>let x = first * 2</code>, <code>await</code>, <code>mut c[0] = x</code> is still refused through <code>x</code>, with the original read underlined. Every write the rule caught for a real reason before still fires.</p>
+
+            <p>One miss is deliberate. A binding that some <code>mut</code> later reassigns carries no taint, so a stale value passed through one is not reported. The checker prefers missing that case to refusing correct code.</p>
+
+            <h3>Breaking</h3>
+            <p>No. This release only removes refusals. The probe program exits 1 under 0.1.190's <code>check --no-tsc</code> and full <code>check</code>, and 0 under 0.1.191. Across the 376 programs the corpus script measures, the output is identical to the previous release.</p>

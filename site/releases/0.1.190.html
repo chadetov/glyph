@@ -1,0 +1,21 @@
+---
+version: 0.1.190
+month: 2026-11
+date: 2026-11-26
+tags: breaking
+headline: An interface value is judged the same however its type is written
+---
+            <p>A value whose type is an interface reached two different checks depending on how its type was written. A plain interface (<code>HasV</code>) and a generic one applied to an argument (<code>Box&lt;number&gt;</code>) went down separate paths, and they often answered in opposite ways. <code>HasV</code> was refused where a record <code>Ord</code> was declared and passed where a <code>Record&lt;string, number&gt;</code> was. <code>Box&lt;number&gt;</code> did the reverse. The same kind of value got a different verdict because of its spelling.</p>
+
+            <p>Both spellings now go through one rule:</p>
+            <ul>
+              <li>Where a record with fields, a tagged union or a modeled stdlib type is declared, both are refused (D49). A record with no fields takes both.</li>
+              <li>Where a map with a <code>string</code>, <code>number</code> or <code>int</code> key is declared, both are refused, as <code>tsc</code> refuses them: an interface has no index signature. The exception is a value type Glyph cannot read, an <code>extern_ts</code> or <code>typeof</code> body, which <code>tsc</code> may read as <code>any</code>. That pairing is left to <code>tsc</code>.</li>
+              <li>Where <code>Option</code>, <code>Result</code> or <code>Array</code> is declared, both are refused (G586). <code>tsc</code> refuses these too.</li>
+              <li>Where a <code>Nullable</code> is declared, the value is compared with what the <code>Nullable</code> holds. <code>Box&lt;number&gt;</code> where <code>Nullable&lt;Box&lt;number&gt;&gt;</code> is declared was a false refusal and now passes.</li>
+            </ul>
+
+            <p><code>glyph query assignable</code> gives the same answers. An interface imported from a sibling module is still not judged; that is G541, scheduled for 0.1.197.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. Returning a <code>HasV</code> where <code>Record&lt;string, number&gt;</code> or <code>Option&lt;number&gt;</code> is declared exits 0 under 0.1.189's <code>check --no-tsc</code> and 1 under 0.1.190. <code>tsc</code> already refused both on a full check. Returning a <code>Box&lt;number&gt;</code> where the record <code>Ord</code> is declared exits 0 under both of 0.1.189's checks and 1 now. That is Glyph's own rule for declared records (D49), which <code>tsc</code> does not apply. Across the 376 programs the corpus script measures, the output is identical to 0.1.189.</p>

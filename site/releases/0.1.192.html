@@ -1,0 +1,13 @@
+---
+version: 0.1.192
+month: 2026-11
+date: 2026-11-26
+tags: breaking
+headline: E0225 looks inside async lambdas
+---
+            <p>E0225 catches a lost update across an <code>await</code>: a place is read, the code waits, and the place is written with something computed from the old value. The check visited only top-level <code>async fn</code> declarations. The same pattern inside an <code>async fn() { ... }</code> lambda passed silently. That includes an event handler written in a JSX attribute, or a callback held in a <code>const</code>. That was the case the rule exists for, since a lambda's captured state is shared by every run of it.</p>
+
+            <p>Now every async lambda is checked, at any depth. Inside one, a place counts if it is rooted at the lambda's own parameters or at anything it captures from an enclosing scope, a parameter or a local. A captured local counts because the lambda can run several times at once and every run shares it. A binding the lambda declares for itself does not count. The rule is 0.1.191's: E0225 fires only when a value read before the <code>await</code> reaches the write.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. A lambda that reads <code>c[0]</code>, awaits, then writes <code>c[0]</code> from that read exits 0 under 0.1.191's <code>check --no-tsc</code> and full <code>check</code>, and 1 under 0.1.192. <code>tsc</code> reports nothing on it. Across the 376 programs the corpus script measures, the output is identical to 0.1.191.</p>

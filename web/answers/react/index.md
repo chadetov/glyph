@@ -195,4 +195,4 @@ index.html, next to the two modules
 - A props type written inline still shows as `record` in these messages; a named one shows its name.
 - Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in [the deployment guide](https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md).
 
-Code examples on this page are checked against Glyph 0.1.191 on every build. Last changed 25 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.192 on every build. Last changed 25 Nov 2026.

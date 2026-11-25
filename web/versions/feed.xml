@@ -8,6 +8,13 @@
   <updated>2026-11-26T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.192 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.192" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.192</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>E0225 looks inside async lambdas</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.191</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.191" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.191</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.163</id>
     <updated>2026-11-22T00:00:00Z</updated>
     <summary>The stdlib Set, Store and Deque are typed, and an empty deque can't hand back undefined</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.162 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.162" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.162</id>
-    <updated>2026-11-22T00:00:00Z</updated>
-    <summary>A ?? on an Option is refused, and glyph fix stops writing inside ${}</summary>
   </entry>
 </feed>

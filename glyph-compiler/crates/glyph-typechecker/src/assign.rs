@@ -26573,6 +26573,10 @@ fn f(a: Answer) -> number {
     /// and under a `Nullable`; a written `unknown` is still refused. And
     /// `Option`, `Result` and `Array` are other declarations (D49, G586):
     /// both spellings are refused there.
+    ///
+    /// G490's opaque guard runs before this rule, so an interface value where
+    /// `Raw` itself is declared, and a `Raw` where an interface is declared,
+    /// are undecided in both spellings (record 211, fix 3).
     #[test]
     fn an_interface_value_is_judged_the_same_in_either_spelling() {
         let src = "module m\n\
@@ -26592,6 +26596,9 @@ fn f(a: Answer) -> number {
              fn ra_app(b: Box<number>) -> Record<string, Raw> { return b }\n\
              fn ra2_plain(h: HasV) -> Record<string, Raw2> { return h }\n\
              fn ran_app(b: Box<number>) -> Record<int, Nullable<Raw>> { return b }\n\
+             fn raw_plain(h: HasV) -> Raw { return h }\n\
+             fn raw_app(b: Box<number>) -> Raw { return b }\n\
+             fn raw_back(r: Raw) -> HasV { return r }\n\
              fn op_plain(h: HasV) -> Option<number> { return h }\n\
              fn op_app(b: Box<number>) -> Option<number> { return b }\n\
              fn re_plain(h: HasV) -> Result<number, string> { return h }\n\

@@ -2258,7 +2258,8 @@ def case_interface_value_either_spelling() -> tuple[bool, str]:
 
     A `Record<string, Raw>` with `Raw = extern_ts("any")` is UNDETERMINED in
     both spellings, never WILL_FAIL: `tsc` may read `Raw` as `any`, and
-    `Record<string, any>` takes any object type (record 211).
+    `Record<string, any>` takes any object type (record 211). So is `Raw`
+    itself, in both directions: G490's guard runs before the interface rule.
     """
     project = CORPUS / ASSIGNABLE
     path = {"path": "src/iface_spelling.glyph"}
@@ -2274,13 +2275,13 @@ def case_interface_value_either_spelling() -> tuple[bool, str]:
             got = call(project, "glyph_assignable", {**path, "from": frm, "to": to})
             if got.get("verdict") != "WILL_FAIL":
                 return False, f"assignable `{frm}` into `{to}` is {got.get('verdict')}, not WILL_FAIL: {got}"
-        to = "Record<string, Raw>"
-        got = call(project, "glyph_assignable", {**path, "from": frm, "to": to})
-        if got.get("verdict") != "UNDETERMINED":
-            return False, f"assignable `{frm}` into `{to}` is {got.get('verdict')}, not UNDETERMINED: {got}"
+        for frm_, to in ((frm, "Record<string, Raw>"), (frm, "Raw"), ("Raw", frm)):
+            got = call(project, "glyph_assignable", {**path, "from": frm_, "to": to})
+            if got.get("verdict") != "UNDETERMINED":
+                return False, f"assignable `{frm_}` into `{to}` is {got.get('verdict')}, not UNDETERMINED: {got}"
     return True, (
         "an interface value is refused in both spellings where a record, a map, an Option, "
-        "a Result or an Array is declared, and undecided against a map of an opaque value"
+        "a Result or an Array is declared, and undecided against an opaque name or a map of one"
     )
 
 

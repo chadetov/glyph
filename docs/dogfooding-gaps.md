@@ -7309,6 +7309,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build), with the same coarse proxy over `tests/negative`, the 54 `catches/` cases and all 32 `examples/apps`: 15,963 diagnostics, 9,617 of them (60.2%) on a line indented two or more spaces; errors alone, 8,990 of 12,528 (71.8%). Counting only each `tests/negative` entry's own files gives 153 diagnostics, 104 indented (68.0%). Identical to 0.1.184; the conclusion stands.*
 
+  *Reproduced against 0.1.196 (the release build), with the same coarse proxy over `tests/negative`, the 54 `catches/` cases and all 32 `examples/apps`: 15,963 diagnostics, 9,617 of them (60.2%) on a line indented two or more spaces; errors alone, 8,990 of 12,528 (71.8%). Counting only each `tests/negative` entry's own files gives 153 diagnostics, 104 indented (68.0%). Identical to 0.1.190; the conclusion stands.*
+
 - **G172. A file's own `module` line and the path the project keys it by can disagree, and nothing says so.**
   `glyph-cli`'s `derive_module_path` and the language server's `module_path_of`
   key a file by where it sits. The typechecker keys a locally declared type by
@@ -7383,6 +7385,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build): `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement.*
 
   *Reproduced against 0.1.190 (the release build): `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement.*
+
+  *Reproduced against 0.1.196 (the release build): `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement.*
 
 - **G173. [FIXED] `glyph fix` welded a pruned import onto the line below it and
   reported success.** Pruning some names out of an `import M { a, b }` spliced
@@ -10278,6 +10282,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build): the same element draws ``argument type mismatch: expected `record`, found `record`: missing field `count` `` (E0211).*
 
+  *Reproduced against 0.1.196 (the release build): the same element draws ``argument type mismatch: expected `record`, found `record`: missing field `count` `` (E0211).*
+
 - **G246. [FIXED] A component whose one parameter is `unknown` or a bare generic
   passes Glyph and fails `tsc` once it is given attributes.**
   `component Greeting(p: unknown)` with `<Greeting name="x" />`, and
@@ -12994,6 +13000,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build): `json` / `// generic head` / `.stringify<number>(1)` / `.length` is a fixed point of `glyph fmt`, and `json.stringify<number>(1)` followed by a comment is laid out with `.stringify<number>(1)` on its own line.*
 
+  *Reproduced against 0.1.196 (the release build): `json` / `// generic head` / `.stringify<number>(1)` / `.length` is a fixed point of `glyph fmt`, and `json.stringify<number>(1)` followed by a comment is laid out with `.stringify<number>(1)` on its own line.*
+
 - **G337. A chain broken inside a JSX attribute value glues the closing `}`
   onto its last step.** `title={props` / `.title` / `// attr` / `.trim()}
   class="c">` keeps the brace, the next attribute and the element's `>` on
@@ -13022,6 +13030,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build): `.trim()} class="c">` stays on the step's line after `glyph fmt`, and `fmt --check` exits 0.*
 
   *Reproduced against 0.1.190 (the release build): `.trim()} class="c">` stays on the step's line after `glyph fmt`, and `fmt --check` exits 0.*
+
+  *Reproduced against 0.1.196 (the release build): `.trim()} class="c">` stays on the step's line after `glyph fmt`, and `fmt --check` exits 0.*
 
 - **G338. [FIXED] `glyph fmt` deletes a `where` refinement on a tagged union.**
   `pub type Salary = A | B where value >= 1` is E0300 (a refinement on a
@@ -13510,6 +13520,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build) by reading `glyph-wasm`: `compile_inner` still calls `emit_module` past type errors ("Emit best-effort: the playground shows the TypeScript even when later-phase diagnostics exist").*
 
+  *Reproduced against 0.1.196 (the release build) by reading `glyph-wasm`: `compile_inner` still calls `emit_module` past type errors ("Emit best-effort: the playground shows the TypeScript even when later-phase diagnostics exist").*
+
 - **G353. An applyEdit that writes one of an E0200's missing arms is refused
   as introducing an E0200.** An E0200's identity includes its list of missing
   variants (record 88 §4b), so adding one arm of two leaves an E0200 with a
@@ -13570,6 +13582,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build): `import std/string` above `import std/array` is left in that order by `glyph fmt`, and `fmt --check` exits 0.*
 
   *Reproduced against 0.1.190 (the release build): `import std/string` above `import std/array` is left in that order by `glyph fmt`, and `fmt --check` exits 0.*
+
+  *Reproduced against 0.1.196 (the release build): `import std/string` above `import std/array` is left in that order by `glyph fmt`, and `fmt --check` exits 0.*
 
 - **G359. `glyph fix` removes the imports an E0200 in the same file needs.**
   With a `match` that has only `Pending` and `import orders { OrderStatus,
@@ -13637,6 +13651,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build) by record 106's probe `g5_first`: the decline (worded as E0220, "this match is missing no case because ...") still says "its arm `other` handles `Loaded` now, so renaming this head to `Loaded` would move that case out of it".*
 
   *Reproduced against 0.1.190 (the release build) by record 106's probe `g5_first`: the decline (worded as E0220, "this match is missing no case because ...") still says "its arm `other` handles `Loaded` now, so renaming this head to `Loaded` would move that case out of it".*
+
+  *Reproduced against 0.1.196 (the release build) by record 106's probe `g5_first`: the decline (worded as E0220, "this match is missing no case because ...") still says "its arm `other` handles `Loaded` now, so renaming this head to `Loaded` would move that case out of it".*
 
 - **G361. After `glyph fix` applies a rename that completes a match, it still
   declines the E0200 the rename fixed.** With a lowercase variant, `fix`
@@ -13798,6 +13814,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build) by record 108's probes `fa-twoerr` and `twoerr-is`: two refused `is` patterns, and two refused `Doc.is(v)` calls, in two functions draw one E0304 (at `main:3` only) under `check --no-tsc`.*
 
   *Reproduced against 0.1.190 (the release build) by record 108's probes `fa-twoerr` and `twoerr-is`: two refused `is` patterns, and two refused `Doc.is(v)` calls, in two functions draw one E0304 (at `main:3` only) under `check --no-tsc`.*
+
+  *Reproduced against 0.1.196 (the release build) by record 108's probes `fa-twoerr` and `twoerr-is`: two refused `is` patterns, and two refused `Doc.is(v)` calls, in two functions draw one E0304 (at `main:3` only) under `check --no-tsc`.*
 
 - **G364. E0304 names a nested generic application instead of the field
   inside it that has no check.** With a private `Box<T> = { v: T, h: H }`
@@ -14169,6 +14187,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build) by record 115's probe m1: ``field `m` must be Record<Tier, int>`` with path `["m"]`, for a map with a stray key and a missing member; the probe passes full `check`.*
 
+  *Reproduced against 0.1.196 (the release build) by record 115's probe m1: ``field `m` must be Record<Tier, int>`` with path `["m"]`, for a map with a stray key and a missing member; the probe passes full `check`.*
+
 - **G377. [FIXED] A refined string-literal union key is checked by its predicate, not
   as an exact set.** With `type Tier = "a" | "b" | "c"` and `type T2 = Tier
   where value != "c"`, `json.parse<Record<T2, int>>` returns `Ok` for `{}` and
@@ -14253,6 +14273,8 @@ and is the owner's to confirm.
   Scheduled after G272 is decided, in its own release (record 116).
 
   *Reproduced against 0.1.190 (the release build) by record 116's probe `d/` (mode `eq`): passes at 1249, throws `RangeError: Maximum call stack size exceeded` in `__glyph_eq` at 1250 and 1300, the same depth as 0.1.184.*
+
+  *Reproduced against 0.1.196 (the release build) by record 116's probe `d/` (mode `eq`): passes at 1249, throws `RangeError: Maximum call stack size exceeded` in `__glyph_eq` at 1250 and 1300, the same depth as 0.1.190.*
 
 - **G379. Two top-level declarations on one line parse.** `pub fn a() -> int {
   return 1 } pub fn b() -> int { return 2 }`, `type A = int type B = string`
@@ -15633,6 +15655,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build), changed in part: since 0.1.185 (G491) the message names both kinds, ``expected `fn(number) -> void`, found `async fn(number) -> void`: the function is `async` and the slot is not, so the slot gets a pending value``, at the `let`, the `return` and the record field; the help is still the general "Change the value, or the declared type, so the two agree.", so the half of this gap about a help that compiles stands.*
 
+  *Reproduced against 0.1.196 (the release build), still changed in part: the message names both kinds, ``expected `fn(number) -> void`, found `async fn(number) -> void`: the function is `async` and the slot is not, so the slot gets a pending value``, at the `let`, the `return` and the record field; the help is still the general "Change the value, or the declared type, so the two agree.", so the half of this gap about a help that compiles stands.*
+
 - **G422. A refused callback erases a result its argument does not decide.**
   When an argument is refused for its kind of function (E0211), the call's
   result is erased to `Unknown` if its declared return mentions a type
@@ -15798,6 +15822,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build): the E0240 help on `let n = s.opt?.pop()` still names `array.get(s.opt, array.len(s.opt) - 1)` and `mut s.opt.pop()`, and following it (record 152's x09) passes `check --no-tsc` and fails full `check` with TS2345 twice and TS18048; E0241 on `mut s.opt?.map(...)` still says ``write `mut s.opt = ` before the call``; and E0242 on `rows[0].opt?.at(0)` still writes `array.get(rows[0].opt, 0)`.*
 
+  *Reproduced against 0.1.196 (the release build): the E0240 help on `let n = s.opt?.pop()` still names `array.get(s.opt, array.len(s.opt) - 1)` and `mut s.opt.pop()`, and following it (record 152's x09) passes `check --no-tsc` and fails full `check` with TS2345 twice and TS18048; E0241 on `mut s.opt?.map(...)` still says ``write `mut s.opt = ` before the call``; and E0242 on `rows[0].opt?.at(0)` still writes `array.get(rows[0].opt, 0)`.*
+
 - **G427. The built-in method table is read from `esnext`, and the emitted
   tsconfig asks for `es2022`.** `builtin_methods.rs` is generated from `lib:
   ["esnext", "dom"]`, while `glyph build` writes `"lib": ["es2022", "dom"]`
@@ -15825,6 +15851,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build): `xs.toSorted(cmp)` and `xs.findLastIndex(pred)` give no diagnostics under `--no-tsc` and TS2550 ("Try changing the 'lib' compiler option to 'es2023' or later") under full `check`; the emitted tsconfig lib is still `["es2022", "dom"]`.*
 
+  *Reproduced against 0.1.196 (the release build): `xs.toSorted(cmp)` and `xs.findLastIndex(pred)` give no diagnostics under `--no-tsc` and TS2550 ("Try changing the 'lib' compiler option to 'es2023' or later") under full `check`; the emitted tsconfig lib is still `["es2022", "dom"]`.*
+
 - **G428. String indexing, `charAt` and a one-unit `slice` hand back half a
   surrogate pair.** On `s = "a😀"`, `s[2]`, `s.charAt(2)` and `string.slice(s,
   2, 3)` all give the lone second half `"\ude00"`, which reads as a character
@@ -15846,6 +15874,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build): with `s = "a😀"`, a program binding `s[2]`, `s.charAt(2)` and `string.slice(s, 2, 3)` passes full `check` and prints `1 1 1 true true 56832 NONE`: three one-unit strings, all the lone low surrogate `0xDE00`, while `string.char_at(s, 2)` answers `None`.*
 
   *Reproduced against 0.1.190 (the release build): with `s = "a😀"`, a program binding `s[2]`, `s.charAt(2)` and `string.slice(s, 2, 3)` passes full `check` and prints `1 1 1 true true 56832 NONE`: three one-unit strings, all the lone low surrogate `0xDE00`, while `string.char_at(s, 2)` answers `None`.*
+
+  *Reproduced against 0.1.196 (the release build): with `s = "a😀"`, a program binding `s[2]`, `s.charAt(2)` and `string.slice(s, 2, 3)` passes full `check` and prints `1 1 1 true true 56832 NONE`: three one-unit strings, all the lone low surrogate `0xDE00`, while `string.char_at(s, 2)` answers `None`.*
 
 - **G429. [FIXED] `??` on an `Option` or a `Result` hands back the object.** An
   `Option` and a `Result` are tagged objects at run time and never nullish,
@@ -16267,6 +16297,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build): `<div>{props.n && <p>x</p>}</div>` with `n: number` is `no diagnostics` under `check --no-tsc` and passes `tsc --strict` under full `check`, emitting `(props.n && React.createElement("p", null, "x"))`; `<if cond={props.n}>` is also accepted and emits a ternary.*
 
+  *Reproduced against 0.1.196 (the release build): `<div>{props.n && <p>x</p>}</div>` with `n: number` is `no diagnostics` under `check --no-tsc` and passes `tsc --strict` under full `check`, emitting `(props.n && React.createElement("p", null, "x"))`; `<if cond={props.n}>` is also accepted and emits a ternary.*
+
 - **G443. A ternary inside JSX is a parse error at the wrong token.**
   `<div>{props.n > 0 ? <p>x</p> : <p>y</p>}</div>` stops with ``[E0003]
   parse: unexpected token: Slash`` at the `/` of `</p>`, with the help
@@ -16287,6 +16319,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build): `<div>{props.n > 0 ? <p>x</p> : <p>y</p>}</div>` is ``[E0003] parse: unexpected token: Slash`` at the `/` of `</p>` with help "Remove or correct this token; it can't appear here.", under both `check` and `check --no-tsc`.*
 
   *Reproduced against 0.1.190 (the release build): `<div>{props.n > 0 ? <p>x</p> : <p>y</p>}</div>` is ``[E0003] parse: unexpected token: Slash`` at the `/` of `</p>` with help "Remove or correct this token; it can't appear here.", under both `check` and `check --no-tsc`.*
+
+  *Reproduced against 0.1.196 (the release build): `<div>{props.n > 0 ? <p>x</p> : <p>y</p>}</div>` is ``[E0003] parse: unexpected token: Slash`` at the `/` of `</p>` with help "Remove or correct this token; it can't appear here.", under both `check` and `check --no-tsc`.*
 
 - **G444. `glyph build --watch` beside a Vite dev server reloads the page,
   and the documented layout never reloads.** With a Vite 5.4.11 dev server
@@ -16321,6 +16355,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build), without a browser: under `glyph build src --out gen --watch`, editing one string in one of two modules rewrites all 11 files in `gen/` (new mtimes), including `tsconfig.json`, the six `.glyph-runtime` files and the other module's `.ts`/`.ts.map`, all with identical content; only the edited module's `.ts` and `.ts.map` changed. Re-saving the module with identical content triggered no rebuild and changed no mtimes. The Vite dev-server reload and the `--out dist` watcher behaviour were not re-checked.*
 
+  *Reproduced against 0.1.196 (the release build), without a browser: under `glyph build src --out gen --watch`, editing one string in one of two modules rewrites all 11 files in `gen/` (new mtimes), including `tsconfig.json`, the six `.glyph-runtime` files and the other module's `.ts`/`.ts.map`, all with identical content; only the edited module's `.ts` and `.ts.map` changed. Re-saving the module with identical content triggered no rebuild and changed no mtimes. The Vite dev-server reload and the `--out dist` watcher behaviour were not re-checked.*
+
 - **G445. `glyph fmt` puts a JSX element's `{match ...}` children on one
   line.** A `<section>` whose children are two `{match ...}` expressions,
   each written on its own lines, formats to
@@ -16342,6 +16378,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build): `glyph fmt` on the two-`{match}` section produces `<section>{match waiting > 0 {` ... `}}{match props.invites.length {` ... `}}</section>`, the closing `}}` glued to the next `{match`; the `<match>`-element version is already formatted.*
 
   *Reproduced against 0.1.190 (the release build): `glyph fmt` on the two-`{match}` section produces `<section>{match waiting > 0 {` ... `}}{match props.invites.length {` ... `}}</section>`, the closing `}}` glued to the next `{match`; the `<match>`-element version is already formatted.*
+
+  *Reproduced against 0.1.196 (the release build): `glyph fmt` on the two-`{match}` section produces `<section>{match waiting > 0 {` ... `}}{match props.invites.length {` ... `}}</section>`, the closing `}}` glued to the next `{match`; the `<match>`-element version is already formatted.*
 
 - **G446. E0240's value help for an array no name holds writes a refused
   statement.** `let n = make().pop()` with `fn make() -> Array<number>` is
@@ -16366,6 +16404,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build): `let n = make().pop()` with `fn make() -> Array<number>` is E0240 with help to read `array.get(make(), array.len(make()) - 1)` and then write `mut make().pop()`; following that help, the statement `mut make().pop()` is itself E0240 ("removes from the new array `make()` returns, and nothing keeps it").*
 
   *Reproduced against 0.1.190 (the release build): `let n = make().pop()` with `fn make() -> Array<number>` is E0240 with help to read `array.get(make(), array.len(make()) - 1)` and then write `mut make().pop()`; following that help, the statement `mut make().pop()` is itself E0240 ("removes from the new array `make()` returns, and nothing keeps it").*
+
+  *Reproduced against 0.1.196 (the release build): `let n = make().pop()` with `fn make() -> Array<number>` is E0240 with help to read `array.get(make(), array.len(make()) - 1)` and then write `mut make().pop()`; following that help, the statement `mut make().pop()` is itself E0240 ("removes from the new array `make()` returns, and nothing keeps it").*
 
 - **G447. [FIXED] A `for` loop over an array literal of applied types gives the loop
   variable the wrong type.** `for s in [seen] { let c = s.has(1) }` with
@@ -16421,6 +16461,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build) with record 171's probe i01: `check` passes (`tsc --strict passed.`) and `run` prints `1 2`.*
 
+  *Reproduced against 0.1.196 (the release build) with record 171's probe i01: `check` passes (`tsc --strict passed.`) and `run` prints `1 2`.*
+
 - **G449. `Some(x)` infers no type.** `let o = Some(seen)` leaves `o`
   untyped, so `let z: string = o` is not refused and `match o { Some(s) =>
   s.add(2) }` is not judged by D5. This is D5's "receiver the checker cannot
@@ -16443,6 +16485,8 @@ and is the owner's to confirm.
   elements no type either, the same in 0.1.167 and 0.1.168.
 
   *Reproduced against 0.1.190 (the release build) with record 171's probe a07: it reports only the E0204 on `let u: string = v`, none on `let z: string = o` with `o = Some(seen)`.*
+
+  *Reproduced against 0.1.196 (the release build) with record 171's probe a07: it reports only the E0204 on `let u: string = v`, none on `let z: string = o` with `o = Some(seen)`.*
 
 - **G450. An array of written string-literal arrays with different words has
   no element type.** `let xs = [["read"], ["write"]]` is typed
@@ -16978,6 +17022,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build) by record 196's probe `n134.glyph` cut to its gap functions: `c(fn(x) { return x })` and `let h: fn(number) -> string = fn(x) { x }` exit 0 under `check --no-tsc`; full `check` reports TS2345 and TS2322.*
 
+  *Reproduced against 0.1.196 (the release build) by record 196's probe `n134.glyph` cut to its gap functions: `c(fn(x) { return x })` and `let h: fn(number) -> string = fn(x) { x }` exit 0 under `check --no-tsc`; full `check` reports TS2345 and TS2322.*
+
 - **G504. A member read on an unbounded type parameter passes.** `x.name` on
   `fn n4<T>(x: T)` passes `check --no-tsc`; `tsc` refuses it (TS2339).
   Record 182's N4, numbered by decision record 196.
@@ -16988,6 +17034,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the release build) by record 196's probe `n134.glyph` cut to its gap functions: `x.name` on `fn n4<T>(x: T)` exits 0 under `check --no-tsc`; full `check` reports TS2339.*
 
   *Reproduced against 0.1.190 (the release build) by record 196's probe `n134.glyph` cut to its gap functions: `x.name` on `fn n4<T>(x: T)` exits 0 under `check --no-tsc`; full `check` reports TS2339.*
+
+  *Reproduced against 0.1.196 (the release build) by record 196's probe `n134.glyph` cut to its gap functions: `x.name` on `fn n4<T>(x: T)` exits 0 under `check --no-tsc`; full `check` reports TS2339.*
 
 - **G505. [FIXED] The arguments of a `mut` method call are never checked.** On an
   `Array<string>`, `mut v.push(5)`, `mut v.push("a", 5)`, `mut v.unshift(5)`,
@@ -17054,6 +17102,8 @@ and is the owner's to confirm.
   read on a `bool` is still not checked against it.
 
   *Reproduced against 0.1.190 (the release build) by record 196's probe `boolm.glyph`: `b.nope` draws nothing under `check --no-tsc`, while `n.nope` is E0210.*
+
+  *Reproduced against 0.1.196 (the release build) by record 196's probe `boolm.glyph`: `b.nope` draws nothing under `check --no-tsc`, while `n.nope` is E0210.*
 
 - **G511. An index expression's key is not compared with the key type.**
   On reads and writes, for maps and arrays. With `type Mode = "read" |
@@ -17175,6 +17225,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build): `v.indexOf(5)` on an `Array<string>` is E0211 with "Pass a value of the expected type, or change the parameter's type."*
 
+  *Reproduced against 0.1.196 (the release build): `v.indexOf(5)` on an `Array<string>` is E0211 with "Pass a value of the expected type, or change the parameter's type."*
+
 - **G526. A primitive where an interface whose members are all optional is
   declared passes when it shares none of them.** `fn w(s: string) -> Weak {
   return s }` with `interface Weak { label?: string }` passes `check
@@ -17241,6 +17293,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build): `pub fn c1(x: number) -> bigint { return BigInt(x) }` is E0103 under `check --no-tsc`, `Number(b)` is E0103, and `id + n` with `id: bigint` and `n: number` is E0258.*
 
+  *Reproduced against 0.1.196 (the release build): `pub fn c1(x: number) -> bigint { return BigInt(x) }` is E0103 under `check --no-tsc`, `Number(b)` is E0103, and `id + n` with `id: bigint` and `n: number` is E0258.*
+
 - **G531. `glyph_impact` does not decide a function read as a value.** Since
   0.1.185 the checker compares a function value against the type its use
   context expects (G491), so adding a parameter to `width` or changing its
@@ -17259,6 +17313,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.190 (the release build) on the `tests/exact-or-absent/verdicts` fixture's `api.glyph`: `glyph query impact --entity api::width --change change_arity` (and `change_signature_type`) answers `NOT_INDEXED` for `api::sizer`, and making the edit raises E0204 there ("the function takes 2 parameters and the slot passes 1").*
 
+  *Reproduced against 0.1.196 (the release build) on the `tests/exact-or-absent/verdicts` fixture's `api.glyph`: `glyph query impact --entity api::width --change change_arity` (and `change_signature_type`) answers `NOT_INDEXED` for `api::sizer`, and making the edit raises E0204 there ("the function takes 2 parameters and the slot passes 1").*
+
 - **G532. A generic function value whose binding fails on its shape passes.**
   `let k2: fn(string) -> number = first` with `fn first<T>(xs: Array<T>) ->
   number` passes `check --no-tsc`, and `tsc` refuses it (TS2322): no `T`
@@ -17273,6 +17329,8 @@ and is the owner's to confirm.
   diagnostic.*
 
   *Reproduced against 0.1.190 (the release build): `let k2: fn(string) -> number = first` with `fn first<T>(xs: Array<T>) -> number` exits 0 under `check --no-tsc` with no diagnostic; full `check` reports TS2322.*
+
+  *Reproduced against 0.1.196 (the release build): `let k2: fn(string) -> number = first` with `fn first<T>(xs: Array<T>) -> number` exits 0 under `check --no-tsc` with no diagnostic; full `check` reports TS2322.*
 - **G546. The editor's references and rename do not see a name in a test.**
   The language server's `textDocument/references` and `textDocument/rename`
   read each file's own resolution table, so a call inside an `@example` or a
@@ -17731,6 +17789,8 @@ and is the owner's to confirm.
   expected `Mode`, found `"c"`, under both `check --no-tsc` and full
   `check`, exit 1 under each. `tsc` 6.0.3 `--strict` accepts the same
   function in TypeScript under `: string` and under `: Mode | "c"`.*
+
+  *The reverse order, found at the 0.1.196 build: `mb("c", m)` under `T: Mode` gives E0211 at `"c"` (as `tsc` does) and a second E0211 at `m`, "expected `"c"`, found `Mode`", because the literal binds `T` first. The published 0.1.194 reports the one at `m` too. `tsc` refuses the program at `"c"` only, so the second diagnostic is a wrong site, not a false refusal of a program; it is fixed with the join this entry asks for.*
 
 - **G626. [FIXED] AGENTS.md says the six functions with a `?` parameter are untyped.**
   Under "std/string", AGENTS.md (and its two `llms.txt` mirrors) says that

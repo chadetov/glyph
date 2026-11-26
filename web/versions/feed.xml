@@ -8,6 +8,13 @@
   <updated>2026-11-26T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.196 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.196" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.196</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>A generic bound is checked where the type parameter is bound</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.195</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.195" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.195</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.167</id>
     <updated>2026-11-23T00:00:00Z</updated>
     <summary>Writes to a Set, Store or Deque are mut statements, like array writes</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.166 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.166" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.166</id>
-    <updated>2026-11-22T00:00:00Z</updated>
-    <summary>An unannotated const has the type of its value</summary>
   </entry>
 </feed>

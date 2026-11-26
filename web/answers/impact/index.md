@@ -181,4 +181,4 @@ glyph query impact --entity main::normalize --change rename, the third entry
 - The editor's rename does not reach tests yet, so it leaves an `@example` spelling the old name (G546). A field access or a `match` inside a test is not listed; those searches name the case under `not_indexed` (G547).
 - `ABSORBS` is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.
 
-Code examples on this page are checked against Glyph 0.1.195 on every build. Last changed 25 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.196 on every build. Last changed 25 Nov 2026.

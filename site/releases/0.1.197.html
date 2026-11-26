@@ -1,0 +1,15 @@
+---
+version: 0.1.197
+month: 2026-11
+date: 2026-11-26
+tags: breaking
+headline: An interface from another module is judged by its members
+---
+            <p>An interface declared in one module and used in another was not checked. With <code>pub interface HasName { name: string }</code> in <code>lib</code>, passing an <code>Other</code> that has no <code>name</code> to <code>takes(o: HasName)</code> in <code>main</code> passed <code>check --no-tsc</code>. So did <code>let d: HasName = o</code>, a return, a field, and a bound <code>T: HasName</code>. The same program with the interface declared in <code>main</code> was refused. The verdict depended on which file held the declaration.</p>
+
+            <p>Now an imported interface is read by its members wherever it is used, under the same rule as a local one (D34). The named import and the namespace spelling <code>lib.HasName</code> give one verdict, and so do re-exports and second names declared in a sibling. A generic sibling interface such as <code>Box&lt;number&gt;</code> is read through its argument. Wrong argument counts like <code>Box</code> or <code>Box&lt;number, string&gt;</code> are E0233, as they are locally. Messages keep the interface's name. <code>glyph query assignable</code> and the impact tool give the same answers as the check.</p>
+
+            <p>A second name a module declares for an interface, <code>type LN = HasName</code>, is now read as that interface whether the interface is local or imported (G649, G651). The local case used to refuse a value that has the members. A <code>Good</code> with a <code>name</code> was rejected where <code>LN</code> was declared, and <code>tsc</code> accepts it. That false refusal is gone.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. Two modules with only <code>takes(o)</code> exit 0 under 0.1.196's <code>check --no-tsc</code> and 1 under 0.1.197. <code>tsc</code> already refused it on a full check. One program goes the other way: the <code>Good</code> passed where <code>type LN = HasName</code> is declared now checks clean. Across the 376 programs the corpus script measures, the only change is in the test fixtures written for this release.</p>

@@ -1,0 +1,21 @@
+---
+version: 0.1.196
+month: 2026-11
+date: 2026-11-26
+tags: breaking
+headline: A generic bound is checked where the type parameter is bound
+---
+            <p>Glyph read a bound such as <code>T: HasName</code> inside the generic function, but never checked it where the function was called. <code>label(o)</code> with an <code>o: Other</code> that lacks <code>name</code> passed <code>check --no-tsc</code>, and so did <code>Box&lt;Other&gt;</code> written as a type. The bound was a promise the checker did not hold callers to.</p>
+
+            <p>Now a bound is checked wherever its type parameter gets a type (D72):</p>
+            <ul>
+              <li>at a call, from the arguments or from an explicit <code>label&lt;Other&gt;(o)</code>;</li>
+              <li>at a written type such as <code>Box&lt;Other&gt;</code>;</li>
+              <li>at a generic component's element.</li>
+            </ul>
+            <p>An argument that leaves the bound is E0211, and the note says which argument bound <code>T</code> and which member the bound requires. An explicit type argument or a written type that leaves it is the new E0251. An F-bound such as <code>T: Cmp&lt;T&gt;</code> is checked through the type it binds.</p>
+
+            <p>When two literals join, as in <code>mb("a", "c")</code> under <code>T: Mode</code>, the error lands on the literal outside the bound, <code>"c"</code>, which is where <code>tsc</code> puts it. An interface declared in a sibling module is not judged yet; that is G541, the next release.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>label(o)</code> with <code>o: Other</code> exits 0 under 0.1.195's <code>check --no-tsc</code> and 1 under 0.1.196. <code>tsc</code> already refused it on a full check. Across the 376 programs the corpus script measures, the output is identical to 0.1.195.</p>

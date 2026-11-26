@@ -213,6 +213,28 @@ pub struct ImportedTypeDecl {
     pub refined: bool,
 }
 
+/// The lowered form of an `interface` declaration as seen from *another*
+/// module (G541): its name, its generic parameter names, and its member set
+/// lowered on the source side, each member rendered as a `RecordField` the
+/// way a local interface's is (`Lowerer::interface_members`). A sibling type a
+/// member names is itself a `Ty::Imported`, and a member naming one of the
+/// interface's own parameters carries the `ParamOwner::ImportedTypeDecl`
+/// owner, so an application substitutes its arguments across the module edge
+/// exactly as it does inside the declaring module (G461).
+///
+/// The interface keeps its identity by name: a value's type stays the
+/// `Ty::Imported` the consumer wrote, and this member set is read only where a
+/// pairing or a member read asks for it (D34 is structural everywhere).
+///
+/// Produced by `ExportLowerer::lower_exported_interface` and handed across
+/// through `DeclTyResolver::imported_interface`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportedInterfaceDecl {
+    pub name: Ident,
+    pub generics: Vec<Ident>,
+    pub members: Vec<RecordField>,
+}
+
 /// Which declaration a union's variant set came from: the module it is
 /// declared in, the name it is declared under, and whether there is a
 /// declaration at all.

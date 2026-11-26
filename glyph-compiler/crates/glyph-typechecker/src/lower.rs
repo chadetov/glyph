@@ -16,7 +16,7 @@ use glyph_ast::{Decl, GenericParam, Ident, LambdaParam, Param, TypeExpr};
 use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
 
 use crate::ty::{
-    DeclBounds, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, Ty, UnionVariant,
+    DeclBounds, FnParam, ImportedInterfaceDecl, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, Ty, UnionVariant,
 };
 
 /// Holds the resolver-side context a `TypeExpr → Ty` recursion needs. Cheap
@@ -384,6 +384,60 @@ impl<'a> Lowerer<'a> {
         }
     }
 
+    /// The member set of an `interface` declaration (D34), rendered as
+    /// `RecordField`s: a `fn m(p: P) -> R` method member becomes a field
+    /// `m: fn(p: P) -> R`, and a `name: T` / `name?: T` property member a
+    /// field of the same type and optionality. The interface's own
+    /// parameters are left in place; a caller holding an application
+    /// substitutes them.
+    ///
+    /// The one rendering both sides of a module edge read (G541): the
+    /// checker's local `interface_member_fields` and the export view's
+    /// `lower_exported_interface` both call it, so an interface has the same
+    /// member set wherever it is declared.
+    pub fn interface_members(&self, iface: &glyph_ast::InterfaceDecl) -> Vec<RecordField> {
+        iface
+            .members
+            .iter()
+            .map(|m| match m {
+                glyph_ast::InterfaceMember::Method {
+                    name,
+                    params,
+                    return_ty,
+                    ..
+                } => RecordField {
+                    name: name.clone(),
+                    ty: Ty::Fn {
+                        params: params
+                            .iter()
+                            .map(|p| FnParam {
+                                name: Some(p.name.clone()),
+                                owned: false,
+                                ty: self.lower(&p.ty),
+                                optional: false,
+                            })
+                            .collect(),
+                        return_ty: Arc::new(
+                            return_ty
+                                .as_ref()
+                                .map(|t| self.lower(t))
+                                .unwrap_or(Ty::Prim(Primitive::Void)),
+                        ),
+                        is_async: false,
+                        // An interface method cannot declare `<...>`.
+                        type_params: Some(Vec::new()),
+                    },
+                    optional: false,
+                },
+                glyph_ast::InterfaceMember::Field(f) => RecordField {
+                    name: f.name.clone(),
+                    ty: self.lower(&f.ty),
+                    optional: f.optional,
+                },
+            })
+            .collect()
+    }
+
     /// Lower the signature of a top-level declaration. `Fn` and `Component`
     /// produce a `Ty::Fn`; `Import`/`Type`/`Const` are `Ty::Unknown` here
     /// (their type information is fed into expression-typing via different
@@ -694,6 +748,24 @@ impl ExportLowerer<'_> {
             open: glyph_ast::is_open_record(&td.annotations),
             refined: td.refinement.is_some(),
         }
+    }
+
+    /// Lower an `interface` declaration as another module sees it (G541):
+    /// its name, its generic parameter names, and its member set rendered by
+    /// the same `interface_members` a local interface is read through, on the
+    /// export view, so a sibling type a member names reaches the consumer as
+    /// `Ty::Imported` and a member naming the interface's own parameter
+    /// carries the `(module, name)` owner a consumer substitutes against.
+    /// `None` for a declaration that is not an interface.
+    pub fn lower_exported_interface(&self, decl: &glyph_ast::Decl) -> Option<ImportedInterfaceDecl> {
+        let Decl::Interface(iface) = decl else {
+            return None;
+        };
+        Some(ImportedInterfaceDecl {
+            name: iface.name.clone(),
+            generics: iface.generics.iter().map(|g| g.name.clone()).collect(),
+            members: self.0.interface_members(iface),
+        })
     }
 
     /// The type parameters of `decl` and the bound each writes, as another

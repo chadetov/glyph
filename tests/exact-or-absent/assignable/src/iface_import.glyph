@@ -1,0 +1,29 @@
+module iface_import
+
+import sibling_iface { HasTag, Holds, want, want_holds }
+
+// G541, the named-import spelling. `by_other` and `by_holds` are E0211 on
+// purpose: `Other` has no `tag`, and `HoldsS` holds a `string` where
+// `Holds<number>` declares a `number`. `by_tagged` compiles, as `tsc`
+// accepts it.
+pub type Other = { title: string }
+
+pub type Tagged = { tag: string }
+
+pub type HoldsS = { v: string }
+
+pub fn by_other(o: Other) -> string {
+  return want(o)
+}
+
+pub fn by_tagged(t: Tagged) -> string {
+  return want(t)
+}
+
+pub fn by_holds(h: HoldsS) -> number {
+  return want_holds(h)
+}
+
+pub fn read(h: HasTag, n: Holds<number>) -> string {
+  return h.tag
+}

@@ -10803,8 +10803,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.194 (the release build): `<Show />` and `<Show label="x" other="y" />` against `component Show<T: HasLabel>(p: T)` are `no diagnostics` under `--no-tsc`, and TS2769 twice with `tsc`; `id(5)` and `id<string>("s")` against `fn id<T: Named>(x: T) -> T` report nothing about the bound under `check --no-tsc` (only E0107 unused-variable warnings, exit 0), and are TS2345 and TS2344 under full `check`.*
 
-  Fixed in the release after G461 (decision record 196, section 7; D34,
-  D58, D72). After the call binds `T` to `A`, `A` is compared with the
+  Fixed in 0.1.196 (decision record 196, section 7; records 211 and 214;
+  D34, D58, D72). After the call binds `T` to `A`, `A` is compared with the
   bound with `T := A` put in, so `T: Cmp<T>` checks `A` against `Cmp<A>`.
   `label(o)` with `o: Other`, `label({ title: "x", })`, `many(xs)` with an
   `Array<Other>` and `pair(u, u)` with an unbounded `U` are E0211 at the
@@ -10820,9 +10820,12 @@ and is the owner's to confirm.
   both import spellings get the same verdict. Not judged: an object
   literal against a `Record<string, V>` bound, an `extern_ts` or `typeof`
   bound, a stdlib function's type parameters, a component whose bound
-  names its own parameter, and a sibling's interface bound (G541). `label(5)` against the interface bound
-  `HasName` waits for G502's primitive-against-interface rule; against a
-  record bound it is refused now.
+  names its own parameter, and a sibling's interface bound (G541).
+  `label(5)` and `many([1, 2])` against the interface bound `HasName` are
+  E0211 through G502's primitive-against-interface rule. With D92's literal
+  join, `mb("a", "b")` under `T: Mode` is accepted and `mb(m, "c")` and
+  `mb("a", "c")` are E0211 at `"c"`, where `tsc` refuses them; the join is
+  never widened past the bound.
 
 - **G265. JSX is untyped in the checker, so a JSX value passes where a string is
   declared.** `fn s() -> string { return <p>hi</p> }` passes Glyph and is
@@ -17768,7 +17771,16 @@ and is the owner's to confirm.
   decision about D34's structural rule, and nothing has scheduled it since.
   Found while building G264, whose bound check is exact for a sibling's
   record bound and silent for a sibling's interface bound for this reason.
+  Decision record 211 rules that D34 is structural everywhere and that the
+  imported interface keeps its name (`Ty::Imported`), read through the same
+  query `imported_bounds` uses under both import spellings. Scheduled as
+  0.1.197 by record 214, directly after G264; breaking.
 
   *Reproduced against 0.1.179 (the next-g264 build, which still reports
   0.1.179): the two calls above in a two-module project report no E0211
+  under `check --no-tsc`.*
+
+  *Reproduced against 0.1.195 (the 0.1.196 build on 0.1.195): record 211's
+  `p541/` gives E0211 only for `rlabel(o)` against the sibling's record
+  bound; `takes(o)`, `label(o)` and `return o` under `-> HasName` report nothing
   under `check --no-tsc`.*

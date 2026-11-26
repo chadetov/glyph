@@ -2221,6 +2221,63 @@ def case_generic_interface_application_both_tools() -> tuple[bool, str]:
     return True, "a generic interface application gets one answer from impact and from assignable"
 
 
+def case_imported_interface_both_spellings() -> tuple[bool, str]:
+    """A sibling's interface: one answer under both import spellings (G541).
+
+    Until 0.1.197 an interface declared in another module had no member set
+    across the edge, so every pairing against it was UNDETERMINED in
+    `glyph_assignable` and in `glyph_impact`, where the same pairing against
+    a local interface was decided. D34 is a property of the declaration, not
+    of the module holding it (record 211): `Other` (no `tag`) into `HasTag`
+    and `HoldsS` into `Holds<number>` are refusals with the codes the checker
+    draws, under the named import and through the namespace alike, and a
+    record carrying the member stays UNDETERMINED, as it does against a local
+    interface. The impact cell at each call site of `want` is the cell a
+    local interface gets, in either spelling: the argument is a record this
+    module declares, so a replacement record under another name is E0211
+    there, at `by_tagged` as at `by_other`.
+    """
+    project = CORPUS / ASSIGNABLE
+    for path, iface, holds in (
+        ("src/iface_import.glyph", "HasTag", "Holds<number>"),
+        ("src/iface_ns.glyph", "sibling_iface.HasTag", "sibling_iface.Holds<number>"),
+        ("src/iface_ns.glyph", "sibling_iface::HasTag", "sibling_iface.Holds<number>"),
+    ):
+        want = {
+            ("Other", iface): "WILL_FAIL",
+            ("HoldsS", holds): "WILL_FAIL",
+            ("Tagged", iface): "UNDETERMINED",
+        }
+        for (frm, to), verdict in want.items():
+            got = call(project, "glyph_assignable", {"path": path, "from": frm, "to": to})
+            if got.get("verdict") != verdict:
+                return False, f"{path}: `{frm}` into `{to}` is {got.get('verdict', got)}, not {verdict}"
+            codes = [d.get("code") for d in got.get("diagnostics") or []]
+            if verdict == "WILL_FAIL" and codes != ["E0204", "E0211"]:
+                return False, f"{path}: `{frm}` into `{to}` names no codes: {got}"
+    a = impact(project, "sibling_iface::want", {"kind": "change_signature_type"})
+    if "error" in a:
+        return False, f"impact on sibling_iface::want refused: {a['error'][:120]}"
+    for caller, verdict, code in (
+        ("iface_import::by_other", "WILL_FAIL", "E0211"),
+        ("iface_ns::by_other", "WILL_FAIL", "E0211"),
+        ("iface_import::by_tagged", "WILL_FAIL", "E0211"),
+        ("iface_ns::by_tagged", "WILL_FAIL", "E0211"),
+    ):
+        entries = [e for e in a.get("impact") or []
+                   if e.get("entity") == caller and e.get("relation") == "CALLS"]
+        if len(entries) != 1:
+            return False, f"no one CALLS site of sibling_iface::want in {caller}: {entries}"
+        cell = (entries[0].get("arguments") or [{}])[0]
+        if cell.get("verdict") != verdict:
+            return False, f"the cell in {caller} is {cell.get('verdict')}, not {verdict}: {cell}"
+        if "no rule" in (cell.get("because") or ""):
+            return False, f"the cell in {caller} still says no rule: {cell}"
+        if entries[0].get("diagnostic") != code:
+            return False, f"the site in {caller} names {entries[0].get('diagnostic')}, not {code}: {entries[0]}"
+    return True, "a sibling's interface gets one answer under both import spellings, from both tools"
+
+
 def case_an_opaque_body_is_undetermined() -> tuple[bool, str]:
     """A name whose body is `extern_ts` or `typeof` is never judged (G490).
 
@@ -2521,6 +2578,7 @@ HARD = [
     ("a primitive and an interface, both tools", case_interface_against_primitive_both_tools),
     ("assignability: a bigint is not a number", case_bigint_is_not_a_number),
     ("a generic interface application, both tools", case_generic_interface_application_both_tools),
+    ("a sibling's interface, both spellings", case_imported_interface_both_spellings),
     ("assignability: an opaque body is undetermined", case_an_opaque_body_is_undetermined),
     ("an interface value in either spelling", case_interface_value_either_spelling),
     ("an edge out of a declaration is exact or unclaimed", case_dependencies_out_of_an_unreadable_module),

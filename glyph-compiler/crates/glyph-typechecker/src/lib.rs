@@ -48,7 +48,7 @@ pub mod type_map;
 pub use assign::{
     alias_target, assign_types, assign_types_with_coverage, assign_types_with_relations,
     assign_types_with_resolver, assignability, const_binding_ty, decl_signature_ty,
-    direct_type_decl, imported_decl_chain_end, unannotated_const_ty,
+    direct_type_decl, imported_decl_chain_end, imported_interface_chain_end, unannotated_const_ty,
     imported_string_literal_union_values,
     prelude_app, prelude_container, declared_record_fields, expand_transparent, resolve_alias_chain,
     split_type_app,
@@ -61,7 +61,8 @@ pub use lower::{lower_type_expr, ExportLowerer, Lowerer};
 pub use stdlib::stdlib_signature;
 pub use ty::{
     builtin_union, builtin_union_of_variant, builtin_unions, BuiltinUnion, BuiltinVariant, FnParam,
-    DeclBounds, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, SymbolRef, Ty, UnionVariant,
+    DeclBounds, ImportedInterfaceDecl, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, SymbolRef, Ty,
+    UnionVariant,
 };
 pub use type_map::{IdentPattern, TypeMap};
 

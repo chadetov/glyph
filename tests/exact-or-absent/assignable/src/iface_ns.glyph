@@ -1,0 +1,27 @@
+module iface_ns
+
+import sibling_iface
+
+// G541, the namespace spelling of `iface_import`, with the same verdicts:
+// `by_other` and `by_holds` are E0211 on purpose and `by_tagged` compiles.
+pub type Other = { title: string }
+
+pub type Tagged = { tag: string }
+
+pub type HoldsS = { v: string }
+
+pub fn by_other(o: Other) -> string {
+  return sibling_iface.want(o)
+}
+
+pub fn by_tagged(t: Tagged) -> string {
+  return sibling_iface.want(t)
+}
+
+pub fn by_holds(h: HoldsS) -> number {
+  return sibling_iface.want_holds(h)
+}
+
+pub fn read(h: sibling_iface.HasTag, n: sibling_iface.Holds<number>) -> string {
+  return h.tag
+}

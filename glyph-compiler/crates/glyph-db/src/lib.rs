@@ -81,7 +81,7 @@ use glyph_resolver::{
 use glyph_typechecker::{
     assign_types_with_relations, unannotated_const_ty, DeclBounds, CoverageSite, CoverageSiteRef, CoverageTypeName, DeclTyResolver,
     FieldSite, FileFieldUses,
-    FileMatchCoverage, ImportedTypeDecl, Lowerer, Ty, TypeError, TypeMap,
+    FileMatchCoverage, ImportedInterfaceDecl, ImportedTypeDecl, Lowerer, Ty, TypeError, TypeMap,
 };
 
 // ============================================================================
@@ -1927,10 +1927,9 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
         // name the consumer asked for, so there is nothing to look up first:
         // a name this module does not declare as a `type` answers `None`.
         //
-        // `Decl::Interface` is not covered: an imported interface keeps today's
-        // empty member set, because what an interface *is* across a file edge
-        // (D34's structural satisfaction rule) is a language decision, not an
-        // implementation one.
+        // `Decl::Interface` is not answered here: an interface is not a `type`
+        // declaration, and its member set crosses the edge through
+        // `imported_interface` below (G541).
         let project = self.db.project_files_input();
         let file = project
             .entries(self.db)
@@ -2059,6 +2058,29 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
         let resolved_module = resolved.resolved()?;
         let lowerer = Lowerer::for_export(resolved_module, self.db.prelude(), module_path);
         lowerer.lower_exported_bounds(decl)
+    }
+
+    fn imported_interface(
+        &self,
+        module_path: &str,
+        name: &str,
+    ) -> Option<ImportedInterfaceDecl> {
+        // `imported_bounds`'s sibling (G541, record 211): the same project
+        // sibling lookup and the same export-view lowering, keyed on the
+        // declaring module and the declaration's own name, so the named
+        // import and the namespace spelling read one member set.
+        let project = self.db.project_files_input();
+        let file = project
+            .entries(self.db)
+            .iter()
+            .find(|(p, _)| p == module_path)
+            .map(|(_, f)| *f)?;
+        let parsed = parse_module(self.db, file);
+        let decl = decl_by_name(parsed.module()?, name)?;
+        let resolved = resolve(self.db, file);
+        let resolved_module = resolved.resolved()?;
+        let lowerer = Lowerer::for_export(resolved_module, self.db.prelude(), module_path);
+        lowerer.lower_exported_interface(decl)
     }
 }
 

@@ -11246,8 +11246,8 @@ fn a_sibling_bound_is_checked_where_it_is_instantiated_under_both_spellings() {
     // bounds are read on its side, so a binding outside the bound is E0211
     // at the argument and a written type argument or a type application is
     // E0251, whether the name is imported by name or reached through the
-    // namespace. The bound is a record: a sibling interface has no member
-    // set across a module edge yet (G541), for a bound as for a parameter.
+    // namespace. The bound is a record here; a sibling's interface bound is
+    // `a_sibling_interface_is_judged_by_its_members_under_both_spellings`.
     let root = unique_tmp("g264sibling");
     let src = root.join("src");
     write_file(
@@ -11305,6 +11305,93 @@ fn a_sibling_bound_is_checked_where_it_is_instantiated_under_both_spellings() {
             e0251.iter().any(|d| d.contains(&format!("the bound `T: Named` of `{prefix}Box`"))),
             "{e0251:?}"
         );
+    }
+}
+
+#[test]
+fn a_sibling_interface_is_judged_by_its_members_under_both_spellings() {
+    // G541 (record 211). D34 is a property of the declaration, not of the
+    // module holding it: an interface a sibling declares keeps its name and
+    // is compared with its members at every position a local one is (an
+    // argument, a bound, a `return`, a `let`, a field, a generic application,
+    // a member read, a written type argument, a type application), with one
+    // verdict under the named import and the namespace spelling. If this
+    // regresses, every pairing against `lib.HasName` goes silent again while
+    // the same program with `HasName` declared locally is refused, which is
+    // `tsc`'s verdict too (TS2345, TS2322, TS2741, TS2339, TS2344).
+    let root = unique_tmp("g541sibling");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\n\
+         pub interface HasName { name: string }\n\
+         pub interface Box<X> { v: X }\n\
+         pub type Named = HasName\n\
+         pub fn takes(h: HasName) -> string {\n  return h.name\n}\n\
+         pub fn label<T: HasName>(x: T) -> string {\n  return x.name\n}\n\
+         pub fn takeb(b: Box<number>) -> number {\n  return b.v\n}\n\
+         pub type Wrap<T: HasName> = { v: T, }\n",
+    );
+    let body = |p: &str| -> String {
+        format!(
+            "type Other = {{ title: string, }}\n\
+             type Good = {{ name: string, extra: number, }}\n\
+             type BoxS = {{ v: string, }}\n\
+             type BoxN = {{ v: number, }}\n\
+             type Holder = {{ h: {p}HasName, }}\n\
+             pub fn arg(o: Other) -> string {{\n  return {p}takes(o)\n}}\n\
+             pub fn bound(o: Other) -> string {{\n  return {p}label(o)\n}}\n\
+             pub fn ret(o: Other) -> {p}HasName {{\n  return o\n}}\n\
+             pub fn bind(o: Other) -> string {{\n  let x: {p}HasName = o\n  return x.name\n}}\n\
+             pub fn field(o: Other) -> Holder {{\n  return {{ h: o, }}\n}}\n\
+             pub fn generic(s: BoxS) -> number {{\n  return {p}takeb(s)\n}}\n\
+             pub fn alias(o: Other) -> {p}Named {{\n  return o\n}}\n\
+             pub fn read(h: {p}HasName) -> string {{\n  return h.nmae\n}}\n\
+             pub fn written(o: Other) -> string {{\n  return {p}label<Other>(o)\n}}\n\
+             pub fn applied(w: {p}Wrap<Other>) -> number {{\n  return 1\n}}\n\
+             pub fn good(g: Good, n: BoxN, h: {p}HasName) -> string {{\n\
+             \x20 let a = {p}takes(g)\n\
+             \x20 let b = {p}label(g)\n\
+             \x20 let c: {p}HasName = g\n\
+             \x20 let d = {p}takeb(n)\n\
+             \x20 return h.name\n\
+             }}\n"
+        )
+    };
+    write_file(
+        &src,
+        "main.glyph",
+        &format!("module main\nimport lib {{ HasName, Box, Named, takes, label, takeb, Wrap }}\n{}", body("")),
+    );
+    write_file(&src, "other.glyph", &format!("module other\nimport lib\n{}", body("lib.")));
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    for file in ["main", "other"] {
+        let at = |code: &str| -> Vec<String> {
+            report
+                .diagnostics
+                .iter()
+                .filter(|d| d.contains(code) && d.contains(&format!("[ {file}:")))
+                .cloned()
+                .collect()
+        };
+        let e0211 = at("E0211");
+        assert_eq!(e0211.len(), 3, "{file}: {:?}", report.diagnostics);
+        assert_eq!(
+            e0211.iter().filter(|d| d.contains("expected `HasName`, found `Other`")).count(),
+            2,
+            "{file}: {e0211:?}"
+        );
+        assert!(e0211.iter().any(|d| d.contains("expected `Box<number>`, found `BoxS`")), "{e0211:?}");
+        let e0204 = at("E0204");
+        assert_eq!(e0204.len(), 4, "{file}: {:?}", report.diagnostics);
+        assert!(e0204.iter().all(|d| d.contains("found `Other`")), "{file}: {e0204:?}");
+        let e0210 = at("E0210");
+        assert_eq!(e0210.len(), 1, "{file}: {:?}", report.diagnostics);
+        assert!(e0210[0].contains("type `HasName` has no field `nmae`"), "{e0210:?}");
+        let e0251 = at("E0251");
+        assert_eq!(e0251.len(), 2, "{file}: {:?}", report.diagnostics);
+        assert!(e0251.iter().all(|d| d.contains("the bound `T: HasName`")), "{e0251:?}");
     }
 }
 

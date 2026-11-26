@@ -17,7 +17,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use glyph_ast::{
-    jsx_member_name, ArrayElem, Block, Decl, Expr, Ident, InterfaceMember, JsxAttr, JsxChild,
+    jsx_member_name, ArrayElem, Block, Decl, Expr, Ident, JsxAttr, JsxChild,
     JsxElement, JsxKind, LetBinding, LiteralPattern, MatchArm, MatchArmBody, Module, ObjectField,
     LambdaParam, ObjectPatternField, Param, Pattern, PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
 };
@@ -32,7 +32,7 @@ mod text;
 use crate::lower::Lowerer;
 use crate::tail::{returns_tail, Callable};
 use crate::ty::{
-    builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, DeclBounds, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive,
+    builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, DeclBounds, FnParam, ImportedInterfaceDecl, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive,
     RecordField, SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::builtin_members::{MethodParam, MethodSig, MethodTy};
@@ -233,6 +233,23 @@ pub trait DeclTyResolver {
     /// call or application does (G264), so the guarantee does not depend on
     /// where the declaration lives or how it was imported.
     fn imported_bounds(&self, _module_path: &str, _name: &str) -> Option<DeclBounds> {
+        None
+    }
+
+    /// The `interface` the project module at `module_path` declares under
+    /// `name`, with its member set lowered on the source side, the sibling of
+    /// `imported_bounds` and read the same way. `None` wherever that
+    /// declaration cannot be read, and for a name the module declares as
+    /// anything other than an interface.
+    ///
+    /// D34 is a property of the declaration, not of the module that holds it
+    /// (G541, record 211): a value is compared with an imported interface,
+    /// and a member read on one is checked, against this member set exactly
+    /// as against a local interface's. The query is keyed on the declaring
+    /// module and the declaration's own name, never on the consumer's import
+    /// symbol, so the named import and the namespace spelling read one
+    /// answer.
+    fn imported_interface(&self, _module_path: &str, _name: &str) -> Option<ImportedInterfaceDecl> {
         None
     }
 
@@ -8680,9 +8697,9 @@ impl Assigner<'_> {
             Ty::Named { .. } => match stdlib_type_fields(self, ty) {
                 Some(fields) => Some(undeclared(fields)),
                 None => match self.resolve_alias_chain(ty) {
-                    Ty::Imported { module, name } => {
-                        self.imported_record_shape(module.as_str(), &name, &[])
-                    }
+                    Ty::Imported { module, name } => self
+                        .imported_record_shape(module.as_str(), &name, &[])
+                        .or_else(|| self.interface_member_shape(&Ty::Imported { module, name })),
                     _ => self
                         .named_record_shape(ty, &[])
                         .or_else(|| self.interface_member_shape(ty)),
@@ -8691,9 +8708,10 @@ impl Assigner<'_> {
             // A type declared in a sibling module. Resolving it here, rather
             // than at lowering, is what keeps the representation free of cycle
             // guards: nothing expands until a field set is actually asked for.
-            Ty::Imported { module, name } => {
-                self.imported_record_shape(module.as_str(), name, &[])
-            }
+            // An imported interface has its members across the edge (G541).
+            Ty::Imported { module, name } => self
+                .imported_record_shape(module.as_str(), name, &[])
+                .or_else(|| self.interface_member_shape(ty)),
             // Dispatch on the base so a generic sibling record
             // (`type Box<T> = { value: T }` used as `Box<string>`) substitutes
             // its arguments the same way a local one does.
@@ -8702,9 +8720,9 @@ impl Assigner<'_> {
             // table with the argument in place, first for the reason the
             // `Named` arm reads the table first.
             Ty::App { base, args } => match base.as_ref() {
-                Ty::Imported { module, name } => {
-                    self.imported_record_shape(module.as_str(), name, args)
-                }
+                Ty::Imported { module, name } => self
+                    .imported_record_shape(module.as_str(), name, args)
+                    .or_else(|| self.interface_member_shape(ty)),
                 _ => match stdlib_type_fields(self, ty) {
                     Some(fields) => Some(undeclared(fields)),
                     None => self
@@ -8740,12 +8758,21 @@ impl Assigner<'_> {
     /// `interface_member_fields` with the declaration it read them from. An
     /// application `I<A..>` reads its members off `I`, so a member used
     /// through any application is a use of `I`'s member.
+    ///
+    /// An imported interface's owner is the interface its chain of second
+    /// names ends at, where it is declared (G541), the rule
+    /// `imported_record_shape` applies to an imported record.
     fn interface_member_shape(&self, ty: &Ty) -> Option<RecordShape> {
         let fields = self.interface_member_fields(ty)?;
-        Some(RecordShape {
-            owner: self.local_owner(split_type_app(ty).0)?,
-            fields,
-        })
+        let owner = match split_type_app(ty).0 {
+            Ty::Imported { module, name } => {
+                let (module, name, _) =
+                    imported_interface_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
+                FieldOwner::Declared { module, name }
+            }
+            base => self.local_owner(base)?,
+        };
+        Some(RecordShape { owner, fields })
     }
 
     /// The owner of a `Ty::Named` this file declares: this file's module key
@@ -8915,8 +8942,26 @@ impl Assigner<'_> {
     /// sets, so each argument is compared wherever the declaration uses its
     /// parameter, and nowhere else. An application whose argument count is
     /// not the declaration's (E0233's refusal) answers `None`.
+    ///
+    /// G541 (record 211). D34 is a property of the declaration, not of the
+    /// module that holds it: an interface a sibling declares (`Ty::Imported`,
+    /// under any import spelling) has the member set its declaration gives
+    /// it, read through `imported_interface` on the declaring side and with an
+    /// application's arguments substituted for the sibling's own parameters,
+    /// so every pairing and member read below treats it as a local one. The
+    /// type keeps its name; only the members are read.
     fn interface_member_fields(&self, ty: &Ty) -> Option<Vec<RecordField>> {
         let (base, args) = split_type_app(ty);
+        if let Ty::Imported { module, name } = base {
+            let (module, name, iface) =
+                imported_interface_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
+            let subst = match args.is_empty() {
+                true => Subst::new(),
+                false if args.len() != iface.generics.len() => return None,
+                false => decl_subst(&ParamOwner::imported_type(&module, &name), &iface.generics, args),
+            };
+            return Some(substitute_fields(iface.members, &subst));
+        }
         let Ty::Named { symbol, path } = base else {
             return None;
         };
@@ -8940,49 +8985,7 @@ impl Assigner<'_> {
                 decl_subst(&self.lowerer.param_owner(iface.span.start), &generics, args)
             }
         };
-        let lower = |t: &TypeExpr| substitute_type_params(&self.lowerer.lower(t), &subst);
-        Some(
-            iface
-                .members
-                .iter()
-                .map(|m| match m {
-                    InterfaceMember::Method {
-                        name,
-                        params,
-                        return_ty,
-                        ..
-                    } => RecordField {
-                        name: name.clone(),
-                        ty: Ty::Fn {
-                            params: params
-                                .iter()
-                                .map(|p| FnParam {
-                                    name: Some(p.name.clone()),
-                                    owned: false,
-                                    ty: lower(&p.ty),
-                                    optional: false,
-                                })
-                                .collect(),
-                            return_ty: Arc::new(
-                                return_ty
-                                    .as_ref()
-                                    .map(lower)
-                                    .unwrap_or(Ty::Prim(Primitive::Void)),
-                            ),
-                            is_async: false,
-                            // An interface method cannot declare `<...>`.
-                            type_params: Some(Vec::new()),
-                        },
-                        optional: false,
-                    },
-                    InterfaceMember::Field(f) => RecordField {
-                        name: f.name.clone(),
-                        ty: lower(&f.ty),
-                        optional: f.optional,
-                    },
-                })
-                .collect(),
-        )
+        Some(substitute_fields(self.lowerer.interface_members(iface), &subst))
     }
 
     /// What a value of `ty` has as members when it is a primitive or an
@@ -13414,6 +13417,40 @@ pub fn imported_decl_chain_end(
     }
 }
 
+/// The `interface` an imported name reaches (G541): where it is declared, its
+/// own name, and its member set lowered on the source side. A chain of second
+/// names is followed the way `imported_decl_chain_end` follows one, so `pub
+/// type Named = HasName` in the sibling reaches `HasName` exactly as a local
+/// `type Named = HasName` does. `None` when the chain ends at anything other
+/// than an interface, cannot be read, or loops.
+pub fn imported_interface_chain_end(
+    resolver: &dyn DeclTyResolver,
+    module: &str,
+    name: &str,
+) -> Option<(String, String, ImportedInterfaceDecl)> {
+    let mut seen: HashSet<(String, String)> = HashSet::new();
+    let (mut module, mut name) = (module.to_string(), name.to_string());
+    loop {
+        if !seen.insert((module.clone(), name.clone())) {
+            return None;
+        }
+        if let Some(iface) = resolver.imported_interface(&module, &name) {
+            return Some((module, name, iface));
+        }
+        let decl = declared_type_across_modules(resolver, &module, &name)?;
+        let Ty::Imported {
+            module: next_module,
+            name: next_name,
+        } = &decl.body
+        else {
+            return None;
+        };
+        let (next_module, next_name) = (next_module.as_str().to_string(), next_name.to_string());
+        module = next_module;
+        name = next_name;
+    }
+}
+
 /// The body of `Assigner::widen_fresh_literals`, free of the walk so a reader
 /// holding only a finished `TypeMap` (hover, the `const` rule of G433) applies
 /// the same widening. `tm` holds the type of every part of `value`.
@@ -14204,6 +14241,23 @@ fn param_key_named(keys: &[ParamKey], name: &str) -> Option<ParamKey> {
 /// which is the one a parameter the signature does not mention would carry.
 fn stdlib_param_key(keys: &[ParamKey], module: &str, field: &str, name: &str) -> ParamKey {
     param_key_named(keys, name).unwrap_or_else(|| (ParamOwner::std_callable(module, field), Ident::from(name)))
+}
+
+/// `substitute_type_params` over each field of a member set, keeping its
+/// name and optionality: an interface application's members with the
+/// declaration's parameters replaced by the arguments (G461), local or
+/// imported (G541).
+fn substitute_fields(fields: Vec<RecordField>, subst: &Subst) -> Vec<RecordField> {
+    if subst.is_empty() {
+        return fields;
+    }
+    fields
+        .into_iter()
+        .map(|f| RecordField {
+            ty: substitute_type_params(&f.ty, subst),
+            ..f
+        })
+        .collect()
 }
 
 fn substitute_type_params(ty: &Ty, subst: &Subst) -> Ty {

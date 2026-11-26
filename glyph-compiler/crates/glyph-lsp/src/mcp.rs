@@ -37,7 +37,7 @@ use glyph_resolver::{
     ResolvedModule, StdlibStubs, SymbolId, SymbolKind,
 };
 use glyph_typechecker::{
-    display_ty, imported_decl_chain_end, prelude_container, declared_record_fields, Assignability,
+    display_ty, imported_decl_chain_end, imported_interface_chain_end, prelude_container, declared_record_fields, Assignability,
     CoverageSiteRef, CoverageState, CoverageTypeName, DeclTyResolver, FieldAccess, FieldOwner,
     FieldSite, FnParam, Lowerer, Primitive, RecordField, Ty, TypeMap,
 };
@@ -6490,12 +6490,16 @@ enum ArgKind {
     AppOfLocalUnionOrRecord,
     /// A `Ty::Named` the G201 rule does not read as a union or record: a body
     /// of another shape, or a name this module does not declare as a `type`.
-    /// The string says which.
+    /// The string says which. An interface a sibling declares is this kind
+    /// too, as `INTERFACE`: the checker reads its members across the module
+    /// edge exactly as a local interface's (G541), so the table gives it the
+    /// cells a local one gets and the verdict does not depend on which file
+    /// declares it.
     NamedOther(&'static str),
-    /// An application of an interface this module declares (`Cmp<number>`).
-    /// The checker reads it through its arguments (G461), so the cells for
-    /// it ask the relation.
-    AppOfLocalInterface,
+    /// An application of an interface (`Cmp<number>`), this module's or a
+    /// sibling's (G541). The checker reads it through its arguments (G461),
+    /// so the cells for it ask the relation.
+    AppOfInterface,
     /// `Ty::Imported`: a type declared in another module, with what the
     /// declaration at the end of its chain of second names is, read through
     /// the module's exports the way the checker reads it (G215, G226).
@@ -6535,7 +6539,9 @@ enum ParamKind {
     Top,
     /// A declared type of the calling module (`Ty::Named`), with what its
     /// declaration body is, since the rule comparing a primitive against it
-    /// is decided on the body.
+    /// is decided on the body. An interface a sibling declares is
+    /// `Named(NamedBody::Other(INTERFACE))` too, for the reason
+    /// `ArgKind::NamedOther` gives (G541).
     Named(NamedBody),
     /// A type declared in another module (`Ty::Imported`), with what the
     /// declaration at the end of its chain of second names is.
@@ -6548,11 +6554,12 @@ enum ParamKind {
     /// as against the bare declaration. Every other argument kind meets it in
     /// the cell `Other` would have given.
     AppOfLocalRecord,
-    /// An application of an interface this module declares (`Cmp<number>`
-    /// with `interface Cmp<X>`). Its own kind for one cell: the checker
-    /// compares a value against the interface's members with each parameter
-    /// replaced by its argument (G461), so the cell asks the relation.
-    AppOfLocalInterface,
+    /// An application of an interface (`Cmp<number>` with `interface
+    /// Cmp<X>`), this module's or a sibling's (G541). Its own kind for one
+    /// cell: the checker compares a value against the interface's members
+    /// with each parameter replaced by its argument (G461), so the cell asks
+    /// the relation.
+    AppOfInterface,
     /// An application of one of the five prelude containers, with the
     /// container's name and its first type argument classified the same way.
     ///
@@ -6761,6 +6768,9 @@ fn classify_argument(ty: &Ty, scope: &CellScope<'_>) -> ArgKind {
     match ty {
         Ty::Unknown => ArgKind::Unknown,
         Ty::Prim(p) => ArgKind::Primitive(*p),
+        Ty::Imported { module: m, name } if imported_interface_chain_end(decls, m.as_str(), name).is_some() => {
+            ArgKind::NamedOther(INTERFACE)
+        }
         Ty::Imported { module: m, name } => {
             match imported_body(decls, m.as_str(), name) {
                 NamedBody::StringLiteralUnion => ArgKind::StringLiteralUnion,
@@ -6777,11 +6787,14 @@ fn classify_argument(ty: &Ty, scope: &CellScope<'_>) -> ArgKind {
             NamedBody::Other(shape) => ArgKind::NamedOther(shape),
         },
         Ty::App { base, .. } => match base.as_ref() {
+            Ty::Imported { module: m, name } if imported_interface_chain_end(decls, m.as_str(), name).is_some() => {
+                ArgKind::AppOfInterface
+            }
             Ty::Imported { module: m, name } => {
                 ArgKind::AppOfImported(imported_body(decls, m.as_str(), name))
             }
             Ty::Named { .. } if is_local_interface(base, module, resolved) => {
-                ArgKind::AppOfLocalInterface
+                ArgKind::AppOfInterface
             }
             Ty::Named { .. } => match classify_named_body(base, module, resolved) {
                 NamedBody::UnionOrFieldedRecord | NamedBody::EmptyRecord => {
@@ -6830,16 +6843,22 @@ fn classify_parameter(ty: &Ty, scope: &CellScope<'_>) -> ParamKind {
             NamedBody::StringLiteralUnion => ParamKind::StringLiteralUnion,
             body => ParamKind::Named(body),
         },
+        Ty::Imported { module: m, name } if imported_interface_chain_end(decls, m.as_str(), name).is_some() => {
+            ParamKind::Named(NamedBody::Other(INTERFACE))
+        }
         Ty::Imported { module: m, name } => match imported_body(decls, m.as_str(), name) {
             NamedBody::StringLiteralUnion => ParamKind::StringLiteralUnion,
             body => ParamKind::Imported(body),
         },
         Ty::App { base, .. } => match base.as_ref() {
+            Ty::Imported { module: m, name } if imported_interface_chain_end(decls, m.as_str(), name).is_some() => {
+                ParamKind::AppOfInterface
+            }
             Ty::Imported { module: m, name } => {
                 ParamKind::AppOfImported(imported_body(decls, m.as_str(), name))
             }
             Ty::Named { .. } if is_local_interface(base, module, resolved) => {
-                ParamKind::AppOfLocalInterface
+                ParamKind::AppOfInterface
             }
             Ty::Named { .. } => match local_type_body(base, module, resolved) {
                 Some(glyph_ast::TypeExpr::Record { .. }) => ParamKind::AppOfLocalRecord,
@@ -6995,10 +7014,10 @@ fn signature_type_cell(
         // replaced, and the checker compares a value against them member by
         // member through the whole relation, as it compares one against a
         // non-generic interface. The comparison recurses, so the cell asks it.
-        (A::AppOfLocalInterface, _) | (_, P::AppOfLocalInterface) => decided_cell(
+        (A::AppOfInterface, _) | (_, P::AppOfInterface) => decided_cell(
             decide(),
             &format!(
-                "one side applies an interface this module declares, and the checker reads \
+                "one side applies an interface, and the checker reads \
                  an application through its arguments (G461): its members are the \
                  interface's with each type parameter replaced by the argument, compared \
                  member by member through the whole relation. `{arg_ty}` against \
@@ -16793,11 +16812,14 @@ pub fn f() -> number {
         }
     }
 
-    /// Cell (imported interface argument, primitive parameter): a module does
-    /// not export an interface as a `type`, so the chain ends nowhere. Run
-    /// against the checker: silent.
+    /// Cell (imported interface argument, primitive parameter): an interface
+    /// a sibling declares has its members across the module edge (G541), so
+    /// the cell is the one a local interface gets (G460): its value is an
+    /// object, never a `number`. Run against the checker: `f(c)` with `c:
+    /// Named` imported and `f(n: number)` is E0211 under `check --no-tsc`,
+    /// as `api::from_iface` is with a local interface.
     #[test]
-    fn signature_type_imported_interface_against_primitive_is_undetermined() {
+    fn signature_type_imported_interface_against_primitive_is_judged_as_a_local_one() {
         let entry = signature_call_entry_in(
             &[
                 CELLS,
@@ -16811,12 +16833,10 @@ pub fn f() -> number {
             "api::f",
             "api::g",
         );
-        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
-        assert!(entry["diagnostic"].is_null(), "{entry}");
-        assert!(
-            entry["because"].as_str().unwrap_or_default().contains("interface"),
-            "the missing declaration is unnamed: {entry}"
-        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("G502") && !because.contains("no rule"), "{entry}");
+        assert!(because.contains("E0211"), "{entry}");
     }
 
     /// Cell (imported union argument, prelude application parameter): the

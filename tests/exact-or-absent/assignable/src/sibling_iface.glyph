@@ -1,0 +1,20 @@
+module sibling_iface
+
+// An interface a sibling declares has its members across the module edge
+// (G541). `iface_import` reaches these by name and `iface_ns` through the
+// namespace, and each pairing is judged as it is against a local interface.
+pub interface HasTag {
+  tag: string
+}
+
+pub interface Holds<X> {
+  v: X
+}
+
+pub fn want(h: HasTag) -> string {
+  return h.tag
+}
+
+pub fn want_holds(h: Holds<number>) -> number {
+  return h.v
+}

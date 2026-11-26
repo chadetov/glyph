@@ -1,0 +1,23 @@
+module iface_alias_ns
+
+import sibling_iface
+
+// G649, the namespace spelling of `iface_alias`'s `LN`, with the same
+// verdicts: `call_ln` is E0211 on purpose and `ok_ln` compiles.
+type LN = sibling_iface.HasTag
+
+pub type Other = { title: string }
+
+pub type Tagged = { tag: string }
+
+pub fn takes_ln(n: LN) -> string {
+  return n.tag
+}
+
+pub fn call_ln(o: Other) -> string {
+  return takes_ln(o)
+}
+
+pub fn ok_ln(t: Tagged) -> string {
+  return takes_ln(t)
+}

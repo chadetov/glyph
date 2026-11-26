@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-511 entries, 364 are fixed, 10 are partly fixed, 13 are decided or resolved, and
-124 are open. G144, the D28 boundary cast that never reached the returns a
+516 entries, 367 are fixed, 10 are partly fixed, 13 are decided or resolved, and
+126 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -17861,3 +17861,79 @@ and is the owner's to confirm.
   sibling's interface value is refused where a record (D49), a primitive
   or an array is declared. `glyph_assignable` and the `glyph_impact`
   argument cells give a sibling's interface the answers a local one gets.
+
+- **G649. [FIXED] A second name for an interface is not read as that interface.**
+  `type LN = HasName` was answered by where `HasName` is declared. With a
+  local `interface HasName`, D49's identity rule read `LN` as a declaration
+  of its own and refused `Good` (`{ name: string, extra: number, }`) at a
+  `return`, a `let` and an argument, which `tsc` accepts: a false refusal.
+  With `HasName` imported (`import a { HasName }` or `type LN =
+  aa.HasName`), every pairing against `LN` was silent, while
+  `glyph_impact` called `takes_ln(o)` WILL_FAIL and `glyph_assignable`
+  UNDETERMINED, three answers for one pairing. Found by decision record
+  215's review of G541 (probes `pb`, `pbl`, `pc`, `pa`).
+
+  *Reproduced against 0.1.195 (the published build): `pc/` gives three
+  E0204/E0211 refusals of `Good` against `LN`, and `pb/` reports nothing for
+  `Other` against an imported `LN`, under `check --no-tsc`.*
+
+  Fixed in 0.1.197 (record 215, fix 1; D34, D46). The checker follows a
+  second name to the interface it names before any rule reads a name,
+  local or in a sibling, so `LN` has `HasName`'s members in every
+  spelling: `Other` against `LN` is E0204 or E0211 at a `return`, a
+  `let`, an argument, a bound and a field, `Good` is accepted, and
+  `check`, `glyph_assignable` and `glyph_impact` agree on `call_ln`.
+
+- **G650. [FIXED] A sibling's generic interface takes any number of arguments.**
+  `import a { Box }` with `pub interface Box<X> { v: X }` accepted `Box`
+  and `Box<number, string>` in a type position, under both spellings,
+  where the same interface declared locally and a sibling's generic record
+  are E0233 (`tsc` reports TS2314). G541's member read then read a bare
+  `Box` with a free `X`, so `y5b` and `y8` in record 215's `p9/` drew an
+  E0204 and an E0210 that the local program does not. Found by record 215.
+
+  *Reproduced against 0.1.195 (the published build): `p9/` reports nothing
+  under `check --no-tsc`.*
+
+  Fixed in 0.1.197 (record 215, fix 2; D34). The argument count of a
+  sibling's interface is read from `imported_interface` beside a sibling
+  type's, so `Box` and `aa.Box` are E0233 "takes 1, found 0" and
+  `Box<number, string>` "takes 1, found 2", and a bare one has no member
+  set, so the E0233 is the only diagnostic on those lines, as locally.
+
+- **G651. [FIXED] A generic second name for an interface reads no members.**
+  `type LN<T> = LBox<T>` (local or over an import) and a sibling's `pub
+  type NBox<T> = Box<T>` were compared against correctly, but a member read
+  through one was silent: `x.v` returned as the wrong type and `x.vv` drew
+  nothing (record 215, `p1l` d4 to d7, `p1n` a10). A missing check that
+  predates G541, filed by record 215.
+
+  *Reproduced against 0.1.195 (the published build): `p1l/` reports only
+  the read through the local interface `LBox<number>` under `check
+  --no-tsc`; the reads through `LN<number>` and `IN<number>` are silent.*
+
+  Fixed in 0.1.197 with G649, by the same change: a second name is followed
+  with its own arguments put in, so `x.v` through `LN<number>` and
+  `NBox<number>` is E0204 against `string` and `x.vv` is E0210 naming the
+  second name and the interface it stands for.
+
+- **G652. A local type and an imported one that share a name print the same
+  name.** With a local `type HasName = { .. }` and a sibling's `HasName`,
+  a mismatch reads "expected `HasName`, found `HasName`" (record 215, `p6`
+  k2 to k4; `p7` shows the same on 0.1.196 for two records). The imported
+  side should be qualified (`a.HasName`), as the E0210 note for a second
+  name already does. It predates G541, which adds interfaces to its
+  surface.
+
+  *Reproduced against 0.1.195 (the published build): `p7/` prints
+  "expected `HasName`, found `HasName`" under `check --no-tsc`.*
+
+- **G653. The E0251 message on an F-bound prints the bound unsubstituted.**
+  Under `fn maxof<T: Cmp<T>>`, a type argument `CBad` that lacks `cmp` is
+  E0251, and E0251's own rule checks `CBad` against `Cmp<CBad>`, but the
+  message ends "`CBad` is not assignable to `Cmp<T>`", local and imported
+  alike (record 215, `p2`, `p2l`).
+
+  *Reproduced against 0.1.196 (the release build; E0251 is new there):
+  record 215's `p2l/` prints "type argument `CBad` does not satisfy the
+  bound `T: Cmp<T>` of `maxof`: `CBad` is not assignable to `Cmp<T>`".*

@@ -1,0 +1,15 @@
+---
+version: 0.1.194
+month: 2026-11
+date: 2026-11-26
+tags: breaking
+headline: array.concat takes one element type, in both spellings
+---
+            <p><code>array.concat</code> was declared as <code>fn(Array&lt;T&gt;, Array&lt;U&gt;) -&gt; Array&lt;T&gt;</code>, so its second argument could hold anything. <code>return array.concat([1, 2], ["a"])</code> from a function declared <code>-&gt; Array&lt;number&gt;</code> passed <code>check --no-tsc</code>, and only <code>tsc</code> refused it. The method form was not checked at all: <code>xs.concat(["a"])</code>, <code>xs.concat("a")</code> and <code>xs.concat([[1]])</code> on an <code>Array&lt;number&gt;</code> all passed (G521).</p>
+
+            <p>Now both arrays share one element type, <code>fn(Array&lt;T&gt;, Array&lt;T&gt;) -&gt; Array&lt;T&gt;</code>, and the cases above are E0211 at the argument that does not fit. The method form accepts an element or an array of elements, so <code>xs.concat(4)</code> and <code>xs.concat([4])</code> still pass. <code>glyph llms --json</code> publishes the new signature.</p>
+
+            <p>Fixing this also removed an older false refusal. A generic function given two different literals, such as <code>pair("a", "b")</code> under <code>fn pair&lt;T&gt;(a: T, b: T) -&gt; T</code>, was refused with "expected <code>"a"</code>, found <code>"b"</code>". <code>tsc</code> reads <code>T</code> as <code>"a" | "b"</code>, and Glyph now does too. One neighbour of that case is still refused: a declared union followed by a literal it does not hold, <code>pair(m, "c")</code> with <code>m: Mode</code>. <code>tsc</code> accepts that one, so it is filed as G648 and scheduled as the first fix after this batch.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. The <code>array.concat([1, 2], ["a"])</code> program exits 0 under 0.1.193's <code>check --no-tsc</code> and 1 under 0.1.194, and <code>tsc</code> already refused it on a full check. Across the 376 programs the corpus script measures, no exit code changed. One error message got more specific, naming <code>Array&lt;"a" | "b"&gt;</code> where it printed <code>Array&lt;?&gt;</code>.</p>

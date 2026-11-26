@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "th",
-  "source_hash": "4ef9ca89bab7351b",
+  "source_hash": "c08fdfb59eb737de",
   "segments": [
     {
       "id": "title",
@@ -1203,18 +1203,6 @@
       "kind": "html",
       "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
       "tr": "literal ที่มี spread ไม่มี type ดังนั้น field ที่ขาดไปหรือมี type ผิดจึงเป็นหน้าที่ของ <code>tsc</code> ส่วน key ที่เขียนไว้ข้าง spread ยังถูกตรวจเทียบกับ record ที่ประกาศไว้"
-    },
-    {
-      "id": "h-cf31f508",
-      "kind": "html",
-      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
-      "tr": "member ของ <code>interface</code> ที่ import มาและ type ของ <code>const</code> ที่ import มายังไม่ข้ามมา"
-    },
-    {
-      "id": "h-182d14d1",
-      "kind": "html",
-      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
-      "tr": "ตอนนี้ type ข้ามขอบเขต module ได้ครบ: union รักษาความครบถ้วนไว้ ทั้งแบบมี tag และแบบ string literal และ record รักษาชุด field ไว้ field ที่พิมพ์ผิดบน record ที่ import มาจึงเป็น <code>E0210</code> ที่ระบุ type ของ record นั้นเอง และ <code>for i, x</code> บน field ที่เป็น array ของมันก็ bind ตัวเลขโดยไม่ต้องมี annotation สิ่งที่ยังไม่ข้ามมาคือรายการ member ของ <code>interface</code> record ที่ส่งในที่ที่ต้องการ interface ที่ import มาจึงถูกเทียบกับความว่างเปล่า <code>const</code> ที่ import มาเป็นรูปร่างเดียวกันอีกชั้นหนึ่ง: มันยังเป็น <code>Ty::Unknown</code> field ที่พิมพ์ผิดผ่าน import ด้วยชื่อหรือ namespace จึงยังเงียบ ไม่ว่า module ต้นทางจะใส่ annotation ไว้หรือไม่"
     },
     {
       "id": "h-b6b84555",

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ru",
-  "source_hash": "4ef9ca89bab7351b",
+  "source_hash": "c08fdfb59eb737de",
   "segments": [
     {
       "id": "title",
@@ -1203,18 +1203,6 @@
       "kind": "html",
       "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
       "tr": "Литерал со spread не имеет типа, поэтому отсутствующее поле или поле неверного типа остаётся на <code>tsc</code>. Ключ, написанный рядом со spread, по-прежнему проверяется по объявленной записи."
-    },
-    {
-      "id": "h-cf31f508",
-      "kind": "html",
-      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
-      "tr": "Члены импортированного <code>interface</code> и тип импортированного <code>const</code> пока не пересекают границу"
-    },
-    {
-      "id": "h-182d14d1",
-      "kind": "html",
-      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
-      "tr": "Типы теперь пересекают границу модуля без потерь: union сохраняют исчерпываемость, как размеченные, так и из строковых литералов, а запись сохраняет набор полей, поэтому опечатка в поле импортированной записи даёт <code>E0210</code> с названием собственного типа этой записи, а <code>for i, x</code> по одному из её полей-массивов связывает число без аннотации. Пока не пересекает границу список членов <code>interface</code>, поэтому запись, переданная туда, где ожидается импортированный interface, ни с чем не сравнивается; импортированный <code>const</code> это та же ситуация на шаг в сторону: он по-прежнему <code>Ty::Unknown</code>, поэтому опечатка в поле через именованный импорт или импорт пространства имён остаётся незамеченной, независимо от того, была ли у него аннотация в исходном модуле."
     },
     {
       "id": "h-b6b84555",

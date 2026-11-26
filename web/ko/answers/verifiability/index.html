@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?","item":"https://glyphlang.io/ko/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/verifiability/#article","headline":"에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?","description":"TypeScript에서는 컴파일된 뒤 깨지는 변경, 예를 들어 빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드가 Glyph에서는 에이전트가 고쳐야 하는 컴파일 오류가 됩니다.","url":"https://glyphlang.io/ko/answers/verifiability/","inLanguage":"ko","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?","item":"https://glyphlang.io/ko/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/verifiability/#article","headline":"에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?","description":"TypeScript에서는 컴파일된 뒤 깨지는 변경, 예를 들어 빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드가 Glyph에서는 에이전트가 고쳐야 하는 컴파일 오류가 됩니다.","url":"https://glyphlang.io/ko/answers/verifiability/","inLanguage":"ko","dateModified":"2026-11-26","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -1086,11 +1086,6 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
                 <p>spread를 담은 리터럴은 타입이 없으므로, 빠진 필드나 타입이 틀린 필드는 <code>tsc</code>에 맡겨집니다. spread 옆에 쓴 키는 여전히 선언된 레코드에 비추어 검사합니다.</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">import한 <code>interface</code>의 멤버와 import한 <code>const</code>의 타입은 아직 경계를 넘지 않습니다</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
-                <p>이제 타입은 모듈 경계를 온전히 넘습니다. 유니언은 태그 유니언이든 문자열 리터럴 유니언이든 망라성을 유지하고, 레코드는 필드 집합을 유지하므로, import한 레코드의 오타 난 필드는 그 레코드 자신의 타입을 짚는 <code>E0210</code>이고, 배열 필드 하나에 대한 <code>for i, x</code>는 타입 표기 없이 숫자를 바인딩합니다. 아직 넘지 않는 것은 <code>interface</code>의 멤버 목록이므로, import한 인터페이스가 필요한 곳에 넘긴 레코드는 아무것과도 비교되지 않습니다. import한 <code>const</code>도 한 단계 옆에서 같은 모양입니다. 여전히 <code>Ty::Unknown</code>이므로, 원본 모듈이 타입을 표기했든 아니든 이름 import나 네임스페이스 import를 통한 필드 오타는 조용합니다.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">더 깊은 흐름 기반 좁히기는 로드맵에 있습니다</span></span></li>
           </ul>
 
@@ -1135,7 +1130,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           이것이 Glyph의 네 가지 기둥 중 첫 번째인 이유와, 그 보장이 멈추는 곳은 <a href="/ko/pillars/verifiability/">검증 가능성 기둥 페이지</a>에 있습니다.
         </p>
       </div>
-      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.196으로 검사합니다. 마지막 변경: <time datetime="2026-11-24">2026년 11월 24일</time>.</p>
+      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.196으로 검사합니다. 마지막 변경: <time datetime="2026-11-26">2026년 11월 26일</time>.</p>
       <nav class="prevnext" aria-label="이전과 다음">
         <div class="spacer"></div>
         <a href="/ko/answers/diff-stability/" class="nx cta">

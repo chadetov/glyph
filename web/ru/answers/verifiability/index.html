@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Что мешает агенту незаметно сломать мой код?","item":"https://glyphlang.io/ru/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/verifiability/#article","headline":"Что мешает агенту незаметно сломать мой код?","description":"Изменения, которые в TypeScript компилируются и потом ломаются (пропущенный случай, необработанная ошибка, переименованное поле), в Glyph становятся ошибками компиляции, которые агент обязан исправить.","url":"https://glyphlang.io/ru/answers/verifiability/","inLanguage":"ru","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Что мешает агенту незаметно сломать мой код?","item":"https://glyphlang.io/ru/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/verifiability/#article","headline":"Что мешает агенту незаметно сломать мой код?","description":"Изменения, которые в TypeScript компилируются и потом ломаются (пропущенный случай, необработанная ошибка, переименованное поле), в Glyph становятся ошибками компиляции, которые агент обязан исправить.","url":"https://glyphlang.io/ru/answers/verifiability/","inLanguage":"ru","dateModified":"2026-11-26","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -1084,11 +1084,6 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
                 <p>Литерал со spread не имеет типа, поэтому отсутствующее поле или поле неверного типа остаётся на <code>tsc</code>. Ключ, написанный рядом со spread, по-прежнему проверяется по объявленной записи.</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Члены импортированного <code>interface</code> и тип импортированного <code>const</code> пока не пересекают границу</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
-                <p>Типы теперь пересекают границу модуля без потерь: union сохраняют исчерпываемость, как размеченные, так и из строковых литералов, а запись сохраняет набор полей, поэтому опечатка в поле импортированной записи даёт <code>E0210</code> с названием собственного типа этой записи, а <code>for i, x</code> по одному из её полей-массивов связывает число без аннотации. Пока не пересекает границу список членов <code>interface</code>, поэтому запись, переданная туда, где ожидается импортированный interface, ни с чем не сравнивается; импортированный <code>const</code> это та же ситуация на шаг в сторону: он по-прежнему <code>Ty::Unknown</code>, поэтому опечатка в поле через именованный импорт или импорт пространства имён остаётся незамеченной, независимо от того, была ли у него аннотация в исходном модуле.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Более глубокое сужение типов по потоку управления в планах</span></span></li>
           </ul>
 
@@ -1133,7 +1128,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Почему это первый из четырёх принципов Glyph и где заканчивается его гарантия, рассказано на <a href="/ru/pillars/verifiability/">странице принципа проверяемости</a>.
         </p>
       </div>
-      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.196 при каждой сборке. Последнее изменение: <time datetime="2026-11-24">24 ноя 2026</time>.</p>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.196 при каждой сборке. Последнее изменение: <time datetime="2026-11-26">26 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <div class="spacer"></div>
         <a href="/ru/answers/diff-stability/" class="nx cta">

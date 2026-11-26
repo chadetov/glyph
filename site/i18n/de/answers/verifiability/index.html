@@ -1,7 +1,7 @@
 ---
 title: Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen? · Glyph
 description: Änderungen, die in TypeScript kompilieren und dann kaputtgehen, wie ein fehlender Fall, ein unbehandelter Fehler oder ein umbenanntes Feld, sind in Glyph Compile-Fehler, die der Agent beheben muss.
-source_hash: 4ef9ca89bab7351b
+source_hash: c08fdfb59eb737de
 next: /answers/diff-stability/ | Weiter &rarr; | Bleiben Änderungen von Agenten sauber, oder formatieren sie meine ganze Datei um?
 ---
       <p class="q-eyebrow">01 &middot; Das Kernversprechen</p>
@@ -613,11 +613,6 @@ pub fn guest() -&gt; Profile {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Literal mit einem Spread hat keinen Typ</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
                 <p>Ein Literal mit einem Spread hat keinen Typ, daher bleibt ein fehlendes Feld oder eines mit falschem Typ <code>tsc</code> überlassen. Ein neben dem Spread geschriebener Schlüssel wird trotzdem gegen den deklarierten Record geprüft.</p>
-              </div></details>
-            </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Die Member eines importierten <code>interface</code> und der Typ einer importierten <code>const</code> überqueren die Grenze noch nicht</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
-                <p>Typen überqueren eine Modulgrenze jetzt intakt: Unions behalten ihre Erschöpfendheit, Tagged Unions wie solche aus String-Literalen, und ein Record behält seine Feldmenge, also ist ein Tippfehler in einem Feld eines importierten Records <code>E0210</code> mit Nennung des eigenen Typs dieses Records, und <code>for i, x</code> über eines seiner Array-Felder bindet ohne Annotation eine Zahl. Was die Grenze noch nicht überquert, ist die Member-Liste eines <code>interface</code>, also wird ein Record, der übergeben wird, wo ein importiertes Interface erwartet wird, mit nichts verglichen; eine importierte <code>const</code> hat dieselbe Form eine Ebene weiter: Sie ist weiterhin <code>Ty::Unknown</code>, also bleibt ein Tippfehler in einem Feld über einen benannten oder Namespace-Import still, egal ob das Quellmodul sie annotiert hat.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Tieferes Flow-Narrowing steht auf der Roadmap</span></span></li>

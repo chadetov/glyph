@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ko",
-  "source_hash": "4ef9ca89bab7351b",
+  "source_hash": "c08fdfb59eb737de",
   "segments": [
     {
       "id": "title",
@@ -1203,18 +1203,6 @@
       "kind": "html",
       "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
       "tr": "spread를 담은 리터럴은 타입이 없으므로, 빠진 필드나 타입이 틀린 필드는 <code>tsc</code>에 맡겨집니다. spread 옆에 쓴 키는 여전히 선언된 레코드에 비추어 검사합니다."
-    },
-    {
-      "id": "h-cf31f508",
-      "kind": "html",
-      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
-      "tr": "import한 <code>interface</code>의 멤버와 import한 <code>const</code>의 타입은 아직 경계를 넘지 않습니다"
-    },
-    {
-      "id": "h-182d14d1",
-      "kind": "html",
-      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
-      "tr": "이제 타입은 모듈 경계를 온전히 넘습니다. 유니언은 태그 유니언이든 문자열 리터럴 유니언이든 망라성을 유지하고, 레코드는 필드 집합을 유지하므로, import한 레코드의 오타 난 필드는 그 레코드 자신의 타입을 짚는 <code>E0210</code>이고, 배열 필드 하나에 대한 <code>for i, x</code>는 타입 표기 없이 숫자를 바인딩합니다. 아직 넘지 않는 것은 <code>interface</code>의 멤버 목록이므로, import한 인터페이스가 필요한 곳에 넘긴 레코드는 아무것과도 비교되지 않습니다. import한 <code>const</code>도 한 단계 옆에서 같은 모양입니다. 여전히 <code>Ty::Unknown</code>이므로, 원본 모듈이 타입을 표기했든 아니든 이름 import나 네임스페이스 import를 통한 필드 오타는 조용합니다."
     },
     {
       "id": "h-b6b84555",

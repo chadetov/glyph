@@ -1,7 +1,7 @@
 ---
 title: ¿Qué impide que un agente rompa mi código sin que nadie lo note? · Glyph
 description: Los cambios que en TypeScript compilan y luego fallan, como un caso que falta, un error sin manejar o un campo renombrado, son en Glyph errores de compilación que el agente tiene que corregir.
-source_hash: 4ef9ca89bab7351b
+source_hash: c08fdfb59eb737de
 next: /answers/diff-stability/ | Siguiente &rarr; | ¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo entero?
 ---
       <p class="q-eyebrow">01 &middot; La promesa central</p>
@@ -613,11 +613,6 @@ pub fn guest() -&gt; Profile {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Un literal con un spread no tiene tipo</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
                 <p>Un literal con un spread no tiene tipo, así que un campo que le falta o que tiene el tipo equivocado queda en manos de <code>tsc</code>. Una clave escrita junto al spread se sigue comprobando contra el record declarado.</p>
-              </div></details>
-            </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Los miembros de una <code>interface</code> importada y el tipo de un <code>const</code> importado todavía no cruzan</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
-                <p>Los tipos cruzan ahora intactos la frontera de un módulo: las uniones mantienen su exhaustividad, tanto las etiquetadas como las de literales de string, y un record mantiene su conjunto de campos, así que una errata en un campo de un record importado es <code>E0210</code> nombrando el propio tipo de ese record, y <code>for i, x</code> sobre uno de sus campos de array enlaza un número sin anotación. Lo que todavía no cruza es la lista de miembros de una <code>interface</code>, así que un record pasado donde se espera una interface importada se compara con nada; un <code>const</code> importado es la misma forma un nivel más allá: sigue siendo <code>Ty::Unknown</code>, así que una errata en un campo a través de un import con nombre o de namespace no dice nada, lo haya anotado o no el módulo de origen.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Un estrechamiento por flujo más profundo está en el roadmap</span></span></li>

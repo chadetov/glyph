@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ja",
-  "source_hash": "4ef9ca89bab7351b",
+  "source_hash": "c08fdfb59eb737de",
   "segments": [
     {
       "id": "title",
@@ -1203,18 +1203,6 @@
       "kind": "html",
       "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
       "tr": "スプレッドを含むリテラルは型を持たないため、欠けているフィールドや型の違うフィールドは <code>tsc</code> に任されます。スプレッドの横に書かれたキーは、引き続き宣言されたレコードに照らして検査されます。"
-    },
-    {
-      "id": "h-cf31f508",
-      "kind": "html",
-      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
-      "tr": "インポートした <code>interface</code> のメンバーと、インポートした <code>const</code> の型は、まだ境界を越えない"
-    },
-    {
-      "id": "h-182d14d1",
-      "kind": "html",
-      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
-      "tr": "型は今、モジュール境界を損なわずに越えます。ユニオンはタグ付きでも文字列リテラルでも網羅性を保ち、レコードはフィールド集合を保ちます。そのため、インポートしたレコードのフィールドのタイプミスはそのレコード自身の型を示す <code>E0210</code> になり、その配列フィールドに対する <code>for i, x</code> は型注釈なしで数値を束縛します。まだ越えないのは <code>interface</code> のメンバー一覧で、インポートした interface が期待される場所に渡したレコードは何とも比較されません。インポートした <code>const</code> も 1 つ隣の同じ形の問題です。今も <code>Ty::Unknown</code> なので、名前付きインポートでも名前空間インポートでも、元のモジュールが型注釈を付けていてもいなくても、フィールドのタイプミスは黙ったままです。"
     },
     {
       "id": "h-b6b84555",

@@ -1,7 +1,7 @@
 ---
 title: 什么能防止智能体悄悄改坏我的代码？ · Glyph
 description: 在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。
-source_hash: 4ef9ca89bab7351b
+source_hash: c08fdfb59eb737de
 next: /answers/diff-stability/ | 下一篇 &rarr; | 智能体的编辑会保持干净，还是会把整个文件重新格式化？
 ---
       <p class="q-eyebrow">01 &middot; 核心承诺</p>
@@ -613,11 +613,6 @@ pub fn guest() -&gt; Profile {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">包含展开的字面量没有类型</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
                 <p>包含展开的字面量没有类型，所以缺少的字段或类型不对的字段交给 <code>tsc</code>。写在展开旁边的键仍会按声明的记录检查。</p>
-              </div></details>
-            </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">导入的 <code>interface</code> 的成员和导入的 <code>const</code> 的类型还不能跨越边界</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
-                <p>类型现在能完整地跨越模块边界：联合类型保留它们的穷尽性，标签联合和字符串字面量联合都是如此；记录保留它的字段集合，所以导入记录上拼错的字段是指出该记录自身类型的 <code>E0210</code>，对它的某个数组字段做 <code>for i, x</code> 无需标注，绑定的就是数字。还不能跨越的是 <code>interface</code> 的成员列表，所以在需要导入接口的地方传入的记录，没有可比较的对象；导入的 <code>const</code> 是同样的问题换了个位置：它仍然是 <code>Ty::Unknown</code>，所以无论源模块是否给它加了标注，通过具名导入或命名空间导入访问时字段拼写错误都不会被报告。</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">更深入的流敏感类型收窄已在路线图上</span></span></li>

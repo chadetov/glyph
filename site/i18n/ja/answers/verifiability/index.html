@@ -1,7 +1,7 @@
 ---
 title: エージェントがコードを気づかれずに壊すのを、何が防ぐのか · Glyph
 description: TypeScript ではコンパイルが通ってから壊れる変更（ケースの抜け、処理されないエラー、フィールド名の変更）が、Glyph ではエージェントが直さなければならないコンパイルエラーになります。
-source_hash: 4ef9ca89bab7351b
+source_hash: c08fdfb59eb737de
 next: /answers/diff-stability/ | 次へ &rarr; | エージェントの編集は差分がきれいなままか、それともファイル全体を整形し直してしまうのか？
 ---
       <p class="q-eyebrow">01 &middot; 中心となる約束</p>
@@ -613,11 +613,6 @@ pub fn guest() -&gt; Profile {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">スプレッドを含むリテラルは型を持たない</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
                 <p>スプレッドを含むリテラルは型を持たないため、欠けているフィールドや型の違うフィールドは <code>tsc</code> に任されます。スプレッドの横に書かれたキーは、引き続き宣言されたレコードに照らして検査されます。</p>
-              </div></details>
-            </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">インポートした <code>interface</code> のメンバーと、インポートした <code>const</code> の型は、まだ境界を越えない</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
-                <p>型は今、モジュール境界を損なわずに越えます。ユニオンはタグ付きでも文字列リテラルでも網羅性を保ち、レコードはフィールド集合を保ちます。そのため、インポートしたレコードのフィールドのタイプミスはそのレコード自身の型を示す <code>E0210</code> になり、その配列フィールドに対する <code>for i, x</code> は型注釈なしで数値を束縛します。まだ越えないのは <code>interface</code> のメンバー一覧で、インポートした interface が期待される場所に渡したレコードは何とも比較されません。インポートした <code>const</code> も 1 つ隣の同じ形の問題です。今も <code>Ty::Unknown</code> なので、名前付きインポートでも名前空間インポートでも、元のモジュールが型注釈を付けていてもいなくても、フィールドのタイプミスは黙ったままです。</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">より深いフローによる絞り込みはロードマップにある</span></span></li>

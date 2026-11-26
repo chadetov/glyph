@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "es",
-  "source_hash": "4ef9ca89bab7351b",
+  "source_hash": "c08fdfb59eb737de",
   "segments": [
     {
       "id": "title",
@@ -1203,18 +1203,6 @@
       "kind": "html",
       "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
       "tr": "Un literal con un spread no tiene tipo, así que un campo que le falta o que tiene el tipo equivocado queda en manos de <code>tsc</code>. Una clave escrita junto al spread se sigue comprobando contra el record declarado."
-    },
-    {
-      "id": "h-cf31f508",
-      "kind": "html",
-      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
-      "tr": "Los miembros de una <code>interface</code> importada y el tipo de un <code>const</code> importado todavía no cruzan"
-    },
-    {
-      "id": "h-182d14d1",
-      "kind": "html",
-      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
-      "tr": "Los tipos cruzan ahora intactos la frontera de un módulo: las uniones mantienen su exhaustividad, tanto las etiquetadas como las de literales de string, y un record mantiene su conjunto de campos, así que una errata en un campo de un record importado es <code>E0210</code> nombrando el propio tipo de ese record, y <code>for i, x</code> sobre uno de sus campos de array enlaza un número sin anotación. Lo que todavía no cruza es la lista de miembros de una <code>interface</code>, así que un record pasado donde se espera una interface importada se compara con nada; un <code>const</code> importado es la misma forma un nivel más allá: sigue siendo <code>Ty::Unknown</code>, así que una errata en un campo a través de un import con nombre o de namespace no dice nada, lo haya anotado o no el módulo de origen."
     },
     {
       "id": "h-b6b84555",

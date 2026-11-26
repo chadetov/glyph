@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/verifiability/, generated from the same source as the page. Last changed 2026-11-24. -->
+<!-- Markdown copy of https://glyphlang.io/answers/verifiability/, generated from the same source as the page. Last changed 2026-11-26. -->
 
 01 · The core promise
 
@@ -602,12 +602,6 @@ Types, records and literals
 
   A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to `tsc`. A key written beside the spread is still checked against the declared record.
 
-- An imported `interface`'s members and an imported `const`'s type don't cross yet
-
-  **Details**
-
-  Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is `E0210` naming that record's own type and `for i, x` over one of its array fields binds a number with no annotation. What does not cross yet is an `interface`'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported `const` is the same shape one level over: it is still `Ty::Unknown`, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.
-
 - Deeper flow-narrowing is on the roadmap
 
 Data boundaries
@@ -647,4 +641,4 @@ Tooling and the standard library
 
 Why this is the first of Glyph's four pillars, and where its guarantee stops, is on the [verifiability pillar page](https://glyphlang.io/pillars/verifiability/).
 
-Code examples on this page are checked against Glyph 0.1.196 on every build. Last changed 24 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.196 on every build. Last changed 26 Nov 2026.

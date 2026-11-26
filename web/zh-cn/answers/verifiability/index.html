@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"什么能防止智能体悄悄改坏我的代码？","item":"https://glyphlang.io/zh-cn/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#article","headline":"什么能防止智能体悄悄改坏我的代码？","description":"在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。","url":"https://glyphlang.io/zh-cn/answers/verifiability/","inLanguage":"zh-Hans","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"什么能防止智能体悄悄改坏我的代码？","item":"https://glyphlang.io/zh-cn/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#article","headline":"什么能防止智能体悄悄改坏我的代码？","description":"在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。","url":"https://glyphlang.io/zh-cn/answers/verifiability/","inLanguage":"zh-Hans","dateModified":"2026-11-26","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -1086,11 +1086,6 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
                 <p>包含展开的字面量没有类型，所以缺少的字段或类型不对的字段交给 <code>tsc</code>。写在展开旁边的键仍会按声明的记录检查。</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">导入的 <code>interface</code> 的成员和导入的 <code>const</code> 的类型还不能跨越边界</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
-                <p>类型现在能完整地跨越模块边界：联合类型保留它们的穷尽性，标签联合和字符串字面量联合都是如此；记录保留它的字段集合，所以导入记录上拼错的字段是指出该记录自身类型的 <code>E0210</code>，对它的某个数组字段做 <code>for i, x</code> 无需标注，绑定的就是数字。还不能跨越的是 <code>interface</code> 的成员列表，所以在需要导入接口的地方传入的记录，没有可比较的对象；导入的 <code>const</code> 是同样的问题换了个位置：它仍然是 <code>Ty::Unknown</code>，所以无论源模块是否给它加了标注，通过具名导入或命名空间导入访问时字段拼写错误都不会被报告。</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">更深入的流敏感类型收窄已在路线图上</span></span></li>
           </ul>
 
@@ -1135,7 +1130,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           为什么这是 Glyph 四大支柱中的第一个，以及它的保证止于何处，见<a href="/zh-cn/pillars/verifiability/">可验证性支柱页面</a>。
         </p>
       </div>
-      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.196 检查。最后修改：<time datetime="2026-11-24">2026年11月24日</time>。</p>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.196 检查。最后修改：<time datetime="2026-11-26">2026年11月26日</time>。</p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <div class="spacer"></div>
         <a href="/zh-cn/answers/diff-stability/" class="nx cta">

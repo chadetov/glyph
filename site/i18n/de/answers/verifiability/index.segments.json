@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "de",
-  "source_hash": "4ef9ca89bab7351b",
+  "source_hash": "c08fdfb59eb737de",
   "segments": [
     {
       "id": "title",
@@ -1203,18 +1203,6 @@
       "kind": "html",
       "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
       "tr": "Ein Literal mit einem Spread hat keinen Typ, daher bleibt ein fehlendes Feld oder eines mit falschem Typ <code>tsc</code> überlassen. Ein neben dem Spread geschriebener Schlüssel wird trotzdem gegen den deklarierten Record geprüft."
-    },
-    {
-      "id": "h-cf31f508",
-      "kind": "html",
-      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
-      "tr": "Die Member eines importierten <code>interface</code> und der Typ einer importierten <code>const</code> überqueren die Grenze noch nicht"
-    },
-    {
-      "id": "h-182d14d1",
-      "kind": "html",
-      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
-      "tr": "Typen überqueren eine Modulgrenze jetzt intakt: Unions behalten ihre Erschöpfendheit, Tagged Unions wie solche aus String-Literalen, und ein Record behält seine Feldmenge, also ist ein Tippfehler in einem Feld eines importierten Records <code>E0210</code> mit Nennung des eigenen Typs dieses Records, und <code>for i, x</code> über eines seiner Array-Felder bindet ohne Annotation eine Zahl. Was die Grenze noch nicht überquert, ist die Member-Liste eines <code>interface</code>, also wird ein Record, der übergeben wird, wo ein importiertes Interface erwartet wird, mit nichts verglichen; eine importierte <code>const</code> hat dieselbe Form eine Ebene weiter: Sie ist weiterhin <code>Ty::Unknown</code>, also bleibt ein Tippfehler in einem Feld über einen benannten oder Namespace-Import still, egal ob das Quellmodul sie annotiert hat."
     },
     {
       "id": "h-b6b84555",

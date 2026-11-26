@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "tr",
-  "source_hash": "4ef9ca89bab7351b",
+  "source_hash": "c08fdfb59eb737de",
   "segments": [
     {
       "id": "title",
@@ -1203,18 +1203,6 @@
       "kind": "html",
       "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
       "tr": "Spread içeren bir literal'in tipi yoktur, bu yüzden eksik bir alan ya da yanlış tipte bir alan <code>tsc</code>'ye kalır. Spread'in yanına yazılmış bir anahtar yine de bildirilen record'a göre denetlenir."
-    },
-    {
-      "id": "h-cf31f508",
-      "kind": "html",
-      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
-      "tr": "Import edilen bir <code>interface</code>'in üyeleri ve import edilen bir <code>const</code>'un tipi henüz sınırı geçmiyor"
-    },
-    {
-      "id": "h-182d14d1",
-      "kind": "html",
-      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
-      "tr": "Tipler artık bir modül sınırını bozulmadan geçiyor: union'lar, tagged olsun string-literal olsun, kapsam kontrollerini koruyor ve bir record alan kümesini koruyor; böylece import edilen bir record üzerindeki yanlış yazılmış bir alan, o record'ın kendi tipini adlandıran <code>E0210</code>'dur ve dizi alanlarından biri üzerindeki <code>for i, x</code>, annotation olmadan bir sayı bağlar. Henüz geçmeyen, bir <code>interface</code>'in üye listesi; dolayısıyla import edilmiş bir interface beklenen yere geçirilen bir record hiçbir şeyle karşılaştırılmıyor. Import edilen bir <code>const</code> da bir seviye ötede aynı durumda: hâlâ <code>Ty::Unknown</code>, bu yüzden isimli ya da namespace import'u üzerinden bir alan yazım hatası, kaynak modül ona annotation vermiş olsun olmasın sessiz kalıyor."
     },
     {
       "id": "h-b6b84555",

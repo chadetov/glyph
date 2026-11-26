@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","item":"https://glyphlang.io/es/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/verifiability/#article","headline":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","description":"Los cambios que en TypeScript compilan y luego fallan, como un caso que falta, un error sin manejar o un campo renombrado, son en Glyph errores de compilación que el agente tiene que corregir.","url":"https://glyphlang.io/es/answers/verifiability/","inLanguage":"es","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","item":"https://glyphlang.io/es/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/verifiability/#article","headline":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","description":"Los cambios que en TypeScript compilan y luego fallan, como un caso que falta, un error sin manejar o un campo renombrado, son en Glyph errores de compilación que el agente tiene que corregir.","url":"https://glyphlang.io/es/answers/verifiability/","inLanguage":"es","dateModified":"2026-11-26","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -1084,11 +1084,6 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
                 <p>Un literal con un spread no tiene tipo, así que un campo que le falta o que tiene el tipo equivocado queda en manos de <code>tsc</code>. Una clave escrita junto al spread se sigue comprobando contra el record declarado.</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Los miembros de una <code>interface</code> importada y el tipo de un <code>const</code> importado todavía no cruzan</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
-                <p>Los tipos cruzan ahora intactos la frontera de un módulo: las uniones mantienen su exhaustividad, tanto las etiquetadas como las de literales de string, y un record mantiene su conjunto de campos, así que una errata en un campo de un record importado es <code>E0210</code> nombrando el propio tipo de ese record, y <code>for i, x</code> sobre uno de sus campos de array enlaza un número sin anotación. Lo que todavía no cruza es la lista de miembros de una <code>interface</code>, así que un record pasado donde se espera una interface importada se compara con nada; un <code>const</code> importado es la misma forma un nivel más allá: sigue siendo <code>Ty::Unknown</code>, así que una errata en un campo a través de un import con nombre o de namespace no dice nada, lo haya anotado o no el módulo de origen.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Un estrechamiento por flujo más profundo está en el roadmap</span></span></li>
           </ul>
 
@@ -1133,7 +1128,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Por qué este es el primero de los cuatro pilares de Glyph, y dónde se detiene su garantía, está en la <a href="/es/pillars/verifiability/">página del pilar de verificabilidad</a>.
         </p>
       </div>
-      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.196 en cada build. Último cambio: <time datetime="2026-11-24">24 nov 2026</time>.</p>
+      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.196 en cada build. Último cambio: <time datetime="2026-11-26">26 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <div class="spacer"></div>
         <a href="/es/answers/diff-stability/" class="nx cta">

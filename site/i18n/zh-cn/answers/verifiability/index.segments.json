@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "zh-cn",
-  "source_hash": "4ef9ca89bab7351b",
+  "source_hash": "c08fdfb59eb737de",
   "segments": [
     {
       "id": "title",
@@ -1203,18 +1203,6 @@
       "kind": "html",
       "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
       "tr": "包含展开的字面量没有类型，所以缺少的字段或类型不对的字段交给 <code>tsc</code>。写在展开旁边的键仍会按声明的记录检查。"
-    },
-    {
-      "id": "h-cf31f508",
-      "kind": "html",
-      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
-      "tr": "导入的 <code>interface</code> 的成员和导入的 <code>const</code> 的类型还不能跨越边界"
-    },
-    {
-      "id": "h-182d14d1",
-      "kind": "html",
-      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
-      "tr": "类型现在能完整地跨越模块边界：联合类型保留它们的穷尽性，标签联合和字符串字面量联合都是如此；记录保留它的字段集合，所以导入记录上拼错的字段是指出该记录自身类型的 <code>E0210</code>，对它的某个数组字段做 <code>for i, x</code> 无需标注，绑定的就是数字。还不能跨越的是 <code>interface</code> 的成员列表，所以在需要导入接口的地方传入的记录，没有可比较的对象；导入的 <code>const</code> 是同样的问题换了个位置：它仍然是 <code>Ty::Unknown</code>，所以无论源模块是否给它加了标注，通过具名导入或命名空间导入访问时字段拼写错误都不会被报告。"
     },
     {
       "id": "h-b6b84555",

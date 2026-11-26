@@ -1,0 +1,14 @@
+---
+version: 0.1.195
+month: 2026-11
+date: 2026-11-26
+headline: Stdlib functions with an optional parameter are published as their call forms
+---
+            <p>A few stdlib functions take an optional last argument: <code>string.pad_end</code>, <code>pad_start</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>array.slice</code> and <code>json.stringify</code>, plus <code>set.create</code> and <code>collections.deque</code>. <code>glyph llms</code> and <code>AGENTS.md</code> printed each one with a single signature in which every parameter looked required. An agent reading <code>fn(string, number, string) -&gt; string</code> for <code>pad_end</code> had no way to know the third argument could be left out. Glyph's function types cannot spell an optional parameter, so no single signature was right.</p>
+
+            <p>These eight rows now publish their call forms instead, shortest first. <code>pad_end</code> is listed as <code>fn(string, number) -&gt; string</code> and <code>fn(string, number, string) -&gt; string</code>. In <code>glyph llms --json</code> each row carries <code>call_forms</code>, <code>signature: null</code>, and a <code>signature_absent</code> sentence that says which parameter may be left out. <code>json.stringify</code> keeps its <code>?</code> slots and its <code>signature_partial</code> note.</p>
+
+            <p>The checker already enforced these rows: a missing or extra argument is E0213, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm is E0200. <code>AGENTS.md</code> still told agents the rows were untyped (G626), and that paragraph is rewritten to say they are modeled and to read <code>call_forms</code>.</p>
+
+            <h3>Breaking</h3>
+            <p>No. No program changes its exit code. <code>pad_end(s, 4)</code> and <code>pad_end(s, 4, "-")</code> pass under 0.1.194 and 0.1.195 alike. Across the 376 programs the corpus script measures, the output is identical to 0.1.194. What changes is the published signature data for these eight rows.</p>

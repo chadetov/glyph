@@ -8,6 +8,13 @@
   <updated>2026-11-26T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.195</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.195" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.195</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>Stdlib functions with an optional parameter are published as their call forms</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.194 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.194" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.194</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.166</id>
     <updated>2026-11-22T00:00:00Z</updated>
     <summary>An unannotated const has the type of its value</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.165 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.165" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.165</id>
-    <updated>2026-11-22T00:00:00Z</updated>
-    <summary>A literal can only name fields its type declares</summary>
   </entry>
 </feed>

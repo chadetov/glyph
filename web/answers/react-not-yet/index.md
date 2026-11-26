@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/react-not-yet/, generated from the same source as the page. Last changed 2026-11-25. -->
+<!-- Markdown copy of https://glyphlang.io/answers/react-not-yet/, generated from the same source as the page. Last changed 2026-11-26. -->
 
 14 · React: not yet
 
@@ -15,7 +15,7 @@ Each row was reproduced against the published compiler in a project with React 1
 |---|---|---|---|
 
 | Hook results | Glyph's own checker does not type what a hook returns. `set_count("x")` on a `useState(0)` pair passes `check --no-tsc` and the editor; a full `glyph check` reports TS2345 at `"x"`. Hover on `count` answers `null`. | Run the full `glyph check` or `glyph build` before you trust a React change. The `tsc` step checks every hook against `@types/react`. | [G257](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md) |
-| Element refs | `useRef(null)` is E0103, because Glyph has no `null` and `std/nullable` cannot build one. `<input ref={useRef(0)} />` passes both Glyph and `tsc`. | Use a callback ref and unwrap the element with `nullable.to_option`, as in the module below. | [G630](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md) |
+| Element refs | `useRef(null)` is E0103, because Glyph has no `null`; the empty value is spelled `nullable.from_option(None)`. `<input ref={useRef(0)} />` passes both Glyph and `tsc`. | Write `useRef(nullable.from_option(None))`, or use a callback ref and unwrap the element with `nullable.to_option`, as in the module below. | [G630](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md) |
 | Children | `<Card title="x">hello</Card>` is E0211 when `Card` declares `children: ReactNode`. Written children are not part of the props object Glyph checks, so a required `children` is never filled. | Declare `children?: ReactNode`, or pass the children as an attribute: `children={<p>hello</p>}`. | [G631](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md) (its fix files it as G603) |
 | Rules of hooks | A hook called inside a `match` arm or a loop compiles, and `tsc` has no rule against it either. React matches hooks by call order, so the component breaks at run time once the order changes between renders. | Call every hook at the top of the component and use its values inside the arms. | [G632](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md) (its fix files it as G596) |
 | Effect cleanup | `useEffect(fn() { storage.set("k", "v") }, [])` passes `--no-tsc`. The lambda returns its last expression, and React calls whatever an effect returns as its cleanup. A full check reports TS2345. | Write every effect as `fn() -> void { ... }`. The annotation stops the last expression from being returned. | [G633](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md) (its fix files it as G594) |
@@ -80,4 +80,4 @@ A row leaves this page in the same pull request that closes its gap, so the page
 - Written children filling a required `children` (G631), and a Vite plugin with Fast Refresh (G638).
 - Not planned: class components (G639), and server components before 1.0 (G640).
 
-Code examples on this page are checked against Glyph 0.1.194 on every build. Last changed 25 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.195 on every build. Last changed 26 Nov 2026.

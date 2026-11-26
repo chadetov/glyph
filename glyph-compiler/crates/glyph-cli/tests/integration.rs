@@ -11476,6 +11476,41 @@ fn a_second_name_for_an_interface_is_that_interface_wherever_either_is_declared(
 }
 
 #[test]
+fn a_sibling_generic_interface_takes_its_argument_count_under_both_spellings() {
+    // G650 (record 215). A generic interface a sibling declares is E0233
+    // when written bare or with too many arguments, under the named import
+    // and the namespace alike, exactly as a local one and an imported
+    // generic record are. A bare one has no member set, so no second
+    // diagnostic is read off a parameter nothing binds.
+    let root = unique_tmp("g650arity");
+    let src = root.join("src");
+    write_file(&src, "a.glyph", "module a\npub interface Box<X> { v: X }\n");
+    let body = |b: &str| -> String {
+        format!(
+            "type BW = {{ w: string, }}\n\
+             pub fn bare(x: BW) -> {b} {{\n  return x\n}}\n\
+             pub fn read(x: {b}) -> number {{\n  return x.w\n}}\n\
+             pub fn over(x: {b}<number, string>) -> number {{\n  return 1\n}}\n"
+        )
+    };
+    write_file(&src, "main.glyph", &format!("module main\nimport a {{ Box }}\n{}", body("Box")));
+    write_file(&src, "other.glyph", &format!("module other\nimport a as aa\n{}", body("aa.Box")));
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    for (file, shown) in [("main", "Box"), ("other", "aa.Box")] {
+        let mine: Vec<&String> = report.diagnostics.iter().filter(|d| d.contains(&format!("[ {file}:"))).collect();
+        let e0233: Vec<&&String> = mine.iter().filter(|d| d.contains("E0233")).collect();
+        assert_eq!(e0233.len(), 3, "{file}: {mine:?}");
+        assert_eq!(
+            e0233.iter().filter(|d| d.contains(&format!("`{shown}` takes 1, found 0"))).count(),
+            2,
+            "{file}: {e0233:?}"
+        );
+        assert!(e0233.iter().any(|d| d.contains(&format!("`{shown}` takes 1, found 2"))), "{e0233:?}");
+        assert!(!mine.iter().any(|d| d.contains("E0204") || d.contains("E0210")), "{file}: {mine:?}");
+    }
+}
+
+#[test]
 fn type_arguments_through_a_function_value_hold_for_a_sibling_under_both_spellings() {
     // A sibling's function bound to a local keeps its type parameters, so a
     // call through the local reads its written type arguments the way a call

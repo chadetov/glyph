@@ -1938,10 +1938,17 @@ impl Assigner<'_> {
     /// read: a type parameter, an npm package's type, a stdlib-modeled type.
     fn type_param_count(&self, base: &TypeExpr) -> Option<usize> {
         match self.lowerer.lower(base) {
+            // A sibling's `type` or `interface` (G650): an interface is not a
+            // `type` declaration, so its list comes from `imported_interface`.
             Ty::Imported { module, name } => self
                 .decl_ty_resolver
                 .imported_type_decl(module.as_str(), name.as_ref())
-                .map(|d| d.generics.len()),
+                .map(|d| d.generics.len())
+                .or_else(|| {
+                    self.decl_ty_resolver
+                        .imported_interface(module.as_str(), name.as_ref())
+                        .map(|d| d.generics.len())
+                }),
             Ty::Named { symbol, path } => {
                 let name = path.last()?;
                 let local = self
@@ -8951,6 +8958,10 @@ impl Assigner<'_> {
     /// this the local spelling fell through to D49's identity rule and
     /// refused a value carrying every member, and the imported one was
     /// compared against nothing.
+    ///
+    /// G650. A generic sibling interface written bare (`Box`) is E0233 at
+    /// the annotation, as a local one is, and has no member set here: its
+    /// members would hold a parameter nothing binds.
     fn interface_member_fields(&self, ty: &Ty) -> Option<Vec<RecordField>> {
         self.interface_members_with_owner(ty, 0).map(|(_, fields)| fields)
     }
@@ -9013,6 +9024,7 @@ impl Assigner<'_> {
             let (module, name, iface) =
                 imported_interface_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
             let subst = match args.is_empty() {
+                true if !iface.generics.is_empty() => return None,
                 true => Subst::new(),
                 false if args.len() != iface.generics.len() => return None,
                 false => decl_subst(&ParamOwner::imported_type(&module, &name), &iface.generics, args),

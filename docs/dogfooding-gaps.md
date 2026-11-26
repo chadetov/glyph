@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-511 entries, 363 are fixed, 10 are partly fixed, 13 are decided or resolved, and
-125 are open. G144, the D28 boundary cast that never reached the returns a
+511 entries, 364 are fixed, 10 are partly fixed, 13 are decided or resolved, and
+124 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -17818,7 +17818,7 @@ and is the owner's to confirm.
   `zip` as untyped; all four are corrected, the page item is gone, and the
   `llms.txt` mirrors and the site are regenerated.
 
-- **G541. A sibling's interface is not read across a module edge.** With
+- **G541. [FIXED] A sibling's interface is not read across a module edge.** With
   `pub interface HasName { name: string }` and `pub fn takes(h: HasName)`
   in `lib`, `takes(o)` for `o: Other` (`{ title: string, }`) in another
   module passes `check --no-tsc` under both import spellings, and so does
@@ -17844,3 +17844,20 @@ and is the owner's to confirm.
   `p541/` gives E0211 only for `rlabel(o)` against the sibling's record
   bound; `takes(o)`, `label(o)` and `return o` under `-> HasName` report nothing
   under `check --no-tsc`.*
+
+  Fixed in 0.1.197 (decision record 211, section 2; record 214; D34, D72).
+  An interface a sibling declares keeps its name across the edge
+  (`Ty::Imported`) and has its member set, read on the declaring side
+  through `imported_interface`, the sibling of `imported_bounds`, and keyed
+  on the declaring module and the declaration's own name, so the named
+  import and the namespace spelling read one answer. An application of a
+  generic sibling interface is read through its arguments (G461), and a
+  sibling's second name for an interface reaches it. Every pairing a local
+  interface gets now applies to a sibling's: `takes(o)` and `label(o)` are
+  E0211, `return o` under `-> HasName`, `let x: HasName = o` and a field
+  holding `HasName` are E0204, `takeb(s)` against `Box<number>` with a
+  `v: string` is E0211, `h.nmae` is E0210, `label<Other>(o)` and
+  `Wrap<Other>` under a sibling's `T: HasName` bound are E0251, and a
+  sibling's interface value is refused where a record (D49), a primitive
+  or an array is declared. `glyph_assignable` and the `glyph_impact`
+  argument cells give a sibling's interface the answers a local one gets.

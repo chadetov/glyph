@@ -8,6 +8,13 @@
   <updated>2026-11-26T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.198</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.198" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.198</id>
+    <updated>2026-11-26T00:00:00Z</updated>
+    <summary>std/bigint converts between number and bigint</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.197 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.197" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.197</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.169</id>
     <updated>2026-11-23T00:00:00Z</updated>
     <summary>An escape inside the ${} of a "..." string is a parse error</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.168 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.168" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.168</id>
-    <updated>2026-11-23T00:00:00Z</updated>
-    <summary>A loop over an array literal binds the element type</summary>
   </entry>
 </feed>

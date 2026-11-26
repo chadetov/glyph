@@ -80,4 +80,4 @@ A row leaves this page in the same pull request that closes its gap, so the page
 - Written children filling a required `children` (G631), and a Vite plugin with Fast Refresh (G638).
 - Not planned: class components (G639), and server components before 1.0 (G640).
 
-Code examples on this page are checked against Glyph 0.1.197 on every build. Last changed 26 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.198 on every build. Last changed 26 Nov 2026.

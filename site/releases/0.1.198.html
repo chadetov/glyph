@@ -1,0 +1,19 @@
+---
+version: 0.1.198
+month: 2026-11
+date: 2026-11-26
+headline: std/bigint converts between number and bigint
+---
+            <p>Since 0.1.183 a <code>bigint</code> and a <code>number</code> are separate types, and Glyph had no way to convert one into the other. JavaScript's <code>BigInt(n)</code> throws on a fraction, and <code>Number(b)</code> silently loses precision past <code>Number.MAX_SAFE_INTEGER</code>. Neither is available in Glyph.</p>
+
+            <p><code>std/bigint</code> adds two conversions that return a <code>Result</code> instead:</p>
+            <ul>
+              <li><code>bigint.from_number(n)</code> is <code>Ok</code> for a whole number and <code>Err</code> for a fraction, <code>NaN</code> or an infinity. <code>-0</code> gives <code>0n</code>, and <code>1e21</code> gives its exact <code>bigint</code>.</li>
+              <li><code>bigint.to_number(b)</code> is <code>Ok</code> from <code>-Number.MAX_SAFE_INTEGER</code> to <code>Number.MAX_SAFE_INTEGER</code> and <code>Err</code> outside that range, including at exactly 2<sup>53</sup>, which several larger values round to.</li>
+            </ul>
+            <p>Nothing in the module throws. <code>bigint</code> still works as a type name next to the <code>bigint</code> namespace.</p>
+
+            <p>The help on the errors that led here now points at these functions. <code>BigInt(x)</code> and <code>Number(b)</code> are still E0103, with help that names <code>bigint.from_number</code> and <code>bigint.to_number</code>. The <code>Number</code> help also names <code>number.parse(s)</code> for text. Mixing a <code>bigint</code> and a <code>number</code> in one operator is still E0258, and its help now states the exact range <code>to_number</code> accepts. When the number is a fraction like <code>1.5</code>, the help says no <code>bigint</code> holds a fraction.</p>
+
+            <h3>Breaking</h3>
+            <p>No. A program that imports <code>std/bigint</code> was E0104 under 0.1.197 and checks under 0.1.198. No other exit code changes. Across the 379 programs the corpus script measures, only the module's own tests and the list of std modules in one E0104 message change.</p>

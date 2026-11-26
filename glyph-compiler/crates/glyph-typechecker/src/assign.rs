@@ -3732,19 +3732,24 @@ impl Assigner<'_> {
                     let widens = self
                         .stdlib_callee(callee)
                         .is_some_and(|(key, field)| crate::stdlib::widens_literal_bindings(&key, &field));
-                    // Which argument bound each parameter first, so a bound
-                    // the binding does not satisfy is reported there (G264).
-                    let mut bound_by: HashMap<ParamKey, usize> = HashMap::new();
+                    // What each argument binds on its own, in argument order,
+                    // so a bound the binding does not satisfy is reported at
+                    // the argument that puts it outside the bound (G264). Two
+                    // literal candidates join (D92), and `mb("a", "c")` under
+                    // `T: Mode` is refused at `"c"`, as `tsc` refuses it.
+                    let mut bound_by: HashMap<ParamKey, Vec<(usize, Ty)>> = HashMap::new();
                     for (i, (p, a)) in params.iter().zip(args.iter()).enumerate() {
                         let found = self.tm.get(a.span()).clone();
                         let found = match widens {
                             true => self.widen_fresh_literals(a, found),
                             false => found,
                         };
-                        collect_type_param_bindings(&p.ty, &found, &mut subst, &keys);
-                        for k in subst.keys() {
-                            bound_by.entry(k.clone()).or_insert(i);
+                        let mut own: Subst = HashMap::new();
+                        collect_type_param_bindings(&p.ty, &found, &mut own, &keys);
+                        for (k, t) in own {
+                            bound_by.entry(k).or_default().push((i, t));
                         }
+                        collect_type_param_bindings(&p.ty, &found, &mut subst, &keys);
                     }
                     let mut written_args: Vec<(ParamKey, &TypeExpr)> = Vec::new();
                     // A stdlib parameter a type argument can name
@@ -9782,7 +9787,7 @@ impl Assigner<'_> {
         callee: &Expr,
         keys: &[ParamKey],
         subst: &Subst,
-        bound_by: &HashMap<ParamKey, usize>,
+        bound_by: &HashMap<ParamKey, Vec<(usize, Ty)>>,
         written: &[(ParamKey, &TypeExpr)],
         args: &[Expr],
     ) {
@@ -9799,8 +9804,8 @@ impl Assigner<'_> {
             if !self.assign_incompatible(arg_ty, &applied) {
                 continue;
             }
-            let missing = self.bound_missing_members(arg_ty, &applied);
             if let Some((_, te)) = written.iter().find(|(k, _)| k == key) {
+                let missing = self.bound_missing_members(arg_ty, &applied);
                 self.errors.push(TypeError::TypeArgumentBound {
                     arg: type_expr_source(te),
                     param: key.1.to_string(),
@@ -9812,10 +9817,28 @@ impl Assigner<'_> {
                 });
                 continue;
             }
-            let Some(arg) = bound_by.get(key).and_then(|i| args.get(*i)) else {
+            // The first argument whose own binding is outside the bound, else
+            // the first that bound the parameter: a join of candidates each
+            // inside the bound is inside it, so the fallback is for an
+            // F-bound, whose instance depends on the whole binding.
+            let contributors = bound_by.get(key).map(Vec::as_slice).unwrap_or_default();
+            let site = contributors
+                .iter()
+                .find(|(_, own)| !own.is_unknown() && self.assign_incompatible(own, &applied))
+                .map(|(i, own)| (*i, own))
+                .or_else(|| contributors.first().map(|(i, _)| (*i, arg_ty)));
+            let Some((arg, found)) = site.and_then(|(i, found)| Some((args.get(i)?, found))) else {
                 continue;
             };
-            let shown = ty_display(&widen_literals(&self.named_params(arg_ty)));
+            let missing = self.bound_missing_members(found, &applied);
+            // A literal is shown as its literal where the bound is a literal
+            // set, as `tsc` keeps it there (`"c"` against `Mode`), and widened
+            // anywhere else (`label("x")` against `HasName` shows `string`).
+            let found = match self.declares_string_literal_union(&applied) {
+                true => self.named_params(found),
+                false => widen_literals(&self.named_params(found)),
+            };
+            let shown = ty_display(&found);
             let expected = self.named_params(&applied);
             self.errors.push(TypeError::ArgumentTypeMismatch {
                 expected: ty_display(&expected),
@@ -28173,6 +28196,31 @@ pub fn f() -> number {
                 (15, "E0211", "argument type mismatch: expected `HasName`, found `number`".to_string()),
                 (18, "E0211", "argument type mismatch: expected `HasName`, found `number`".to_string()),
             ]
+        );
+    }
+
+    /// G264 with D92's literal join. Two literal candidates inside a
+    /// literal-union bound are accepted, and a join that leaves the bound is
+    /// refused at the argument that leaves it, with its literal shown, where
+    /// `tsc` refuses it (TS2345 at `"c"` in each). The join never widens a
+    /// binding past the bound.
+    #[test]
+    fn a_literal_join_is_refused_at_the_literal_outside_the_bound() {
+        let src = "module x\n\
+                   type Mode = \"a\" | \"b\"\n\
+                   fn mb<T: Mode>(a: T, b: T) -> number {\n  return 1\n}\n\
+                   pub fn s1() -> number {\n  return mb(\"a\", \"b\")\n}\n\
+                   pub fn s2(m: Mode) -> number {\n  return mb(m, \"c\")\n}\n\
+                   pub fn s3() -> number {\n  return mb(\"a\", \"c\")\n}\n\
+                   pub fn s4(m: Mode) -> number {\n  return mb(m, \"a\")\n}\n";
+        let diags = bound_diags(src);
+        assert_eq!(
+            diags,
+            vec![
+                (10, "E0211", "argument type mismatch: expected `Mode`, found `\"c\"`".to_string()),
+                (13, "E0211", "argument type mismatch: expected `Mode`, found `\"c\"`".to_string()),
+            ],
+            "{diags:?}"
         );
     }
 

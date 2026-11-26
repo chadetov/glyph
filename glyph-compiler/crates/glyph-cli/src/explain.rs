@@ -1668,8 +1668,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Pass or write a type that has every member the bound requires. On a \
             call you can leave the type argument out and let the arguments \
             decide it; on a type, the other fix is to loosen the declaration's \
-            bound. Not judged: a bound written as an `extern_ts` or `typeof` \
-            type, a bound that is another module's `interface` (G541), an \
+            bound. A bound that is another module's `interface` is judged by \
+            its members, as a local one is, under either import spelling. Not \
+            judged: a bound written as an `extern_ts` or `typeof` type, an \
             object literal against a `Record<string, V>` bound, a \
             standard-library function's type parameters, and a function \
             referenced and not called. TypeScript reports these as TS2344.",
@@ -2849,7 +2850,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0251",
         phase: "typechecker",
-        meaning: "A written type argument does not satisfy the bound of the type parameter it fills (D72): `label<Other>(o)` on `fn label<T: HasName>`, or `Box<Other>` on `type Box<T: HasName>` in any type position (a parameter, a return, a field, an annotation, an alias body, a bound, nested). A bound naming the declaration's own parameters is checked with the arguments put in (`Ranked<Ord>` under `T: Cmp<T>` checks `Ord` against `Cmp<Ord>`). Inside a generic declaration, its own `U` is read through its bound, so `Box<U>` is accepted with `U: HasName` and refused with an unbounded `U`. A binding the arguments infer is E0211 at the argument instead. Not judged: an `extern_ts` or `typeof` bound, a sibling module's `interface` bound (G541) and a stdlib function's type parameters. TypeScript's TS2344",
+        meaning: "A written type argument does not satisfy the bound of the type parameter it fills (D72): `label<Other>(o)` on `fn label<T: HasName>`, or `Box<Other>` on `type Box<T: HasName>` in any type position (a parameter, a return, a field, an annotation, an alias body, a bound, nested). A bound naming the declaration's own parameters is checked with the arguments put in (`Ranked<Ord>` under `T: Cmp<T>` checks `Ord` against `Cmp<Ord>`). Inside a generic declaration, its own `U` is read through its bound, so `Box<U>` is accepted with `U: HasName` and refused with an unbounded `U`. A binding the arguments infer is E0211 at the argument instead. Not judged: an `extern_ts` or `typeof` bound and a stdlib function's type parameters. A sibling module's `interface` bound is judged by its members, as a local one is (G541). TypeScript's TS2344",
         fix: "Write a type that has every member the bound requires; on a call, or leave the type argument out so the arguments decide it; on a type, or loosen the declaration's bound",
     },
     CodeEntry {

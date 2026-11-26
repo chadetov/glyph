@@ -8763,15 +8763,7 @@ impl Assigner<'_> {
     /// names ends at, where it is declared (G541), the rule
     /// `imported_record_shape` applies to an imported record.
     fn interface_member_shape(&self, ty: &Ty) -> Option<RecordShape> {
-        let fields = self.interface_member_fields(ty)?;
-        let owner = match split_type_app(ty).0 {
-            Ty::Imported { module, name } => {
-                let (module, name, _) =
-                    imported_interface_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
-                FieldOwner::Declared { module, name }
-            }
-            base => self.local_owner(base)?,
-        };
+        let (owner, fields) = self.interface_members_with_owner(ty, 0)?;
         Some(RecordShape { owner, fields })
     }
 
@@ -8950,7 +8942,72 @@ impl Assigner<'_> {
     /// application's arguments substituted for the sibling's own parameters,
     /// so every pairing and member read below treats it as a local one. The
     /// type keeps its name; only the members are read.
+    ///
+    /// G649 (record 215). A second name for an interface is that interface
+    /// (D46), whichever module declares either: `type LN = HasName`, `type LN
+    /// = aa.HasName` and a sibling's `pub type Named = HasName` all read
+    /// `HasName`'s members, and a generic second name (`type LB<T> =
+    /// Box<T>`) reads them with its own arguments put in (G651). Without
+    /// this the local spelling fell through to D49's identity rule and
+    /// refused a value carrying every member, and the imported one was
+    /// compared against nothing.
     fn interface_member_fields(&self, ty: &Ty) -> Option<Vec<RecordField>> {
+        self.interface_members_with_owner(ty, 0).map(|(_, fields)| fields)
+    }
+
+    /// `interface_member_fields`, with the interface the members came from:
+    /// the declaration at the end of any chain of second names, local or in
+    /// a sibling.
+    fn interface_members_with_owner(&self, ty: &Ty, depth: usize) -> Option<(FieldOwner, Vec<RecordField>)> {
+        if let Some(found) = self.direct_interface_members(ty) {
+            return Some(found);
+        }
+        if depth >= 8 {
+            return None;
+        }
+        let (base, args) = split_type_app(ty);
+        if !matches!(base, Ty::Named { .. } | Ty::Imported { .. }) {
+            return None;
+        }
+        // A second name: follow it one step, with its arguments put in, and
+        // read what it names. A body that is not itself a name or an
+        // application (a record, a union, a primitive) answers `None` below.
+        let body = self.second_name_body(base, args)?;
+        if body == *ty || !matches!(split_type_app(&body).0, Ty::Named { .. } | Ty::Imported { .. }) {
+            return None;
+        }
+        self.interface_members_with_owner(&body, depth + 1)
+    }
+
+    /// The body of the second name `base` declares, with `args` put in for
+    /// its parameters: a local `type` whose body is a path or a generic
+    /// application, or a sibling's, read on the declaring side. `None` for
+    /// anything else, and for a refined declaration, which is its own type.
+    fn second_name_body(&self, base: &Ty, args: &[Ty]) -> Option<Ty> {
+        match base {
+            Ty::Named { .. } => {
+                let td = self.direct_type_decl(base)?;
+                if td.refinement.is_some() || !matches!(&td.body, TypeExpr::Path { .. } | TypeExpr::Generic { .. }) {
+                    return None;
+                }
+                let generics: Vec<Ident> = td.generics.iter().map(|g| g.name.clone()).collect();
+                alias_body_applied(&self.lowerer.lower(&td.body), &self.type_decl_owner(td), &generics, args)
+            }
+            Ty::Imported { module, name } => {
+                let decl = declared_type_across_modules(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
+                if decl.refined {
+                    return None;
+                }
+                alias_body_applied(&decl.body, &ParamOwner::imported_type(module.as_str(), name.as_ref()), &decl.generics, args)
+            }
+            _ => None,
+        }
+    }
+
+    /// The members of `ty` when its base is itself an interface, local or a
+    /// sibling's (G541), with an application's arguments substituted, and
+    /// the declaration they came from.
+    fn direct_interface_members(&self, ty: &Ty) -> Option<(FieldOwner, Vec<RecordField>)> {
         let (base, args) = split_type_app(ty);
         if let Ty::Imported { module, name } = base {
             let (module, name, iface) =
@@ -8960,7 +9017,8 @@ impl Assigner<'_> {
                 false if args.len() != iface.generics.len() => return None,
                 false => decl_subst(&ParamOwner::imported_type(&module, &name), &iface.generics, args),
             };
-            return Some(substitute_fields(iface.members, &subst));
+            let fields = substitute_fields(iface.members, &subst);
+            return Some((FieldOwner::Declared { module, name }, fields));
         }
         let Ty::Named { symbol, path } = base else {
             return None;
@@ -8985,7 +9043,8 @@ impl Assigner<'_> {
                 decl_subst(&self.lowerer.param_owner(iface.span.start), &generics, args)
             }
         };
-        Some(substitute_fields(self.lowerer.interface_members(iface), &subst))
+        let owner = self.local_owner(base)?;
+        Some((owner, substitute_fields(self.lowerer.interface_members(iface), &subst)))
     }
 
     /// What a value of `ty` has as members when it is a primitive or an

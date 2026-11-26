@@ -2278,6 +2278,50 @@ def case_imported_interface_both_spellings() -> tuple[bool, str]:
     return True, "a sibling's interface gets one answer under both import spellings, from both tools"
 
 
+def case_second_name_for_an_interface() -> tuple[bool, str]:
+    """A second name for an interface is that interface (G649, record 215).
+
+    `type LN = HasTag` was answered by which module declared the interface:
+    for a sibling's, `check` accepted `Other` (no `tag`) while `glyph_impact`
+    called the site WILL_FAIL and `glyph_assignable` UNDETERMINED, three
+    answers for one pairing; for a local one, D49's identity rule refused
+    `Tagged`, which carries `tag` and which `tsc` accepts. Now `Other` into
+    `LN` and `LL` is a refusal with the checker's codes in every spelling,
+    `Tagged` into either is not refused, and the impact cell at `call_ln` is
+    WILL_FAIL with E0211, the diagnostic `check` draws there.
+    """
+    project = CORPUS / ASSIGNABLE
+    for path, alias in (
+        ("src/iface_alias.glyph", "LN"),
+        ("src/iface_alias.glyph", "LL"),
+        ("src/iface_alias_ns.glyph", "LN"),
+    ):
+        refused = call(project, "glyph_assignable", {"path": path, "from": "Other", "to": alias})
+        if refused.get("verdict") != "WILL_FAIL":
+            return False, f"{path}: `Other` into `{alias}` is {refused.get('verdict', refused)}, not WILL_FAIL"
+        if [d.get("code") for d in refused.get("diagnostics") or []] != ["E0204", "E0211"]:
+            return False, f"{path}: `Other` into `{alias}` names no codes: {refused}"
+        kept = call(project, "glyph_assignable", {"path": path, "from": "Tagged", "to": alias})
+        if kept.get("verdict") != "UNDETERMINED":
+            return False, f"{path}: `Tagged` into `{alias}` is {kept.get('verdict', kept)}, not UNDETERMINED"
+    for entity, caller in (
+        ("iface_alias::takes_ln", "iface_alias::call_ln"),
+        ("iface_alias::takes_ll", "iface_alias::call_ll"),
+        ("iface_alias_ns::takes_ln", "iface_alias_ns::call_ln"),
+    ):
+        a = impact(project, entity, {"kind": "change_signature_type"})
+        if "error" in a:
+            return False, f"impact on {entity} refused: {a['error'][:120]}"
+        entries = [e for e in a.get("impact") or []
+                   if e.get("entity") == caller and e.get("relation") == "CALLS"]
+        if len(entries) != 1:
+            return False, f"no one CALLS site of {entity} in {caller}: {entries}"
+        cell = (entries[0].get("arguments") or [{}])[0]
+        if cell.get("verdict") != "WILL_FAIL" or entries[0].get("diagnostic") != "E0211":
+            return False, f"the cell in {caller} is {cell.get('verdict')} / {entries[0].get('diagnostic')}: {entries[0]}"
+    return True, "a second name for an interface gets the interface's answer from check, assignable and impact"
+
+
 def case_an_opaque_body_is_undetermined() -> tuple[bool, str]:
     """A name whose body is `extern_ts` or `typeof` is never judged (G490).
 
@@ -2579,6 +2623,7 @@ HARD = [
     ("assignability: a bigint is not a number", case_bigint_is_not_a_number),
     ("a generic interface application, both tools", case_generic_interface_application_both_tools),
     ("a sibling's interface, both spellings", case_imported_interface_both_spellings),
+    ("a second name for an interface", case_second_name_for_an_interface),
     ("assignability: an opaque body is undetermined", case_an_opaque_body_is_undetermined),
     ("an interface value in either spelling", case_interface_value_either_spelling),
     ("an edge out of a declaration is exact or unclaimed", case_dependencies_out_of_an_unreadable_module),

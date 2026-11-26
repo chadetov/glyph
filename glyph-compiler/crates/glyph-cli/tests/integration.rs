@@ -11396,6 +11396,86 @@ fn a_sibling_interface_is_judged_by_its_members_under_both_spellings() {
 }
 
 #[test]
+fn a_second_name_for_an_interface_is_that_interface_wherever_either_is_declared() {
+    // G649 (record 215). `type LN = HasName` reads `HasName`'s members, in
+    // every spelling: the interface local, imported by name, or through a
+    // namespace, and the second name local or a sibling's. Before this the
+    // local spelling refused `Good`, which carries `name` (D49's identity
+    // rule read the second name as a record; `tsc` accepts it), and the
+    // imported spelling accepted `Other`, which does not. A generic second
+    // name reads the members with its own arguments put in (G651).
+    let root = unique_tmp("g649alias");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "a.glyph",
+        "module a\n\
+         pub interface HasName { name: string }\n\
+         pub interface Box<X> { v: X }\n",
+    );
+    write_file(&src, "b.glyph", "module b\nimport a\npub type Named = a.HasName\npub type NBox<T> = a.Box<T>\n");
+    let body = |iface: &str| -> String {
+        format!(
+            "type Other = {{ title: string, }}\n\
+             type Good = {{ name: string, extra: number, }}\n\
+             type LN = {iface}\n\
+             type H = {{ h: LN, }}\n\
+             pub fn ret(o: Other) -> LN {{\n  return o\n}}\n\
+             pub fn bind(o: Other) -> string {{\n  let x: LN = o\n  return x.name\n}}\n\
+             pub fn takes_ln(n: LN) -> string {{\n  return n.name\n}}\n\
+             pub fn call_ln(o: Other) -> string {{\n  return takes_ln(o)\n}}\n\
+             pub fn lab<T: LN>(x: T) -> string {{\n  return x.name\n}}\n\
+             pub fn call_lab(o: Other) -> string {{\n  return lab(o)\n}}\n\
+             pub fn field(o: Other) -> H {{\n  return {{ h: o, }}\n}}\n\
+             pub fn good(g: Good) -> LN {{\n  let x: LN = g\n  let y = takes_ln(g)\n  return g\n}}\n\
+             pub fn back(n: LN) -> {iface} {{\n  return n\n}}\n"
+        )
+    };
+    write_file(&src, "local.glyph", &format!("module local\ninterface HasName {{ name: string }}\n{}", body("HasName")));
+    write_file(&src, "named.glyph", &format!("module named\nimport a {{ HasName }}\n{}", body("HasName")));
+    write_file(&src, "spaced.glyph", &format!("module spaced\nimport a as aa\n{}", body("aa.HasName")));
+    write_file(
+        &src,
+        "chain.glyph",
+        "module chain\n\
+         import b { Named, NBox }\n\
+         type Other = { title: string, }\n\
+         type LB<T> = NBox<T>\n\
+         pub fn via(o: Other) -> Named {\n  return o\n}\n\
+         pub fn read(n: Named) -> string {\n  return n.nmae\n}\n\
+         pub fn gen(x: NBox<number>) -> string {\n  return x.v\n}\n\
+         pub fn gen_local(x: LB<number>) -> number {\n  return x.vv\n}\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let at = |file: &str, code: &str| -> Vec<String> {
+        report
+            .diagnostics
+            .iter()
+            .filter(|d| d.contains(code) && d.contains(&format!("[ {file}:")))
+            .cloned()
+            .collect()
+    };
+    for file in ["local", "named", "spaced"] {
+        let e0204 = at(file, "E0204");
+        let e0211 = at(file, "E0211");
+        assert_eq!(e0204.len(), 3, "{file}: {:?}", report.diagnostics);
+        assert_eq!(e0211.len(), 2, "{file}: {:?}", report.diagnostics);
+        assert!(
+            e0204.iter().chain(e0211.iter()).all(|d| d.contains("expected `LN`, found `Other`")),
+            "{file}: `Good` or `n` was refused: {:?}",
+            report.diagnostics
+        );
+    }
+    assert_eq!(at("chain", "E0204").len(), 2, "{:?}", report.diagnostics);
+    assert!(at("chain", "E0204").iter().any(|d| d.contains("expected `Named`, found `Other`")));
+    assert!(at("chain", "E0204").iter().any(|d| d.contains("expected `string`, found `number`")));
+    let e0210 = at("chain", "E0210");
+    assert_eq!(e0210.len(), 2, "{:?}", report.diagnostics);
+    assert!(e0210.iter().any(|d| d.contains("no field `nmae`")), "{e0210:?}");
+    assert!(e0210.iter().any(|d| d.contains("no field `vv`")), "{e0210:?}");
+}
+
+#[test]
 fn type_arguments_through_a_function_value_hold_for_a_sibling_under_both_spellings() {
     // A sibling's function bound to a local keeps its type parameters, so a
     // call through the local reads its written type arguments the way a call

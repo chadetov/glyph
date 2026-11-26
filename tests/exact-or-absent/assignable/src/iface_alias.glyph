@@ -1,0 +1,43 @@
+module iface_alias
+
+import sibling_iface { HasTag }
+
+// G649: a second name for an interface is that interface, whichever module
+// declares either. `LN` names a sibling's interface and `LL` a local one;
+// `call_ln` and `call_ll` are E0211 on purpose, since `Other` has no `tag`,
+// and `ok_ln` and `ok_ll` compile, as `tsc` accepts them.
+interface LocalTag {
+  tag: string
+}
+
+type LN = HasTag
+
+type LL = LocalTag
+
+pub type Other = { title: string }
+
+pub type Tagged = { tag: string }
+
+pub fn takes_ln(n: LN) -> string {
+  return n.tag
+}
+
+pub fn takes_ll(n: LL) -> string {
+  return n.tag
+}
+
+pub fn call_ln(o: Other) -> string {
+  return takes_ln(o)
+}
+
+pub fn call_ll(o: Other) -> string {
+  return takes_ll(o)
+}
+
+pub fn ok_ln(t: Tagged) -> string {
+  return takes_ln(t)
+}
+
+pub fn ok_ll(t: Tagged) -> string {
+  return takes_ll(t)
+}

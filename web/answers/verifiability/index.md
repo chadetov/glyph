@@ -641,4 +641,4 @@ Tooling and the standard library
 
 Why this is the first of Glyph's four pillars, and where its guarantee stops, is on the [verifiability pillar page](https://glyphlang.io/pillars/verifiability/).
 
-Code examples on this page are checked against Glyph 0.1.197 on every build. Last changed 26 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.198 on every build. Last changed 26 Nov 2026.
